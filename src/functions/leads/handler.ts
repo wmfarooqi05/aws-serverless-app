@@ -6,21 +6,21 @@ import {
   ValidatedEventAPIGatewayProxyEvent,
 } from "../../libs/api-gateway";
 import { LeadService } from "./service";
-import Lead from "./model";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
+import { DatabaseService } from "@libs/database-service";
 import { container } from "tsyringe";
+import { Lead } from "./model";
 
 export const createLead: ValidatedEventAPIGatewayProxyEvent<
   Lead
 > = async (event) => {
+  console.log('a');
   try {
-    const lead = await container
-      .resolve(LeadService)
-      .createLead(event.body);
-    return formatJSONResponse({ lead }, 201);
+    const newLead = await container.resolve(LeadService).createLead(event.body);
+    return formatJSONResponse({ lead: newLead }, 201);
   } catch (e) {
     throw new createHttpError.InternalServerError(e);
   }

@@ -21,7 +21,7 @@ export class LeadService implements ILeadService {
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService
-  ) {}
+  ) { }
 
   async getAllLeads(): Promise<Lead[]> {
     const leads = await this.docClient
@@ -54,9 +54,10 @@ export class LeadService implements ILeadService {
       Item: lead,
     };
 
-    await this.docClient.getDocumentClient().put(params).promise();
+    const leadCreated = await this.docClient.runQuery('INSERT INTO leads (uuid, name) VALUES($1, $2) RETURNING id', [lead.id, lead.title]);
+    // await this.docClient.getDocumentClient().put(params).promise();
 
-    return lead;
+    return leadCreated;
   }
 
   async getLead(id: string): Promise<Lead> {
@@ -108,5 +109,5 @@ export class LeadService implements ILeadService {
       .promise();
   }
 
-  async processLeads(): Promise<any> {}
+  async processLeads(): Promise<any> { }
 }
