@@ -22,12 +22,6 @@ export class DatabaseService {
   }
 
   private async initializeClient() {
-    const dbName = "geldbtest";
-    const dbUser = "postgres";
-    const dbHost = "ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com";
-    const dbDriver = 'postgres' as Dialect
-    const dbPassword = "postgres_qasid123";
-
     var client = new Client({
       // host: process.env.POSTGRESQL_HOST,
       // port: process.env.POSTGRESQL_PORT,
@@ -41,7 +35,6 @@ export class DatabaseService {
     });
 
     this.documentClient = client;
-    console.log('db connection', this.documentClient);
   }
 
   public getDocumentClient() {
@@ -58,7 +51,6 @@ export class DatabaseService {
     let result = null;
     try {
       await this.documentClient.connect();
-      console.log('connected');
       result = await this.documentClient.query(queryString, params);
     } finally {
       await this.documentClient.end();

@@ -8,6 +8,7 @@ const createLead = {
       http: {
         method: 'post',
         path: 'lead',
+        cors: true,
         request: {
           schemas: {
             'application/json': schema,
@@ -25,6 +26,13 @@ const getLeads = {
       http: {
         method: 'get',
         path: 'leads',
+        cors: true,
+        authorizer: {
+          type: "COGNITO_USER_POOLS",
+          authorizerId: {
+            Ref: "ApiGatewayAuthorizer"
+          }
+        }
       },
     },
   ],
@@ -37,6 +45,7 @@ const getLeadById = {
       http: {
         method: 'get',
         path: 'lead/{leadId}',
+        cors: true,
       },
     },
   ],
@@ -50,6 +59,7 @@ const updateLead = {
       http: {
         method: 'put',
         path: 'lead',
+        cors: true,
       },
     },
   ],
@@ -63,6 +73,7 @@ const deleteLead = {
       http: {
         method: 'delete',
         path: 'lead/{leadId}',
+        cors: true,
       },
     },
   ],

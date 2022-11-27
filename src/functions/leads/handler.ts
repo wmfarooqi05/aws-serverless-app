@@ -13,6 +13,7 @@ import { LeadService } from "./service";
 import { DatabaseService } from "@libs/database-service";
 import { container } from "tsyringe";
 import { Lead } from "./model";
+import { APIGatewayProxyResult } from "aws-lambda";
 
 export const createLead: ValidatedEventAPIGatewayProxyEvent<
   Lead
@@ -20,7 +21,15 @@ export const createLead: ValidatedEventAPIGatewayProxyEvent<
   console.log('a');
   try {
     const newLead = await container.resolve(LeadService).createLead(event.body);
-    return formatJSONResponse({ lead: newLead }, 201);
+    return {
+      body: JSON.stringify(newLead),
+      statusCode: 201,
+      headers: {
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+      },
+    } as APIGatewayProxyResult;
   } catch (e) {
     throw new createHttpError.InternalServerError(e);
   }
@@ -30,8 +39,20 @@ export const getLeads: ValidatedEventAPIGatewayProxyEvent<
   Lead[]
 > = async () => {
   try {
-    const leads = await container.resolve(LeadService).getAllLeads();
-    return formatJSONResponse({ leads }, 200);
+    console.log('entered getLeads');
+    const leadService = await container.resolve(LeadService);
+    console.log('got leads service', leadService);
+    const leads = await leadService.getAllLeads({});
+    console.log('got leads result', leads);
+    return {
+      headers: {
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+      },
+      body: JSON.stringify(leads),
+      statusCode: 200,
+    };
   } catch (e) {
     throw new createHttpError.InternalServerError(e);
   }
@@ -41,14 +62,22 @@ export const getLeadById: ValidatedEventAPIGatewayProxyEvent<
   Lead[]
 > = async (event) => {
   const { leadId } = event.pathParameters;
-  // try {
-  const leads = await container
-    .resolve(LeadService)
-    .getLead(leadId);
-  return formatJSONResponse({ leads }, 200);
-  // } catch (e) {
-  //   throw new createHttpError.InternalServerError(e);
-  // }
+  try {
+    const leads = await container
+      .resolve(LeadService)
+      .getLead(leadId);
+    return {
+      body: JSON.stringify(leads),
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+      }
+    } as APIGatewayProxyResult;
+  } catch (e) {
+    throw new createHttpError.InternalServerError(e);
+  }
 };
 
 export const updateLead: ValidatedEventAPIGatewayProxyEvent<
