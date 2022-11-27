@@ -14,9 +14,6 @@
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.8",
-    "serverless-postgres": "^2.0.0",
-    "typeorm-aurora-data-api-driver": "^2.4.4",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
