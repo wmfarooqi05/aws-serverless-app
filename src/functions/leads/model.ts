@@ -4,11 +4,15 @@ export enum STATUS {
 };
 
 export interface Lead {
-    id: string;
-    title: string;
-    description: string;
-    status: STATUS.OPEN;
-    createdAt: string;
-    updatedAt: string;
-    endAt: string;
+    id?: string;
+    company_name: string;
+	phone_number?: string;
+	address?: string;
+	city?: string;
+	country?: string;
+	postal_code?: string;
+	concerned_persons?: JSON;
+	remarks?: JSON;
+	created_at?: string;
+	updated_at?: string;
 }
