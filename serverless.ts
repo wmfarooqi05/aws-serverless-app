@@ -1,6 +1,6 @@
 import type { AWS } from "@serverless/typescript";
 
-import { getLeads, getLeadById, createLead } from "@functions/leads";
+import { getLeads, getLeadById, createLead, updateLead } from "@functions/leads";
 import { authCallback } from "@functions/auth";
 
 const serverlessConfiguration: AWS = {
@@ -61,7 +61,7 @@ const serverlessConfiguration: AWS = {
     },
   },
   // import the function via paths
-  functions: { getLeadById, getLeads, createLead, authCallback },
+  functions: { getLeadById, getLeads, createLead, authCallback, updateLead },
   package: { individually: true },
   custom: {
     region: "${opt:region, self:provider.region}",

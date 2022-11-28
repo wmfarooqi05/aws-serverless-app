@@ -18,7 +18,6 @@ import { APIGatewayProxyResult } from "aws-lambda";
 export const createLead: ValidatedEventAPIGatewayProxyEvent<
   Lead
 > = async (event) => {
-  console.log('a');
   try {
     const newLead = await container.resolve(LeadService).createLead(event.body);
     return {
@@ -37,13 +36,9 @@ export const createLead: ValidatedEventAPIGatewayProxyEvent<
 
 export const getLeads: ValidatedEventAPIGatewayProxyEvent<
   Lead[]
-> = async () => {
+> = async (event) => {
   try {
-    console.log('entered getLeads');
-    const leadService = await container.resolve(LeadService);
-    console.log('got leads service', leadService);
-    const leads = await leadService.getAllLeads({});
-    console.log('got leads result', leads);
+    const leads = await container.resolve(LeadService).getAllLeads(event.queryStringParameters);
     return {
       headers: {
         'Access-Control-Allow-Headers': 'Content-Type',
@@ -54,7 +49,7 @@ export const getLeads: ValidatedEventAPIGatewayProxyEvent<
       statusCode: 200,
     };
   } catch (e) {
-    throw new createHttpError.InternalServerError(e);
+    throw new createHttpError.InternalServerError(e.message);
   }
 };
 
@@ -83,13 +78,11 @@ export const getLeadById: ValidatedEventAPIGatewayProxyEvent<
 export const updateLead: ValidatedEventAPIGatewayProxyEvent<
   Lead[]
 > = async (event) => {
-  const lead = JSON.parse(event.body);
-  console.log("lead", lead);
   try {
-    const leads = await container
+    const updatedLead = await container
       .resolve(LeadService)
-      .updateLead(lead.id, lead.status);
-    return formatJSONResponse({ leads }, 200);
+      .updateLead(event.body);
+    return formatJSONResponse({ updatedLead }, 200);
   } catch (e) {
     throw new createHttpError.InternalServerError(e);
   }

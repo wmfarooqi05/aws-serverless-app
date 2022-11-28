@@ -1,4 +1,5 @@
-import schema from './schema';
+//@ts-ignore
+import { createLeadSchema, getLeadsSchema } from './schema';
 import { handlerPath } from '@libs/handler-resolver';
 
 const createLead = {
@@ -11,7 +12,7 @@ const createLead = {
         cors: true,
         request: {
           schemas: {
-            'application/json': schema,
+            'application/json': createLeadSchema,
           },
         },
       },

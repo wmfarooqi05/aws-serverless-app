@@ -4,7 +4,7 @@
   "description": "Serverless aws-nodejs-typescript template",
   "main": "serverless.ts",
   "scripts": {
-    "start": "source dev.env; rm -Rf .esbuild && sls offline start",
+    "start": "source dev.env; rm -Rf .esbuild && nodemon --exec sls offline start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
@@ -13,6 +13,7 @@
   "dependencies": {
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
+    "joi": "^17.7.0",
     "pg": "^8.8.0",
     "uuid": "^9.0.0"
   },
@@ -27,6 +28,7 @@
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "json-schema-to-ts": "^1.5.0",
+    "nodemon": "^2.0.20",
     "reflect-metadata": "^0.1.13",
     "serverless": "^3.25.0",
     "serverless-esbuild": "^1.23.3",

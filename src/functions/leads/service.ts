@@ -1,9 +1,9 @@
 import "reflect-metadata";
-// import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import { injectable, inject } from "tsyringe";
 import { DatabaseService } from "../../libs/database-service";
 
 import { Lead } from "./model";
+import { validateGetLeads, validateUpdateLeads } from "./schema";
 
 export interface ILeadService {
   getAllLeads(body: any): Promise<Lead[]>;
@@ -22,31 +22,35 @@ export class LeadService implements ILeadService {
   ) { }
 
   async getAllLeads(body: any): Promise<Lead[]> {
-    // const { page, total } = body;
+    await validateGetLeads(body);
+    const { page, pageSize } = body;
 
     // @TODO Add pagination
-    const query = `SELECT * FROM leads`;
-    console.log('query', query);
+    let query = `
+      SELECT * FROM leads 
+      ORDER BY id DESC
+    `;
+    if (page && parseInt(page) > 0) {
+      query += `OFFSET ${page}`;
+    }
+
+    if (pageSize && parseInt(pageSize) > 0) {
+      query += `LIMIT ${pageSize}`;
+    }
+
     const leads = await this.docClient.runQuery(query);
-    console.log('leads', leads);
     return leads.rows;// as Lead[];
   }
 
   async getLead(id: string): Promise<Lead> {
-    console.log('getLead id=', id);
     const query = `SELECT * FROM leads where id='${id}'`;
-    console.log('query');
     const leads = await this.docClient.runQuery(query);
-    console.log('leads', leads);
     return leads.rows;// as Lead[];
   }
 
   async createLead(body: any): Promise<Lead> {
     const { company_name, phone_number, address, city, country, postal_code, concerned_persons, remarks } = JSON.parse(body);
-    const now = new Date();
-    const endAt = new Date();
-    endAt.setHours(now.getHours() + 10);
-
+    // const payload = JSON.parse(body);
     // @TODO Add type checks
     const lead: Lead = {
       company_name,
@@ -94,48 +98,54 @@ export class LeadService implements ILeadService {
       values.push(JSON.stringify(remarks));
     }
 
-    // const leadCreated = await this.docClient.runQuery('INSERT INTO leads (id, company_name) VALUES($1, $2) RETURNING id', [lead.id, lead.company_name]);
-
-    const query =
-      `INSERT INTO leads 
-      (${fields}) VALUES(${fields.map((_, i) => `$${i + 1}`).join(',')
-      }) RETURNING *`;
+    const query = this.getCreateQuery('leads', fields, '*');
     const leadCreated = await this.docClient.runQuery(query, values);
 
     return leadCreated?.rows[0];
   }
 
-  async updateLead(id: string, status: string): Promise<Lead> {
-    const updated = await this.docClient
-      .getDocumentClient()
-      .update({
-        TableName: this.Tablename,
-        Key: { id },
-        UpdateExpression: "set #status = :status",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": status,
-        },
-        ReturnValues: "ALL_NEW",
-      })
-      .promise();
+  async updateLead(body: any): Promise<Lead> {
+    const payload = JSON.parse(body);
+    await validateUpdateLeads(payload);
+    const id = payload.id;
+    delete payload.id;
 
-    return updated.Attributes as Lead;
+    const query = this.getUpdateQuery('leads', id, payload, '*');
+    const args = Object.values(payload);
+    const updatedLead = await this.docClient.runQuery(query, args);
+    return updatedLead?.rows[0];
   }
 
-  async deleteLead(id: string): Promise<any> {
-    return await this.docClient
-      .getDocumentClient()
-      .delete({
-        TableName: this.Tablename,
-        Key: {
-          id,
-        },
-      })
-      .promise();
+  // async deleteLead(id: string): Promise<any> {
+  //   return await this.docClient
+  //     .getDocumentClient()
+  //     .delete({
+  //       TableName: this.Tablename,
+  //       Key: {
+  //         id,
+  //       },
+  //     })
+  //     .promise();
+  // }
+
+  getCreateQuery(tableName: string, fields: string[], returningValues: string): string {
+    return `INSERT INTO ${tableName} 
+    (${fields}) VALUES(${fields.map((_: string, i: number) => `$${i + 1}`).join(',')
+      }) RETURNING ${returningValues}`;
   }
 
+  getUpdateQuery(tableName: string, id: string, fields: string[], returningValues: string = '*'): string {
+    let query = `UPDATE ${tableName} \n SET `;
+    Object.keys(fields).forEach((x, i) => {
+      query += `${x} = $${i + 1},\n`
+    });
+    query = query.replace(/,\s*$/, "");
+    query += `\nWHERE id='${id}' \n RETURNING ${returningValues}`;
+
+    return query;
+  }
+  
   async processLeads(): Promise<any> { }
+
+
 }
