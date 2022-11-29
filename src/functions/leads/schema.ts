@@ -48,3 +48,27 @@ export const validateUpdateLeads = async (obj: any) => {
     allowUnknown: false,
   });
 }
+
+export const validateUpdateLeadAssignedUser = async (assignedBy: string, payload: any) => {
+  await Joi.object({
+    assignedBy: Joi.string().guid().required(),
+    assignTo: Joi.string().guid(),
+    leadId: Joi.string().guid().required(),
+    comments: Joi.string(),
+  }).validateAsync({ ...payload, assignedBy }, {
+    abortEarly: true,
+    allowUnknown: false,
+  });
+}
+
+export const validateAddRemarksToLead = async (addedBy: string, payload: any) => {
+  await Joi.object({
+    addedBy: Joi.string().guid().required(),
+    assignTo: Joi.string().guid(),
+    leadId: Joi.string().guid().required(),
+    comments: Joi.string(),
+  }).validateAsync({ ...payload, addedBy }, {
+    abortEarly: true,
+    allowUnknown: false,
+  });
+}

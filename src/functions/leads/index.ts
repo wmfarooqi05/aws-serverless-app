@@ -33,7 +33,7 @@ const getLeads = {
           authorizerId: {
             Ref: "ApiGatewayAuthorizer"
           }
-        }
+        },
       },
     },
   ],
@@ -52,7 +52,6 @@ const getLeadById = {
   ],
 };
 
-
 const updateLead = {
   handler: `${handlerPath(__dirname)}/handler.updateLead`,
   events: [
@@ -65,7 +64,6 @@ const updateLead = {
     },
   ],
 };
-
 
 const deleteLead = {
   handler: `${handlerPath(__dirname)}/handler.deleteLead`,
@@ -80,13 +78,18 @@ const deleteLead = {
   ],
 };
 
-const processLeads = {
-  handler: `${handlerPath(__dirname)}/handler.processLeads`,
-  // events: [
-  //   {
-  //     schedule: "rate(10 minutes)",
-  //   }
-  // ],
-}
+const updateLeadAssignedUser = {
+  handler: `${handlerPath(__dirname)}/handler.updateLeadAssignedUser`,
+  events: [
+    {
+      http: {
+        method: 'put',
+        path: 'lead/assign',
+        cors: true,
+      },
+    },
+  ],
+};
 
-export { getLeads, createLead, getLeadById, updateLead, deleteLead, processLeads };
+
+export { getLeads, createLead, getLeadById, updateLead, deleteLead, updateLeadAssignedUser };
