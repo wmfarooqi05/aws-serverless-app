@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { DatabaseService } from "../libs/database-service";
+import { DatabaseService } from "../libs/database-service-objection";
 import { container } from 'tsyringe';
 // import { AuctionService } from "../functions/auction/service";
 

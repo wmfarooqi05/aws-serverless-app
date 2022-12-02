@@ -1,7 +1,12 @@
 import type { AWS } from "@serverless/typescript";
 
-import { getLeads, getLeadById, createLead, updateLead, updateLeadAssignedUser } from "@functions/leads";
-import { authCallback } from "@functions/auth";
+import {
+  getLeads,
+  getLeadById,
+  createLead,
+  updateLead,
+  updateLeadAssignedUser
+} from "@functions/leads";
 
 const serverlessConfiguration: AWS = {
   service: "gel-api",
@@ -13,7 +18,7 @@ const serverlessConfiguration: AWS = {
     runtime: "nodejs14.x",
     stage: "dev",
     region: "ca-central-1",
-    timeout: 10,
+    timeout: 100,
     iam: {
       role: {
         statements: [
@@ -30,14 +35,12 @@ const serverlessConfiguration: AWS = {
       shouldStartNameWithService: true,
     },
     vpc: {
-      securityGroupIds: [
-        'sg-0bcaf1e5086effdd5'
-      ],
+      securityGroupIds: ["sg-0bcaf1e5086effdd5"],
       subnetIds: [
-        'subnet-0c87da38c707b23d3',
-        'subnet-08b4521bc0da095f4',
-        'subnet-0254663a738570f0c',
-      ]
+        "subnet-0c87da38c707b23d3",
+        "subnet-08b4521bc0da095f4",
+        "subnet-0254663a738570f0c",
+      ],
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
@@ -54,14 +57,20 @@ const serverlessConfiguration: AWS = {
       // DB_NAME: "${self:custom.DB_NAME}"
       // USERNAME: "${self:custom.USERNAME}"
       // PASSWORD: "${self:custom.PASSWORD}"
-
     },
     tracing: {
       lambda: true,
     },
   },
   // import the function via paths
-  functions: { getLeadById, getLeads, createLead, authCallback, updateLead, updateLeadAssignedUser },
+  functions: {
+    getLeadById,
+    getLeads,
+    createLead,
+    // authCallback,
+    updateLead,
+    updateLeadAssignedUser,
+  },
   package: { individually: true },
   custom: {
     region: "${opt:region, self:provider.region}",
@@ -73,7 +82,34 @@ const serverlessConfiguration: AWS = {
       bundle: true,
       minify: false,
       sourcemap: true,
-      exclude: ["aws-sdk", "pg-native", "pg-hstore"],
+      exclude: [
+        "aws-sdk",
+        "pg-native",
+        "pg-hstore",
+        "better-sqlite3",
+        "mysql2",
+        "oracledb",
+        "sqlite3",
+        "tedious",
+        "mysql",
+        "pg-query-stream",
+        "assert",
+        "fs",
+        "os",
+        "https",
+        "http",
+        "stream",
+        "tty",
+        "zlib",
+        "timers",
+        "path",
+        "crypto",
+        "dns",
+        "module",
+        "process",
+        "http2",
+        "child_process",
+      ],
       target: "node14",
       define: { "require.resolve": undefined },
       platform: "node",
@@ -109,16 +145,18 @@ const serverlessConfiguration: AWS = {
   resources: {
     Resources: {
       ApiGatewayAuthorizer: {
-        Type: 'AWS::ApiGateway::Authorizer',
+        Type: "AWS::ApiGateway::Authorizer",
         Properties: {
-          Name: 'CognitoUserPool',
-          Type: 'COGNITO_USER_POOLS',
-          IdentitySource: 'method.request.header.Authorization',
+          Name: "CognitoUserPool",
+          Type: "COGNITO_USER_POOLS",
+          IdentitySource: "method.request.header.Authorization",
           RestApiId: {
-            Ref: 'ApiGatewayRestApi'
+            Ref: "ApiGatewayRestApi",
           },
-          ProviderARNs: ["arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd"]
-        }
+          ProviderARNs: [
+            "arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd",
+          ],
+        },
       },
       // UserPool: { // this line is name
       //   Type: "AWS::Cognito::UserPool",
@@ -126,8 +164,8 @@ const serverlessConfiguration: AWS = {
       //     "UserPoolName": "SALES_REP"
       //   }
       // }
-    }
-  }
+    },
+  },
 };
 
 module.exports = serverlessConfiguration;
