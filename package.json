@@ -4,8 +4,15 @@
   "description": "Serverless aws-nodejs-typescript template",
   "main": "serverless.ts",
   "scripts": {
-    "start": "source dev.env; rm -Rf .esbuild && nodemon --exec sls offline start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "rm -Rf .esbuild && NODE_ENV=local nodemon --exec sls offline start",
+    "start:dev": "rm -Rf .esbuild && set NODE_ENV=dev nodemon --exec sls offline start",
+    "start:stage": "rm -Rf .esbuild && NODE_ENV=stage nodemon --exec sls offline start",
+    "deploy:dev": "NODE_ENV=dev sls deploy",
+    "deploy:stage": "NODE_ENV=stage sls deploy",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "knex:migrate:make": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:make",
+    "knex:migrate:latest": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:latest",
+    "knex:migrate:rollback": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:rollback"
   },
   "engines": {
     "node": ">=14.15.0"
@@ -13,14 +20,16 @@
   "dependencies": {
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
+    "dotenv": "^16.0.3",
     "joi": "^17.7.0",
     "jsonwebtoken": "^8.5.1",
     "knex": "^2.3.0",
-    "knex-serverless-postgres": "^1.0.5",
+    "knex-paginate": "^3.0.2",
     "knex-stringcase": "^1.4.6",
+    "moment-timezone": "^0.5.39",
     "objection": "^3.0.1",
     "pg": "^8.8.0",
-    "serverless-postgres": "^2.0.0",
+    "serverless-dotenv-plugin": "^4.0.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

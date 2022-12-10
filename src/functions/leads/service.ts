@@ -1,209 +1,196 @@
 import "reflect-metadata";
-import { injectable, inject } from "tsyringe";
-import { DatabaseService } from "../../libs/database-service";
-import * as moment from "moment-timezone";
-moment.tz.setDefault("Canada/Eastern");
+import LeadModel, {
+  IAssignmentHistory,
+  ILead,
+  ILeadModel,
+  ILeadPaginated,
+  LEADS_TABLE_NAME,
+} from "../../models/Lead";
+import { DatabaseService } from "../../libs/database/database-service-objection";
+import moment from "moment-timezone";
 
-import { Lead } from "./model";
 import {
   validateUpdateLeadAssignedUser,
   validateGetLeads,
   validateUpdateLeads,
+  validateCreateConcernedPerson,
+  validateUpdateConcernedPerson,
 } from "./schema";
 
+import { injectable, inject } from "tsyringe";
+import ConversationModel from "src/models/Conversation";
+import { randomUUID } from "crypto";
+
 export interface ILeadService {
-  getAllLeads(body: any): Promise<Lead[]>;
-  createLead(lead: Lead): Promise<Lead>;
-  getLead(id: string): Promise<Lead>;
-  updateLead(id: string, status: string): Promise<Lead>;
+  getAllLeads(body: any): Promise<ILeadPaginated>;
+  createLead(lead: ILeadModel): Promise<ILeadModel>;
+  getLead(id: string): Promise<ILeadModel>;
+  updateLead(id: string, status: string): Promise<ILeadModel>;
   deleteLead(id: string): Promise<any>;
 }
 
 @injectable()
 export class LeadService implements ILeadService {
-  private Tablename: string = process.env.LEAD_TABLE;
+  // @TODO make use of this
+  private Tablename: string = LEADS_TABLE_NAME;
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
-  async getAllLeads(body: any): Promise<Lead[]> {
-    await validateGetLeads(body);
+  async getAllLeads(body: any): Promise<ILeadPaginated> {
+    if (body) {
+      await validateGetLeads(body);
+    }
     const { page, pageSize } = body;
-    let defaultPageSize = parseInt(pageSize) ? parseInt(pageSize) : 20;
-
-    // @TODO Add pagination
-    let query = `
-      SELECT * FROM leads 
-      ORDER BY id DESC
-      LIMIT ${defaultPageSize}
-    `;
-
-    if (page && parseInt(page) > 0) {
-      query += `OFFSET ${(page - 1) * defaultPageSize}`;
-    }
-
-    const leads = await this.docClient.runQuery(query);
-    return leads.rows; // as Lead[];
+    return this.docClient
+      .getKnexClient()(LeadModel.tableName)
+      .paginate({
+        perPage: pageSize ? parseInt(pageSize) : 12,
+        currentPage: page ? parseInt(page) : 1,
+      });
   }
 
-  async getLead(id: string): Promise<Lead> {
-    const query = `SELECT * FROM leads where id='${id}'`;
-    const leads = await this.docClient.runQuery(query);
-    return leads.rows; // as Lead[];
+  async getLead(id: string): Promise<ILeadModel> {
+    const lead = await LeadModel.query().findById(id);
+    const conversations = await ConversationModel.query().where({ leadId: id });
+    lead.converations = conversations;
+    return lead;
   }
 
-  async createLead(body: any): Promise<Lead> {
-    const {
-      company_name,
-      phone_number,
-      address,
-      city,
-      country,
-      postal_code,
-      concerned_persons,
-      remarks,
-    } = JSON.parse(body);
-    // const payload = JSON.parse(body);
-    // @TODO Add type checks
-    const lead: Lead = {
-      company_name,
-      phone_number,
-      address,
-      city,
-      country,
-      postal_code,
-      concerned_persons,
-      remarks,
-    };
+  async createLead(body: any): Promise<ILeadModel> {
+    const payload = JSON.parse(body);
+    // validateCreateLead(payload);
 
-    const fields = [];
-    const values = [];
-    if (company_name) {
-      fields.push("company_name");
-      values.push(company_name);
-    }
-    if (phone_number) {
-      fields.push("phone_number");
-      values.push(phone_number);
-    }
-    if (address) {
-      fields.push("address");
-      values.push(address);
-    }
-    if (city) {
-      fields.push("city");
-      values.push(city);
-    }
-    if (country) {
-      fields.push("country");
-      values.push(country);
-    }
-    if (postal_code) {
-      fields.push("postal_code");
-      values.push(postal_code);
-    }
-    if (concerned_persons) {
-      fields.push("concerned_persons");
-      values.push(JSON.stringify(concerned_persons));
-    }
-    if (remarks) {
-      fields.push("remarks");
-      values.push(JSON.stringify(remarks));
-    }
-
-    const query = this.getCreateQuery("leads", fields, "*");
-    const leadCreated = await this.docClient.runQuery(query, values);
-
-    return leadCreated?.rows[0];
+    return LeadModel.query().insert(payload).returning("*");
   }
 
-  async updateLead(body: any): Promise<Lead> {
+  async updateLead(body: any): Promise<ILeadModel> {
     const payload = JSON.parse(body);
     await validateUpdateLeads(payload);
     const id = payload.id;
     delete payload.id;
 
-    const query = this.getUpdateQuery("leads", id, Object.keys(payload), "*");
-    const args = Object.values(payload);
-    const updatedLead = await this.docClient.runQuery(query, args);
-    return updatedLead?.rows[0];
-  }
+    const updatedLead = await LeadModel.query().patchAndFetchById(id, payload);
+    if (!updatedLead || Object.keys(updatedLead).length === 0) {
+      throw Error("Object not found");
+    }
 
-  // async deleteLead(id: string): Promise<any> {
-  //   return await this.docClient
-  //     .getDocumentClient()
-  //     .delete({
-  //       TableName: this.Tablename,
-  //       Key: {
-  //         id,
-  //       },
-  //     })
-  //     .promise();
-  // }
+    return updatedLead;
+  }
 
   async updateLeadAssignedUser(assignedBy, body) {
     await validateUpdateLeadAssignedUser(assignedBy, JSON.parse(body));
 
     const { assignTo, leadId, comments } = JSON.parse(body);
 
-    const assignmentHistory = {
+    // const update
+    const assignmentHistory: IAssignmentHistory = {
       assignedTo: assignTo || null,
       assignedBy,
       comments: comments || "",
-      date: Date.now(),
+      date: moment().format(),
     };
 
-    const query = `
-      UPDATE leads \n SET 
-      assigned_to = $1,
-      assigned_by = $2,
-      assignment_history = (
-        CASE
-            WHEN assignment_history IS NULL THEN '[]'::JSONB
-            ELSE assignment_history
-        END
-      ) || $3::JSONB WHERE id = $4
-      RETURNING "id", "assigned_to", "assigned_by", "assignment_history"
-    `;
-
-    const updatedLead = await this.docClient.runQuery(query, [
-      assignTo,
+    const updatedLead = await LeadModel.query().patchAndFetchById(leadId, {
+      assignedTo: assignTo ? assignTo : LeadModel.raw("NULL"),
       assignedBy,
-      assignmentHistory,
-      leadId,
-    ]);
-    return updatedLead?.rows[0];
-  }
-
-  // @TODO move to utils
-  getCreateQuery(
-    tableName: string,
-    fields: string[],
-    returningValues: string
-  ): string {
-    return `INSERT INTO ${tableName} 
-    (${fields}) VALUES(${fields
-      .map((_: string, i: number) => `$${i + 1}`)
-      .join(",")}) RETURNING ${returningValues}`;
-  }
-
-  getUpdateQuery(
-    tableName: string,
-    id: string,
-    fields: string[],
-    returningValues: string = "*"
-  ): string {
-    let query = `UPDATE ${tableName} \n SET `;
-    fields.forEach((x, i) => {
-      query += `${x} = $${i + 1},\n`;
+      assignmentHistory: LeadModel.raw(
+        `(
+            CASE
+              WHEN assignment_history IS NULL THEN :assignmentWithArray::JSONB
+              ELSE assignment_history || :assignmentWithoutArray::jsonb
+            END
+          )`,
+        {
+          assignmentWithArray: JSON.stringify([assignmentHistory]),
+          assignmentWithoutArray: JSON.stringify(assignmentHistory),
+        }
+      ),
     });
-    query = query.replace(/,\s*$/, "");
-    query += `\nWHERE id='${id}' \n RETURNING ${returningValues}`;
 
-    return query;
+    if (!updatedLead || Object.keys(updatedLead).length === 0) {
+      throw Error("Object not found");
+    }
+
+    return updatedLead;
   }
 
-  async processLeads(): Promise<any> {}
+  async createConcernedPersons(employeeId, body) {
+    const payload = JSON.parse(body);
+    await validateCreateConcernedPerson(employeeId, payload);
+    const leadId = payload.leadId;
+    delete payload.leadId;
 
+    const date = moment().format();
+
+    payload["id"] = randomUUID();
+    payload["addedBy"] = employeeId;
+    payload["updatedBy"] = employeeId;
+    payload["createdAt"] = date;
+    payload["updatedAt"] = date;
+
+    const lead = LeadModel.query()
+      .patch({
+        concernedPersons: LeadModel.raw(
+          `
+          CASE
+            WHEN concerned_persons IS NULL THEN :arr::JSONB
+            ELSE concerned_persons || :obj::JSONB
+          END
+          `,
+          {
+            obj: JSON.stringify(payload),
+            arr: JSON.stringify([payload]),
+          }
+        ),
+      })
+      .where({ id: leadId })
+      .returning("*")
+      .first();
+
+    if (!lead) {
+      throw new Error("Lead does't exists");
+    }
+
+    return lead;
+  }
+
+  async updateConcernedPerson(id, employeeId, body) {
+    const payload = JSON.parse(body);
+    await validateUpdateConcernedPerson(employeeId, payload);
+    const { leadId } = payload;
+    delete payload.leadId;
+
+    const lead: ILead = await LeadModel.query().findOne({
+      id: leadId,
+    });
+
+    const index = lead.concernedPersons.findIndex((x) => x.id === id);
+
+    if (index === -1) {
+      throw new Error("Concerned Person doesn't exist");
+    }
+
+    const date = moment().format();
+    const updatedPerson = {
+      ...lead.concernedPersons[index],
+      ...payload,
+      updatedBy: employeeId,
+      updatedAt: date,
+    };
+
+    return LeadModel.query().patchAndFetchById(leadId, {
+      concerned_persons: ConversationModel.raw(
+        `
+          jsonb_set(concerned_persons, 
+            '{
+              ${index}
+            }', '${JSON.stringify(updatedPerson)}', 
+            true
+          )
+        `
+      ),
+    });
+  }
 }

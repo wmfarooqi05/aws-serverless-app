@@ -1,24 +1,19 @@
 import type { AWS } from "@serverless/typescript";
 
-import {
-  getLeads,
-  getLeadById,
-  createLead,
-  updateLead,
-  updateLeadAssignedUser
-} from "@functions/leads";
+import allFunctions from "@functions/index";
 
 const serverlessConfiguration: AWS = {
   service: "gel-api",
   frameworkVersion: "3",
-  plugins: ["serverless-esbuild", "serverless-offline"],
+  plugins: ["serverless-esbuild", "serverless-offline", "serverless-dotenv-plugin"],
   configValidationMode: "error",
+  useDotenv: true,
   provider: {
     name: "aws",
     runtime: "nodejs14.x",
-    stage: "dev",
     region: "ca-central-1",
     timeout: 100,
+    stage: "${self:custom.STAGE}",
     iam: {
       role: {
         statements: [
@@ -45,9 +40,8 @@ const serverlessConfiguration: AWS = {
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
-
-      REGION: "${self:custom.region}",
-      STAGE: "${self:custom.stage}",
+      // REGION: "${self:custom.region}",
+      // STAGE: "${opt:stage, 'dev'}",
 
       // ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com
       // aurora
@@ -63,21 +57,14 @@ const serverlessConfiguration: AWS = {
     },
   },
   // import the function via paths
-  functions: {
-    getLeadById,
-    getLeads,
-    createLead,
-    // authCallback,
-    updateLead,
-    updateLeadAssignedUser,
-  },
+  functions: allFunctions,
   package: { individually: true },
   custom: {
     region: "${opt:region, self:provider.region}",
     DB_NAME: "ge-db-dev-1",
     USERNAME: "postgres",
     PASSWORD: "v16pwn1QyN8iCixbWfbL",
-
+    STAGE: process.env.NODE_ENV,
     esbuild: {
       bundle: true,
       minify: false,
@@ -120,7 +107,6 @@ const serverlessConfiguration: AWS = {
       allowCache: true,
       useChildProcesses: true,
     },
-    stage: "${opt:stage, self:provider.stage}",
   },
   // resources: {
   //   Resources: {
@@ -142,30 +128,30 @@ const serverlessConfiguration: AWS = {
   //     }
   //   }
   // }
-  resources: {
-    Resources: {
-      ApiGatewayAuthorizer: {
-        Type: "AWS::ApiGateway::Authorizer",
-        Properties: {
-          Name: "CognitoUserPool",
-          Type: "COGNITO_USER_POOLS",
-          IdentitySource: "method.request.header.Authorization",
-          RestApiId: {
-            Ref: "ApiGatewayRestApi",
-          },
-          ProviderARNs: [
-            "arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd",
-          ],
-        },
-      },
-      // UserPool: { // this line is name
-      //   Type: "AWS::Cognito::UserPool",
-      //   Properties:{
-      //     "UserPoolName": "SALES_REP"
-      //   }
-      // }
-    },
-  },
+  // resources: {
+  //   Resources: {
+  //     ApiGatewayAuthorizer: {
+  //       Type: "AWS::ApiGateway::Authorizer",
+  //       Properties: {
+  //         Name: "CognitoUserPool",
+  //         Type: "COGNITO_USER_POOLS",
+  //         IdentitySource: "method.request.header.Authorization",
+  //         RestApiId: {
+  //           Ref: "ApiGatewayRestApi",
+  //         },
+  //         ProviderARNs: [
+  //           "arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd",
+  //         ],
+  //       },
+  //     },
+  //     // UserPool: { // this line is name
+  //     //   Type: "AWS::Cognito::UserPool",
+  //     //   Properties:{
+  //     //     "UserPoolName": "SALES_REP"
+  //     //   }
+  //     // }
+  //   },
+  // },
 };
 
 module.exports = serverlessConfiguration;

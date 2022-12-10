@@ -1,4 +1,6 @@
-import { Model } from "objection";
+import { IWithPagination } from "knex-paginate";
+import { Model, ModelObject } from "objection";
+import { singleton } from "tsyringe";
 
 enum RolesEnum {
   "SALES_REP",
@@ -16,11 +18,42 @@ const RolesArray = [
   "SUPER_ADMIN",
 ];
 
-const GenderArray = ['Male', 'Female', 'Other'];
+type GenderType = 'Male' | 'Female' | 'Other';
 
-export class User extends Model {
+const GenderArray: GenderType[] = ['Male', 'Female', 'Other'];
+
+export const USERS_TABLE_NAME = process.env.USERS_TABLE || "users";
+
+export interface IUser {
+  id: string;
+  name: string;
+  lastName: string;
+  email: string;
+  enabled: boolean;
+  jobTitle: string;
+  role: string;
+  gender: GenderType;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  birthdate: string;
+  email_verified: boolean;
+  phone_number_verified: boolean;
+  phone_number: string;
+  reportingManager: string;
+
+  settings: JSON;
+  social_profiles: JSON;
+  UserStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+@singleton()
+export default class User extends Model {
   static get tableName() {
-    return "users";
+    return USERS_TABLE_NAME;
   }
 
   static get jsonSchema() {
@@ -28,8 +61,7 @@ export class User extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        firstName: { type: "string" },
-        lastName: { type: "string" },
+        name: { type: "string" },
         email: {
           type: "string",
           minLength: 1,
@@ -58,16 +90,31 @@ export class User extends Model {
         email_verified: { type: "boolean", default: false },
         phone_number_verified: { type: "boolean", default: false },
         phone_number: { type: "string" },
+        reportingManager: { type: "string" },
+
         settings: { type: "jsonb" },
         social_profiles: { type: "jsonb" },
         UserStatus: { type: "string" },
+
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["id", "firstName", "lastName", "email", "role"],
+      required: ["id", "name", "email", "role"],
       additionalProperties: false,
     };
   }
+
+  static relationMappings = () => ({
+    assigned_by: {
+      relation: Model.BelongsToOneRelation,
+      // The related model.
+      modelClass: User,
+      join: {
+        from: `${USERS_TABLE_NAME}.reportingManager`,
+        to: `${USERS_TABLE_NAME}.id`,
+      },
+    }
+  });
 
   // $beforeInsert() {
   //   this.createdAt = new Date();
@@ -77,3 +124,6 @@ export class User extends Model {
   //   this.updatedAt = new Date();
   // }
 };
+
+export type IUserModel = ModelObject<User>;
+export type IUserPaginated = IWithPagination<IUserModel>;

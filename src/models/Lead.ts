@@ -1,9 +1,44 @@
 import { Model, ModelObject } from "objection";
-import { User } from "./User";
+import { singleton } from "tsyringe";
+import User, { USERS_TABLE_NAME } from "./User";
 
+interface IWithPagination<T = any> {
+  data: T;
+  pagination: IPagination;
+}
+
+interface IPagination {
+  total?: number;
+  lastPage?: number;
+  currentPage: number;
+  perPage: number;
+  from: number;
+  to: number;
+}
+
+console.log('process.env', process.env);
+export const LEADS_TABLE_NAME = process.env.LEAD_TABLE || "leads";
+
+export interface ILead {
+  id: string;
+  companyName: string;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  concernedPersons: IConcernedPerson[];
+  assignedTo: string;
+  assignedBy: string;
+  assignmentHistory: JSON;
+  updatedAt: string;
+}
+
+@singleton()
 export default class Lead extends Model {
   static get tableName() {
-    return "leads";
+    return LEADS_TABLE_NAME;
   }
 
   static get jsonSchema() {
@@ -24,12 +59,6 @@ export default class Lead extends Model {
         postalCode: { type: "string" },
         concernedPersons: {
           type: "array",
-          items: { type: "object" },
-          default: [],
-        },
-        remarks: {
-          type: "array",
-          items: { type: "object" },
           default: [],
         },
         assignedTo: { type: "string" },
@@ -54,8 +83,8 @@ export default class Lead extends Model {
       // The related model.
       modelClass: User,
       join: {
-        from: "leads1.assignedBy",
-        to: "users.id",
+        from: `${LEADS_TABLE_NAME}.assignedBy`,
+        to: `${USERS_TABLE_NAME}.id`,
       },
     },
     assigned_to: {
@@ -63,14 +92,14 @@ export default class Lead extends Model {
       // The related model.
       modelClass: User,
       join: {
-        from: "leads1.assignedTo",
-        to: "users.id",
+        from: `${LEADS_TABLE_NAME}.assignedTo`,
+        to: `${USERS_TABLE_NAME}.id`,
       },
     },
   });
 
   static get jsonAttributes() {
-    return ["concernedPersons", "remarks", "assignmentHistory"];
+    return ["concernedPersons", "conversations", "assignmentHistory"];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();
@@ -81,6 +110,23 @@ export default class Lead extends Model {
   // }
 }
 
-export type ILead = ModelObject<Lead>;
+export type ILeadModel = ModelObject<Lead>;
+export type ILeadPaginated = IWithPagination<ILeadModel>;
 
-// export lead_public_fields = ['company_name', 'phone_number', 'address', 'city', 'county', ]
+// @TODO export them somewhere else
+export interface IAssignmentHistory {
+  assignedTo?: string;
+  assignedBy: string;
+  comments?: string;
+  date: string;
+}
+
+export interface IConcernedPerson {
+  id: string;
+  name: string;
+  designation: string;
+  phoneNumber: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}

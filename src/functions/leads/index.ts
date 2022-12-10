@@ -1,20 +1,15 @@
 //@ts-ignore
-import { createLeadSchema, getLeadsSchema } from './schema';
-import { handlerPath } from '@libs/handler-resolver';
+import { createLeadSchema, getLeadsSchema } from "./schema";
+import { handlerPath } from "@libs/handler-resolver";
 
 const createLead = {
   handler: `${handlerPath(__dirname)}/handler.createLead`,
   events: [
     {
       http: {
-        method: 'post',
-        path: 'lead',
+        method: "post",
+        path: "lead",
         cors: true,
-        request: {
-          schemas: {
-            'application/json': createLeadSchema,
-          },
-        },
       },
     },
   ],
@@ -25,15 +20,15 @@ const getLeads = {
   events: [
     {
       http: {
-        method: 'get',
-        path: 'leads',
+        method: "get",
+        path: "leads",
         cors: true,
-        authorizer: {
-          type: "COGNITO_USER_POOLS",
-          authorizerId: {
-            Ref: "ApiGatewayAuthorizer"
-          }
-        },
+        // authorizer: {
+        //   type: "COGNITO_USER_POOLS",
+        //   authorizerId: {
+        //     Ref: "ApiGatewayAuthorizer"
+        //   }
+        // },
       },
     },
   ],
@@ -44,8 +39,8 @@ const getLeadById = {
   events: [
     {
       http: {
-        method: 'get',
-        path: 'lead/{leadId}',
+        method: "get",
+        path: "lead/{leadId}",
         cors: true,
       },
     },
@@ -57,8 +52,8 @@ const updateLead = {
   events: [
     {
       http: {
-        method: 'put',
-        path: 'lead',
+        method: "put",
+        path: "lead",
         cors: true,
       },
     },
@@ -70,8 +65,8 @@ const deleteLead = {
   events: [
     {
       http: {
-        method: 'delete',
-        path: 'lead/{leadId}',
+        method: "delete",
+        path: "lead/{leadId}",
         cors: true,
       },
     },
@@ -83,13 +78,48 @@ const updateLeadAssignedUser = {
   events: [
     {
       http: {
-        method: 'put',
-        path: 'lead/assign',
+        method: "put",
+        path: "lead/assign",
         cors: true,
       },
     },
   ],
 };
 
+const createConcernedPersons = {
+  handler: `${handlerPath(__dirname)}/handler.createConcernedPersons`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "concerned-person",
+        cors: true,
+      },
+    },
+  ],
+};
 
-export { getLeads, createLead, getLeadById, updateLead, deleteLead, updateLeadAssignedUser };
+const updateConcernedPerson = {
+  handler: `${handlerPath(__dirname)}/handler.updateConcernedPerson`,
+  events: [
+    {
+      http: {
+        method: "put",
+        path: "concerned-person/{id}",
+        cors: true,
+        
+      },
+    },
+  ],
+};
+
+export {
+  getLeads,
+  createLead,
+  getLeadById,
+  updateLead,
+  deleteLead,
+  updateLeadAssignedUser,
+  createConcernedPersons,
+  updateConcernedPerson,
+};
