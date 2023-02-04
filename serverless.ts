@@ -1,18 +1,25 @@
 import type { AWS } from "@serverless/typescript";
-
+import * as dotenv from "dotenv";
+// import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
+
+dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
 const serverlessConfiguration: AWS = {
   service: "gel-api",
   frameworkVersion: "3",
-  plugins: ["serverless-esbuild", "serverless-offline", "serverless-dotenv-plugin"],
+  plugins: [
+    "serverless-esbuild",
+    "serverless-offline",
+    "serverless-dotenv-plugin",
+  ],
   configValidationMode: "error",
   useDotenv: true,
   provider: {
     name: "aws",
     runtime: "nodejs14.x",
     region: "ca-central-1",
-    timeout: 100,
+    timeout: process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
     stage: "${self:custom.STAGE}",
     iam: {
       role: {
@@ -25,6 +32,9 @@ const serverlessConfiguration: AWS = {
         ],
       },
     },
+    // deploymentBucket: {
+    //   name: "gel-api-stage-serverlessdeploymentbucket-165b8hefrrasz"
+    // },
     apiGateway: {
       minimumCompressionSize: 1024,
       shouldStartNameWithService: true,
@@ -40,7 +50,9 @@ const serverlessConfiguration: AWS = {
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1",
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
-      // REGION: "${self:custom.region}",
+      REGION: "${self:custom.region}",
+      STACK_NAME: "${self:custom.STACK_NAME}",
+
       // STAGE: "${opt:stage, 'dev'}",
 
       // ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com
@@ -61,9 +73,13 @@ const serverlessConfiguration: AWS = {
   package: { individually: true },
   custom: {
     region: "${opt:region, self:provider.region}",
+    SCHEDULING_QUEUE: "scheduling-queue-${opt:stage, self:provider.stage}",
+    STACK_NAME: "${opt:stage, self:provider.stage}",
+    // TIMEOUT: process.env.TIMEOUT,
     DB_NAME: "ge-db-dev-1",
     USERNAME: "postgres",
     PASSWORD: "v16pwn1QyN8iCixbWfbL",
+    // TIMEOUT: process.env.TIMEOUT,
     STAGE: process.env.NODE_ENV,
     esbuild: {
       bundle: true,
@@ -110,7 +126,29 @@ const serverlessConfiguration: AWS = {
   },
   // resources: {
   //   Resources: {
-  //     LeadTable: {
+  //     ScheduleGroup: {
+  //       Type: "AWS::Scheduler::ScheduleGroup",
+  //       Properties: {
+  //         QueueName: "${self:custom.SCHEDULING_QUEUE}",
+  //         Region: "ap-southeast-1"
+  //       },
+
+  //     },
+  //   },
+  //   Outputs: {
+  //     SchedulerGroupName: {
+  //       Description: "Schedule group name",
+  //       Value: "${self:custom.SCHEDULING_QUEUE}",
+  //       Export: {
+  //         Name: "${self:custom.STACK_NAME}-schedule-group-name",
+  //       },
+  //     },
+  //   },
+  // },
+  // }
+  // resources: {
+  //   Resources: {
+  //     CompanyTable: {
   //       Type: 'AWS::RDS::DBInstance',
   //       Properties: {
   //         DBName: "geldbtest",

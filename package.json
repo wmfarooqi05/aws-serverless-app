@@ -4,15 +4,16 @@
   "description": "Serverless aws-nodejs-typescript template",
   "main": "serverless.ts",
   "scripts": {
-    "start": "rm -Rf .esbuild && NODE_ENV=local nodemon --exec sls offline start",
-    "start:dev": "rm -Rf .esbuild && set NODE_ENV=dev nodemon --exec sls offline start",
+    "start": "rm -Rf .esbuild && PGSSLMODE=disable NODE_ENV=local nodemon --exec sls offline start",
+    "start:dev": "rm -Rf .esbuild && NODE_ENV=dev nodemon --exec sls offline start",
     "start:stage": "rm -Rf .esbuild && NODE_ENV=stage nodemon --exec sls offline start",
+    "package:dev": "NODE_ENV=dev sls package",
     "deploy:dev": "NODE_ENV=dev sls deploy",
     "deploy:stage": "NODE_ENV=stage sls deploy",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "knex:migrate:make": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:make",
-    "knex:migrate:latest": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:latest",
-    "knex:migrate:rollback": "NODE_ENV=local knex --knexfile src/libs/database/knex-migrate.ts migrate:rollback"
+    "knex:migrate:make": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:make",
+    "knex:migrate:latest": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:latest",
+    "knex:migrate:rollback": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:rollback"
   },
   "engines": {
     "node": ">=14.15.0"
@@ -20,6 +21,8 @@
   "dependencies": {
     "@middy/core": "^3.4.0",
     "@middy/http-json-body-parser": "^3.4.0",
+    "@sendgrid/mail": "^7.7.0",
+    "@sendinblue/client": "^3.2.2",
     "dotenv": "^16.0.3",
     "joi": "^17.7.0",
     "jsonwebtoken": "^8.5.1",
@@ -29,8 +32,8 @@
     "moment-timezone": "^0.5.39",
     "objection": "^3.0.1",
     "pg": "^8.8.0",
-    "serverless-dotenv-plugin": "^4.0.2",
-    "uuid": "^9.0.0"
+    "serverless-multi-regional-plugin": "^1.0.6",
+    "sib-api-v3-sdk": "^8.5.0"
   },
   "devDependencies": {
     "@serverless/typescript": "^3.0.0",
@@ -39,14 +42,13 @@
     "@types/node": "^14.14.25",
     "@types/pg": "^8.6.5",
     "@types/uuid": "^8.3.4",
+    "aws-sdk": "^2.1297.0",
     "esbuild": "^0.14.11",
-    "http-errors": "^2.0.0",
-    "inversify": "^6.0.1",
-    "inversify-binding-decorators": "^4.0.0",
     "json-schema-to-ts": "^1.5.0",
     "nodemon": "^2.0.20",
     "reflect-metadata": "^0.1.13",
     "serverless": "^3.25.0",
+    "serverless-dotenv-plugin": "^4.0.2",
     "serverless-esbuild": "^1.23.3",
     "serverless-offline": "^11.5.0",
     "ts-node": "^10.4.0",

@@ -1,13 +1,14 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
+import { USERS_TABLE_NAME } from "./commons";
 
-enum RolesEnum {
-  "SALES_REP",
-  "SALES_MANAGER",
-  "REGIONAL_MANAGER",
-  "ADMIN",
-  "SUPER_ADMIN",
+export enum RolesEnum {
+  SALES_REP = "SALES_REP",
+  SALES_MANAGER = "SALES_MANAGER",
+  REGIONAL_MANAGER = "REGIONAL_MANAGER",
+  ADMIN = "ADMIN",
+  SUPER_ADMIN = "SUPER_ADMIN",
 }
 
 const RolesArray = [
@@ -18,11 +19,9 @@ const RolesArray = [
   "SUPER_ADMIN",
 ];
 
-type GenderType = 'Male' | 'Female' | 'Other';
+type GenderType = "Male" | "Female" | "Other";
 
-const GenderArray: GenderType[] = ['Male', 'Female', 'Other'];
-
-export const USERS_TABLE_NAME = process.env.USERS_TABLE || "users";
+const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
 export interface IUser {
   id: string;
@@ -91,10 +90,13 @@ export default class User extends Model {
         phone_number_verified: { type: "boolean", default: false },
         phone_number: { type: "string" },
         reportingManager: { type: "string" },
-
         settings: { type: "jsonb" },
         social_profiles: { type: "jsonb" },
         UserStatus: { type: "string" },
+
+        timezone: { type: "string" },
+        dateFormat: { type: "string" },
+        addedBy: { type: "string" }, /// @TODO add relation
 
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
@@ -105,7 +107,16 @@ export default class User extends Model {
   }
 
   static relationMappings = () => ({
-    assigned_by: {
+    addedBy: {
+      relation: Model.BelongsToOneRelation,
+      // The related model.
+      modelClass: User,
+      join: {
+        from: `${USERS_TABLE_NAME}.addedBy`,
+        to: `${USERS_TABLE_NAME}.id`,
+      },
+    },
+    reportingManager: {
       relation: Model.BelongsToOneRelation,
       // The related model.
       modelClass: User,
@@ -113,7 +124,7 @@ export default class User extends Model {
         from: `${USERS_TABLE_NAME}.reportingManager`,
         to: `${USERS_TABLE_NAME}.id`,
       },
-    }
+    },
   });
 
   // $beforeInsert() {
@@ -123,7 +134,7 @@ export default class User extends Model {
   // $beforeUpdate() {
   //   this.updatedAt = new Date();
   // }
-};
+}
 
 export type IUserModel = ModelObject<User>;
 export type IUserPaginated = IWithPagination<IUserModel>;

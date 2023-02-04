@@ -6,7 +6,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-Drop table leads;
+Drop table companies;
 drop table users;
 
 CREATE TYPE Roles AS ENUM (
@@ -16,7 +16,7 @@ CREATE TYPE Roles AS ENUM (
 	'ADMIN',
 	'SUPER_ADMIN');
 
-CREATE TABLE leads_stage (
+CREATE TABLE companies_stage (
 	id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
 	company_name TEXT NOT NULL,
 	phone_number TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE leads_stage (
 	country TEXT,
 	postal_code TEXT,
 	concerned_persons JSONB,
-	conversations JSONB,
+	activities JSONB,
 	created_at TIMESTAMP DEFAULT NOW(),
 	updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	
@@ -62,9 +62,9 @@ CREATE TABLE users_stage (
   FOREIGN KEY (reporting_manager) REFERENCES Users(id)
 );
 
-CREATE TABLE conversations_stage (
+CREATE TABLE activities_stage (
 	id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-	leadId uuid,
+	companyId uuid,
 	phoneNumber TEXT,
 	employeeId uuid,
 	reportingManagerId uuid,
@@ -77,5 +77,5 @@ CREATE TABLE conversations_stage (
 	
 	FOREIGN KEY (employeeId) REFERENCES Users(id),
 	FOREIGN KEY (reportingManagerId) REFERENCES Users(id),
-	FOREIGN KEY (leadId) REFERENCES leads(id)
+	FOREIGN KEY (companyId) REFERENCES companies(id)
 );

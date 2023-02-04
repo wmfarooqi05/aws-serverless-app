@@ -1,8 +1,8 @@
-import type {
-  APIGatewayProxyEvent,
+import type {   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Handler,
-} from "aws-lambda";
+ } from "aws-lambda";
+import { ICustomErrorArgs } from "src/helpers/custom-error";
 import type { FromSchema } from "json-schema-to-ts";
 
 type ValidatedAPIGatewayProxyEvent<S> = Omit<APIGatewayProxyEvent, "body"> & {
@@ -14,11 +14,25 @@ export type ValidatedEventAPIGatewayProxyEvent<S> = Handler<
 >;
 
 export const formatJSONResponse = (
-  response: Record<string, unknown>,
+  response: any,
   statusCode = 200
 ): APIGatewayProxyResult => {
   return {
     statusCode,
-    body: JSON.stringify(response),    
+    body: JSON.stringify(response),
+    headers: {
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+    },
+  };
+};
+
+export const formatErrorResponse = (
+  error: ICustomErrorArgs
+): APIGatewayProxyResult => {
+  return {
+    statusCode: error.statusCode,
+    body: JSON.stringify({ message: error.message, data: error.data }),
   };
 };

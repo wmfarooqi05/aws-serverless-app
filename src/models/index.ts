@@ -1,7 +1,7 @@
-import Lead from './Lead';
+import Company from './Company';
 import User from './User';
 
 export default {
-  Lead,
+  Company,
   User
 };

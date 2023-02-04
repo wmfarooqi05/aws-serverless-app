@@ -5,4 +5,4 @@ call agent + admin people + boss
 
 
 
-Leads (Prospect)
+Companies (Prospect)
