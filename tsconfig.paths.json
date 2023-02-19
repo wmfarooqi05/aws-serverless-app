@@ -3,6 +3,10 @@
     "baseUrl": ".",
     "paths": {
       "@functions/*": ["src/functions/*"],
+      "@common/*": ["src/common/*"],
+      "@models/*": ["src/models/*"],
+      "@helpers/*": ["src/helpers/*"],
+      "@types/*": ["src/types/*"],
       "@libs/*": ["src/libs/*"],
       "external": [
         "better-sqlite3",

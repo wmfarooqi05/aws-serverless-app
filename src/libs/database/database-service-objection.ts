@@ -1,4 +1,4 @@
-import { singleton } from "tsyringe";
+import { injectable } from "tsyringe";
 import { Knex, knex } from "knex";
 import { Model, knexSnakeCaseMappers } from "objection";
 import { config as knexConfig } from "../../../knex/knexfile";
@@ -13,7 +13,7 @@ export default interface IConfig {
   endpoint?: string;
 }
 
-@singleton()
+@injectable()
 export class DatabaseService {
   knexClient: Knex | null = null;
 

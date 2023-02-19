@@ -3,21 +3,30 @@ import * as dotenv from "dotenv";
 // import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
 
+// var fs = require("fs");
+// var contents = fs.readFileSync("package.json");
+// const dependencies = Object.keys(JSON.parse(contents)["devDependencies"]).join(
+//   ...Object.keys(JSON.parse(contents)["dependencies"])
+// );
+
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
+const serviceName = "gel-api";
+
 const serverlessConfiguration: AWS = {
-  service: "gel-api",
+  service: serviceName,
   frameworkVersion: "3",
   plugins: [
     "serverless-esbuild",
     "serverless-offline",
     "serverless-dotenv-plugin",
+    "serverless-layers",
   ],
   configValidationMode: "error",
   useDotenv: true,
   provider: {
     name: "aws",
-    runtime: "nodejs14.x",
+    runtime: "nodejs18.x",
     region: "ca-central-1",
     timeout: process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
     stage: "${self:custom.STAGE}",
@@ -32,9 +41,9 @@ const serverlessConfiguration: AWS = {
         ],
       },
     },
-    // deploymentBucket: {
-    //   name: "gel-api-stage-serverlessdeploymentbucket-165b8hefrrasz"
-    // },
+    deploymentBucket: {
+      name: "${self:custom.DEPLOYMENT_BUCKET}",
+    },
     apiGateway: {
       minimumCompressionSize: 1024,
       shouldStartNameWithService: true,
@@ -70,7 +79,9 @@ const serverlessConfiguration: AWS = {
   },
   // import the function via paths
   functions: allFunctions,
-  package: { individually: true },
+  package: {
+    individually: true,
+  },
   custom: {
     region: "${opt:region, self:provider.region}",
     SCHEDULING_QUEUE: "scheduling-queue-${opt:stage, self:provider.stage}",
@@ -81,12 +92,21 @@ const serverlessConfiguration: AWS = {
     PASSWORD: "v16pwn1QyN8iCixbWfbL",
     // TIMEOUT: process.env.TIMEOUT,
     STAGE: process.env.NODE_ENV,
+    CACHE_INSTANCE_SIZE: "cache.t2.micro",
+    DEPLOYMENT_BUCKET: process.env.DEPLOYMENT_BUCKET,
+    // move it to different file
     esbuild: {
       bundle: true,
       minify: false,
       sourcemap: true,
+      watch: {
+        pattern: ["src/**/*.ts"],
+        ignore: ["temp/**/*"],
+      },
       exclude: [
-        "aws-sdk",
+        // ...dependencies,
+        // "@aws-sdk",
+        // "aws-sdk",
         "pg-native",
         "pg-hstore",
         "better-sqlite3",
@@ -113,7 +133,7 @@ const serverlessConfiguration: AWS = {
         "http2",
         "child_process",
       ],
-      target: "node14",
+      target: "node18",
       define: { "require.resolve": undefined },
       platform: "node",
       concurrency: 10,
@@ -123,73 +143,45 @@ const serverlessConfiguration: AWS = {
       allowCache: true,
       useChildProcesses: true,
     },
+    "serverless-layers": {
+      packageManager: "npm",
+      dependenciesPath: "package.json",
+      compatibleRuntimes: ['nodejs16.x', 'nodejs18.x'],
+    },
   },
-  // resources: {
-  //   Resources: {
-  //     ScheduleGroup: {
-  //       Type: "AWS::Scheduler::ScheduleGroup",
-  //       Properties: {
-  //         QueueName: "${self:custom.SCHEDULING_QUEUE}",
-  //         Region: "ap-southeast-1"
-  //       },
-
-  //     },
-  //   },
-  //   Outputs: {
-  //     SchedulerGroupName: {
-  //       Description: "Schedule group name",
-  //       Value: "${self:custom.SCHEDULING_QUEUE}",
-  //       Export: {
-  //         Name: "${self:custom.STACK_NAME}-schedule-group-name",
-  //       },
-  //     },
-  //   },
-  // },
-  // }
-  // resources: {
-  //   Resources: {
-  //     CompanyTable: {
-  //       Type: 'AWS::RDS::DBInstance',
-  //       Properties: {
-  //         DBName: "geldbtest",
-  //         MasterUsername: "postgres",
-  //         MasterUserPassword: "postgres_qasid123",
-  //         AvailabilityZone: "ca-central-1",
-
-  //         // VPCSecurityGroups: [{ Ref: "sg-0bcaf1e5086effdd5" }],
-  //         // DBInstanceClass : "db.t4g.large",
-  //         Engine: "Aurora PostgreSQL",
-  //         Port: "5432",
-  //         // Engine: "postgres",
-  //         // Engine: "postgresql"
-  //       }
-  //     }
-  //   }
-  // }
-  // resources: {
-  //   Resources: {
-  //     ApiGatewayAuthorizer: {
-  //       Type: "AWS::ApiGateway::Authorizer",
-  //       Properties: {
-  //         Name: "CognitoUserPool",
-  //         Type: "COGNITO_USER_POOLS",
-  //         IdentitySource: "method.request.header.Authorization",
-  //         RestApiId: {
-  //           Ref: "ApiGatewayRestApi",
-  //         },
-  //         ProviderARNs: [
-  //           "arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd",
-  //         ],
-  //       },
-  //     },
-  //     // UserPool: { // this line is name
-  //     //   Type: "AWS::Cognito::UserPool",
-  //     //   Properties:{
-  //     //     "UserPoolName": "SALES_REP"
-  //     //   }
-  //     // }
-  //   },
-  // },
+  resources: {
+    Resources: {
+      ServerlessCacheSubnetGroup: {
+        Type: "AWS::ElastiCache::SubnetGroup",
+        Properties: {
+          Description: "Cache Subnet Group",
+          // @TODO: replace this with dynamic values
+          SubnetIds: [
+            "subnet-0c87da38c707b23d3",
+            "subnet-08b4521bc0da095f4",
+            "subnet-0254663a738570f0c",
+          ],
+        },
+      },
+      ElasticCacheCluster: {
+        // DependsOn: "ServerlessStorageSecurityGroup" // After integrating VPC and security
+        Type: "AWS::ElastiCache::CacheCluster",
+        Properties: {
+          AutoMinorVersionUpgrade: true,
+          Engine: "redis",
+          CacheNodeType: "${self:custom.CACHE_INSTANCE_SIZE}",
+          NumCacheNodes: 1,
+          // see resources tmp file
+          // CacheSubnetGroupName: [{ Ref: "ServerlessCacheSubnetGroup" }]
+          // @TODO: replace this with dynamic values
+          VpcSecurityGroupIds: ["sg-0bcaf1e5086effdd5"],
+          // VpcSecurityGroupIds:[{ "Fn::GetAtt": "ServerlessStorageSecurityGroup.GroupId" }]
+          // VpcSecurityGroupIds:
+          // - "Fn::GetAtt": ServerlessStorageSecurityGroup.GroupId
+        },
+      },
+    },
+  },
 };
 
 module.exports = serverlessConfiguration;

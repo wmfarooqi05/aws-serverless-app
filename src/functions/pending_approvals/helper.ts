@@ -6,12 +6,12 @@ import {
   transformJSONKeys,
   updateJsonbObject,
 } from "src/common/json_helpers";
-import { CustomError } from "src/helpers/custom-error";
+// import { CustomError } from "src/helpers/custom-error";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   IPendingApprovals,
   PendingApprovalType,
-} from "src/models/interfaces/PendingApprovals";
+} from "@models/interfaces/PendingApprovals";
 
 export const pendingApprovalKnexHelper = async (
   entry: IPendingApprovals,
@@ -32,9 +32,9 @@ export const pendingApprovalKnexHelper = async (
   const knexWTable = docClient.get(tableName);
   const whereObj = { id: rowId };
   if (actionType === PendingApprovalType.CREATE) {
-    return knexWTable.insert(payloadWithJson);
+    return knexWTable.insert(payloadWithJson).returning(Object.keys(payloadWithJson));
   } else if (actionType === PendingApprovalType.UPDATE) {
-    return knexWTable.update(payloadWithJson).where(whereObj);
+    return knexWTable.update(payloadWithJson).where(whereObj).returning(Object.keys(payloadWithJson));
   } else if (actionType === PendingApprovalType.DELETE) {
     return knexWTable.where(whereObj).del();
   } else if (actionType === PendingApprovalType.JSON_PUSH) {
@@ -45,7 +45,7 @@ export const pendingApprovalKnexHelper = async (
       knexClient,
       JSON.parse(jsonbItem as string)
     );
-    return knexWTable.update(createQuery).where(whereObj);
+    return knexWTable.update(createQuery).where(whereObj).returning(key);
   } else if (
     actionType === PendingApprovalType.JSON_UPDATE ||
     actionType === PendingApprovalType.JSON_DELETE
@@ -65,6 +65,6 @@ export const pendingApprovalKnexHelper = async (
     } else {
       finalQuery = deleteJsonbObject(key, knexClient, index);
     }
-    return knexWTable.update(finalQuery).where(whereObj);
+    return knexWTable.update(finalQuery).where(whereObj).returning(key);
   }
 };

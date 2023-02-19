@@ -58,7 +58,7 @@ const updateReminder = {
     },
   ],
 };
-
+// Should be private, only to be accessed by services
 const deleteReminder = {
   handler: `${handlerPath(__dirname)}/handler.deleteReminder`,
   events: [
@@ -72,10 +72,24 @@ const deleteReminder = {
   ],
 };
 
+const dailyReminderCleanup = {
+  handler: `${handlerPath(__dirname)}/handler.dailyReminderCleanup`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "reminder/cleanup",
+        cors: true,
+      },
+    },
+  ],
+};
+
 export {
   getReminders,
   createReminder,
   getReminderById,
   updateReminder,
   deleteReminder,
+  dailyReminderCleanup,
 };

@@ -5,6 +5,7 @@ const envFilePath = path.join(
   "../",
   `.env.${process.env.NODE_ENV}`
 );
+
 dotenv.config({ path: envFilePath });
 const knexConfig = require("./knexfile");
 

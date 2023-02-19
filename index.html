@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<h1>WebSocket Client</h1>
+<div id="app">
+  <button v-on:click="this.connect">Connect</button>
+  <button v-on:click="this.send">Send</button>
+  <button v-on:click="this.disconnect">Disconnect</button>
+  <pre>{{ messages.join('\n') }}</pre>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      return {
+        endpoint: '',
+        messages: [],
+        websocket: undefined
+      };
+    },
+    methods: {
+      connect: () => {
+        /*
+         * See https://html.spec.whatwg.org/multipage/indices.html#events-2
+         * for details around each WebSocket event type.
+         */
+
+        // WebSocket sends a message to API Gateway on creation that gets
+        // routed to the '$connect' route
+        console.log('websocket');
+        this.websocket = new WebSocket("ws://localhost:3001");
+        this.messages = [];
+        console.log('websocket', websocket);
+        this.websocket.onclose = ({ wasClean, code, reason }) => {
+          this.messages.push(
+            `onclose:   ${JSON.stringify({ wasClean, code, reason })}`);
+        };
+
+        this.websocket.onerror = error => {
+          console.log(error);
+          this.messages.push(
+            'onerror:   An error has occurred. See console for details.'
+          );
+        };
+
+        this.websocket.onmessage = ({ data }) => {
+          this.messages.push(`onmessage: ${data}`);
+        };
+
+        this.websocket.onopen = () => {
+          this.messages.push('onopen:    Connected successfully.');
+        };
+      },
+      send: () => {
+        this.messages.push('client:    Sending a message.');
+
+        this.websocket.send(
+          // This message will be routed to 'routeA' based on the 'action'
+          // property
+          JSON.stringify({ action: 'routeA', data: 'Hello from client.' })
+        );
+        // this.websocket.send(
+        //   // This message will be routed to the '$default' route as 'routeB'
+        //   // has not been defined
+        //   JSON.stringify({ action: 'routeB', data: 'Hello from client.' })
+        // );
+      },
+      disconnect: () => {
+        // WebSocket sends a message to API Gateway that gets routed to the
+        // '$disconnect' route.
+        this.messages.push('client:    Closing the connection.');
+        this.websocket.close();
+      }
+    },
+
+    // Discover what the WebSocket endpoint is. This implementation is for
+    // demo purposes only and should be done differently in production.
+    async beforeCreate() {
+      // const response = await fetch('./data.json');
+      // const { ServiceEndpointWebsocket } = await response.json();
+      this.endpoint = "http://localhost:3001";
+    }
+  }).mount("#app");
+
+  // new Vue({
+  //   el: '#app',
+  //   data: {
+  //     endpoint: '',
+  //     messages: [],
+  //     websocket: undefined
+  //   },
+  //   methods: {
+  //     connect() {
+  //       /*
+  //        * See https://html.spec.whatwg.org/multipage/indices.html#events-2
+  //        * for details around each WebSocket event type.
+  //        */
+
+  //       // WebSocket sends a message to API Gateway on creation that gets
+  //       // routed to the '$connect' route
+  //       const websocket = this.websocket = new WebSocket(this.endpoint);
+  //       console.log('websocket', websocket);
+  //       websocket.onclose = ({ wasClean, code, reason }) => {
+  //         this.messages.push(
+  //           `onclose:   ${JSON.stringify({ wasClean, code, reason })}`);
+  //       };
+
+  //       websocket.onerror = error => {
+  //         console.log(error);
+  //         this.messages.push(
+  //           'onerror:   An error has occurred. See console for details.'
+  //         );
+  //       };
+
+  //       websocket.onmessage = ({ data }) => {
+  //         this.messages.push(`onmessage: ${data}`);
+  //       };
+
+  //       websocket.onopen = () => {
+  //         this.messages.push('onopen:    Connected successfully.');
+  //       };
+  //     },
+  //     send() {
+  //       this.messages.push('client:    Sending a message.');
+
+  //       this.websocket.send(
+  //         // This message will be routed to 'routeA' based on the 'action'
+  //         // property
+  //         JSON.stringify({ action: 'routeA', data: 'Hello from client.' })
+  //       );
+  //       this.websocket.send(
+  //         // This message will be routed to the '$default' route as 'routeB'
+  //         // has not been defined
+  //         JSON.stringify({ action: 'routeB', data: 'Hello from client.' })
+  //       );
+  //     },
+  //     disconnect() {
+  //       // WebSocket sends a message to API Gateway that gets routed to the
+  //       // '$disconnect' route.
+  //       this.messages.push('client:    Closing the connection.');
+  //       this.websocket.close();
+  //     }
+  //   },
+
+  //   // Discover what the WebSocket endpoint is. This implementation is for
+  //   // demo purposes only and should be done differently in production.
+  //   async beforeCreate() {
+  //     // const response = await fetch('./data.json');
+  //     // const { ServiceEndpointWebsocket } = await response.json();
+  //     this.endpoint = "http://localhost:3001";
+  //   }
+  // })
+</script>
+
+</html>

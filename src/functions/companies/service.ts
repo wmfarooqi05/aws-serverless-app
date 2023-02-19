@@ -6,7 +6,7 @@ import CompanyModel, {
   ICompany,
   ICompanyModel,
   ICompanyPaginated,
-} from "../../models/Company";
+} from "@models/Company";
 import { DatabaseService } from "../../libs/database/database-service-objection";
 import moment from "moment-timezone";
 
@@ -22,8 +22,8 @@ import {
   validateUpdateNotes,
 } from "./schema";
 
-import { injectable, inject } from "tsyringe";
-import ActivityModel from "src/models/Activity";
+import { inject, injectable, injectable } from "tsyringe";
+import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
 import {
@@ -32,21 +32,32 @@ import {
   updateJsonbObject,
 } from "src/common/json_helpers";
 import {
+  APPROVAL_ACTION_JSONB_PAYLOAD,
   IOnApprovalActionRequired,
   IPendingApprovals,
   PendingApprovalsStatus,
   PendingApprovalType,
-} from "src/models/interfaces/PendingApprovals";
-import { IUserJwt } from "src/models/interfaces/User";
-import { RolesEnum } from "src/models/User";
+} from "@models/interfaces/PendingApprovals";
+import { IUserJwt } from "@models/interfaces/User";
+import User, { RolesEnum } from "@models/User";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
-import { COMPANIES_TABLE_NAME } from "src/models/commons";
+import {
+  COMPANIES_TABLE_NAME,
+  getGlobalPermission,
+  globalPermissions,
+  IPermissionKey,
+  ModuleTitles,
+} from "@models/commons";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
   createCompany(company: ICompanyModel): Promise<ICompanyModel>;
   getCompany(id: string): Promise<ICompanyModel>;
-  updateCompany(id: string, status: string): Promise<ICompanyModel>;
+  updateCompany(
+    user: IUserJwt,
+    id: string,
+    status: string
+  ): Promise<ICompanyModel>;
   deleteCompany(user: IUserJwt, id: string): Promise<any>;
 }
 
@@ -89,7 +100,7 @@ export class CompanyService implements ICompanyService {
     const payload = JSON.parse(body);
     await validateCreateCompany(payload);
 
-    const timeNow = moment().format();
+    const timeNow = moment().utc().format();
     payload.concernedPersons = payload.concernedPersons?.map((x: any) => {
       return {
         ...x,
@@ -102,42 +113,45 @@ export class CompanyService implements ICompanyService {
     return CompanyModel.query().insert(payload).returning("*");
   }
 
-  async updateCompany(id: string, body: any): Promise<ICompanyModel> {
+  async updateCompany(
+    user: IUserJwt,
+    id: string,
+    body: any
+  ): Promise<ICompanyModel> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
-
-    const updatedCompany = await CompanyModel.query().patchAndFetchById(
-      id,
-      payload
-    );
-    if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
-      throw new CustomError("Object not found", 404);
+    if (user["cognito:groups"] === RolesEnum.SALES_REP) {
+      const item = await this.pendingApprovalService.createPendingApproval(
+        user.sub,
+        id,
+        ModuleTitles.COMPANY,
+        COMPANIES_TABLE_NAME,
+        PendingApprovalType.UPDATE,
+        payload
+      );
+      return item;
+    } else {
+      const updatedCompany = await CompanyModel.query().patchAndFetchById(
+        id,
+        payload
+      );
+      if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
+        throw new CustomError("Object not found", 404);
+      }
+      return updatedCompany;
     }
-
-    return updatedCompany;
   }
 
   async deleteCompany(user: IUserJwt, id: string): Promise<any> {
-    // @ADD some query to find index of id directly
-    // const pendingApproval: IPendingApprovals; // Use pending approval service to add request
     if (user["cognito:groups"] === RolesEnum.SALES_REP) {
-      const onApprovalActionRequired: IOnApprovalActionRequired = {
-        rowId: id,
-        tableName: COMPANIES_TABLE_NAME,
-        actionType: PendingApprovalType.DELETE,
-      };
-
-      const activityId = `DELETE_COMPANY-${randomUUID()}`;
-      const item: IPendingApprovals = {
-        activityId,
-        activityName: activityId,
-        approvers: [],
-        createdBy: user.sub,
-        onApprovalActionRequired,
-        status: PendingApprovalsStatus.PENDING,
-      };
-
-      await this.pendingApprovalService.createPendingApproval(item);
+      const item = await this.pendingApprovalService.createPendingApproval(
+        user.sub,
+        id,
+        ModuleTitles.COMPANY,
+        COMPANIES_TABLE_NAME,
+        PendingApprovalType.DELETE
+      );
+      return item;
     } else {
       const deleted = await CompanyModel.query().deleteById(id);
 
@@ -147,6 +161,8 @@ export class CompanyService implements ICompanyService {
     }
   }
   async updateCompanyAssignedUser(companyId, assignedBy, body) {
+    // @TODO: @Auth this user should be the manager of changing person
+    // @Paul No need for pending approval [Check with Paul]
     await validateUpdateCompanyAssignedUser(
       companyId,
       assignedBy,
@@ -160,7 +176,7 @@ export class CompanyService implements ICompanyService {
       assignedTo: assignTo || null,
       assignedBy,
       comments: comments || "",
-      date: moment().format(),
+      date: moment().utc().format(),
     };
 
     const updatedCompany = await CompanyModel.query().patchAndFetchById(
@@ -190,18 +206,45 @@ export class CompanyService implements ICompanyService {
     return updatedCompany;
   }
 
-  async createConcernedPersons(companyId, employeeId, body) {
+  async createConcernedPersons(user: IUserJwt, companyId, body) {
     const payload = JSON.parse(body);
-    await validateCreateConcernedPerson(companyId, employeeId, payload);
+    await validateCreateConcernedPerson(companyId, user.sub, payload);
 
-    const date = moment().format();
+    const date = moment().utc().format();
 
     payload["id"] = randomUUID();
-    payload["addedBy"] = employeeId;
-    payload["updatedBy"] = employeeId;
+    payload["addedBy"] = user.sub;
+    payload["updatedBy"] = user.sub;
     payload["createdAt"] = date;
     payload["updatedAt"] = date;
 
+    /** @TODO */
+    /** we have to create a list of operations of roles or permissions
+     *  Store it in redis, fetch here and check if create is permitted by default or not
+     * if yes, then ok, otherwise put this in pending approval
+     *  */
+    user["cognito:groups"] = RolesEnum.SALES_REP;
+    const permission: boolean = getGlobalPermission(
+      "company.childModules.concernedPersons",
+      "create"
+    );
+    if (!permission && user["cognito:groups"] === RolesEnum.SALES_REP) {
+      // or employee is manager, determine if this manager is allowed to see data
+      const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
+        key: 'concernedPersons',
+        jsonbItem: payload,
+      };
+
+      const item = await this.pendingApprovalService.createPendingApproval(
+        user.sub,
+        companyId,
+        ModuleTitles.COMPANY,
+        COMPANIES_TABLE_NAME,
+        PendingApprovalType.JSON_PUSH,
+        jsonbPayload,
+      );
+      return item;
+    }
     const company = await CompanyModel.query()
       .patch(
         addJsonbObject("concernedPersons", this.docClient.knexClient, payload)
@@ -253,7 +296,7 @@ export class CompanyService implements ICompanyService {
         ...company.concernedPersons[index],
         ...payload,
         updatedBy: employeeId,
-        updatedAt: moment().format(),
+        updatedAt: moment().utc().format(),
       },
       index
     );
@@ -308,7 +351,7 @@ export class CompanyService implements ICompanyService {
       addedBy,
       isEdited: false,
       notesText: payload.notesText,
-      updatedAt: moment().format(),
+      updatedAt: moment().utc().format(),
     };
 
     // @TODO we are adding [] by default, so maybe not need double check
@@ -361,7 +404,7 @@ export class CompanyService implements ICompanyService {
       throw new CustomError("Only creator can modify his notes", 403);
     }
 
-    const date = moment().format();
+    const date = moment().utc().format();
     const updatedNotes: INotes = {
       ...company.notes[index],
       notesText: payload.notesText,
@@ -414,5 +457,17 @@ export class CompanyService implements ICompanyService {
       return "*";
     }
     return returningFields;
+  }
+
+  permissionResolver() {
+    /**
+     * We have to resolve these things
+     * If this key is permitted to be updated
+     * If assigned_user is permitted to be updated
+     * If his manager is permitted to be updated
+     *
+     * Even if key is allowed to change, we have to check if every sales rep can update it
+     * or only the one assigned on it
+     */
   }
 }

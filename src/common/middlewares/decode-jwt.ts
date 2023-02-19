@@ -1,3 +1,4 @@
+import middy from '@middy/core';
 import { decode } from 'jsonwebtoken'
 
 export const decodeJWTMiddleware = () => {

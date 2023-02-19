@@ -6,7 +6,7 @@ import {
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
 
-const schemaKeys = Object.keys(ActivityModel.jsonSchema.properties);
+const schemaKeys = Object.keys(ActivityModel?.jsonSchema?.properties || {});
 
 export const validateGetActivitiesByCompany = async (
   companyId: string,

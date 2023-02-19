@@ -26,7 +26,7 @@ const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 export interface IUser {
   id: string;
   name: string;
-  lastName: string;
+  picture?: string;
   email: string;
   enabled: boolean;
   jobTitle: string;
@@ -50,7 +50,7 @@ export interface IUser {
 }
 
 @singleton()
-export default class User extends Model {
+export default class UserModel extends Model {
   static get tableName() {
     return USERS_TABLE_NAME;
   }
@@ -66,6 +66,7 @@ export default class User extends Model {
           minLength: 1,
           maxLength: 70,
         },
+        picture: { type: "string" },
         enabled: {
           type: "boolean",
           default: true,
@@ -136,5 +137,5 @@ export default class User extends Model {
   // }
 }
 
-export type IUserModel = ModelObject<User>;
+export type IUserModel = ModelObject<UserModel>;
 export type IUserPaginated = IWithPagination<IUserModel>;

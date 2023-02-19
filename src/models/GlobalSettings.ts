@@ -10,7 +10,7 @@ export interface IGlobalSetting {
   updatedAt: string;
 }
 @singleton()
-export default class GlobalSettings extends Model {
+export default class GlobalSettingsModel extends Model {
   static get tableName() {
     return GLOBAL_SETTINGS_TABLE;
   }
@@ -31,4 +31,4 @@ export default class GlobalSettings extends Model {
   }
 }
 
-export type IGlobalSettingModel = ModelObject<GlobalSettings>;
+export type IGlobalSettingModel = ModelObject<GlobalSettingsModel>;

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { IReminderModel, IReminderPaginated } from "../../models/Reminder";
+import { IReminderModel, IReminderPaginated } from "@models/Reminder";
 
 import {
   formatErrorResponse,
@@ -14,13 +14,15 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
-import { container } from "../../common/container";
+import { container } from "@common/container";
 
 export const createReminder: ValidatedEventAPIGatewayProxyEvent<
   IReminderModel
 > = async (event) => {
   try {
-    const newReminder = await container.resolve(ReminderService).createReminder(event.body);
+    const newReminder = await container
+      .resolve(ReminderService)
+      .ScheduleReminder(event.body);
     return formatJSONResponse(newReminder, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -45,7 +47,9 @@ export const getReminderById: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   const { reminderId } = event.pathParameters;
   try {
-    const reminders = await container.resolve(ReminderService).getReminder(reminderId);
+    const reminders = await container
+      .resolve(ReminderService)
+      .getReminder(reminderId);
     return formatJSONResponse(reminders, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -74,8 +78,13 @@ export const deleteReminder: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { reminderId } = event.pathParameters;
-    await container.resolve(ReminderService).deleteReminder(reminderId);
-    return formatJSONResponse({ message: "Reminder deleted successfully" }, 200);
+    await container
+      .resolve(ReminderService)
+      .deleteScheduledReminder(reminderId);
+    return formatJSONResponse(
+      { message: "Reminder deleted successfully" },
+      200
+    );
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -149,10 +158,23 @@ const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getReminders = middy(getRemindersHandler).use(decodeJWTMiddleware());
-export const updateReminderAssignedUser = middy(updateReminderAssignedUserHandler).use(
+export const dailyReminderCleanup = async () => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .dailyReminderCleanup();
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getReminders = middy(getRemindersHandler).use(
   decodeJWTMiddleware()
 );
+export const updateReminderAssignedUser = middy(
+  updateReminderAssignedUserHandler
+).use(decodeJWTMiddleware());
 
 export const createConcernedPersons = middy(createConcernedPersonsHandler).use(
   decodeJWTMiddleware()

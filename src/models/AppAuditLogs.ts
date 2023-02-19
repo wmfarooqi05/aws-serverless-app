@@ -4,7 +4,7 @@ import Company from "./Company";
 import { COMPANIES_TABLE_NAME } from "./commons";
 import { IWithPagination } from "knex-paginate";
 
-export const APP_AUDIT_LOGS_TABLE = process.env.APP_AUDIT_LOGS_TABLE || "app_audit_logs_local";
+export const APP_AUDIT_LOGS_TABLE = process.env.APP_AUDIT_LOGS_TABLE || "app_audit_logs";
 
 export interface IAuditLogs {
   id: string;
@@ -26,7 +26,7 @@ export enum ACTION_TYPE {
 }
 
 @singleton()
-export default class AppAuditLogs extends Model {
+export default class AppAuditLogsModel extends Model {
   static get tableName() {
     return APP_AUDIT_LOGS_TABLE;
   }
@@ -89,5 +89,5 @@ export default class AppAuditLogs extends Model {
   }
 }
 
-export type IAuditLogsModel = ModelObject<AuditLogs>;
+export type IAuditLogsModel = ModelObject<AppAuditLogsModel>;
 export type IAuditLogsPaginated = IWithPagination<IAuditLogsModel>;

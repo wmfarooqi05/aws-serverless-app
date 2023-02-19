@@ -14,7 +14,7 @@ import {
 } from "./interfaces/Activity";
 
 @singleton()
-export default class Activity extends Model {
+export default class ActivityModel extends Model {
   static get tableName() {
     return ACTIVITIES_TABLE;
   }
@@ -95,5 +95,5 @@ export default class Activity extends Model {
   // }
 }
 
-export type IActivityModel = ModelObject<Activity>;
+export type IActivityModel = ModelObject<ActivityModel>;
 export type IActivityPaginated = IWithPagination<IActivityModel>;

@@ -1,7 +1,8 @@
-import type {   APIGatewayProxyEvent,
+import type {
+  APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Handler,
- } from "aws-lambda";
+} from "aws-lambda";
 import { ICustomErrorArgs } from "src/helpers/custom-error";
 import type { FromSchema } from "json-schema-to-ts";
 

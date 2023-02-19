@@ -6,7 +6,7 @@ import {
 } from "./interfaces/PendingApprovals";
 
 @singleton()
-export default class PendingApprovals extends Model {
+export default class PendingApprovalsModel extends Model {
   static get tableName() {
     return PENDING_APPROVAL_TABLE;
   }
@@ -28,7 +28,7 @@ export default class PendingApprovals extends Model {
         skipEscalation: { type: "boolean", default: true },
         status: { type: "string", default: PendingApprovalsStatus.PENDING },
         retryCount: { type: "number" },
-        resultPayload: { type: "object" },
+        resultPayload: { type: "array" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
@@ -43,4 +43,4 @@ export default class PendingApprovals extends Model {
   }
 }
 
-export type IPendingApprovalsModel = ModelObject<PendingApprovals>;
+export type IPendingApprovalsModel = ModelObject<PendingApprovalsModel>;

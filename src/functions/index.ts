@@ -31,6 +31,18 @@ import {
 
 import { approvePendingApproval } from "@functions/pending_approvals";
 
+import {
+  createReminder,
+  deleteReminder,
+  dailyReminderCleanup,
+} from "@functions/reminders";
+
+import {
+  webSocketHandler,
+  broadcastMessage,
+  getAllWebSocketConnections,
+} from "@functions/websocket";
+
 export default {
   createCompany,
   deleteCompany,
@@ -61,4 +73,13 @@ export default {
   // ACTIVITY
   // createActivity,
   approvePendingApproval,
+
+  // Reminders
+  createReminder,
+  deleteReminder,
+  dailyReminderCleanup,
+  // WebSocket
+  webSocketHandler,
+  broadcastMessage,
+  getAllWebSocketConnections,
 };

@@ -1,0 +1,62 @@
+import { Model, ModelObject } from "objection";
+import { singleton } from "tsyringe";
+import {
+  ModuleType,
+  NOTIFICATIONS_TABLE_NAME,
+} from "./commons";
+
+export type INFO_TYPE = "CREATE_COMPANY" | "UPDATE_COMPANY" | "DELETE_COMPANY";
+
+interface IExtraData {
+  rowId: string;
+  module: ModuleType; // PENDING APPROVAL
+  // infoType: INFO_TYPE;
+  infoType: string; // @TODO it is same as title for now
+}
+
+export type NotificationType = "ACTIONABLE_ITEM" | "INFO_NOTIFICATION";
+
+export interface INotification {
+  id?: string;
+  title: string;
+  subtitle: string;
+  senderUser: string;
+  receiverUser: string;
+  extraData: IExtraData;
+  notificationType: NotificationType;
+  read: boolean;
+  isScheduled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+@singleton()
+export default class NotificationModel extends Model {
+  static get tableName() {
+    return NOTIFICATIONS_TABLE_NAME;
+  }
+
+  static get jsonSchema() {
+    return {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        subtitle: { type: "string" },
+        senderUser: { type: "string" },
+        // comma separated items
+        receiverUser: { type: "string" },
+        extraData: { type: "object" }, // object
+        notificationType: { type: "string" },
+        read: { type: "boolean" },
+        isScheduled: { type: "boolean" }, // if yes, extraData will have scheduling info
+        createdAt: { type: "string" },
+        updatedAt: { type: "string" },
+      },
+      required: ["title", "senderUser", "receiverUser", "receiverUser"],
+      additionalProperties: false,
+    };
+  }
+}
+
+export type INotificationModel = ModelObject<NotificationModel>;

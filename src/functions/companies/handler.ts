@@ -1,7 +1,5 @@
 import "reflect-metadata";
-
-import { ICompanyModel, ICompanyPaginated } from "../../models/Company";
-
+import { ICompanyModel, ICompanyPaginated } from "@models/Company";
 import {
   formatErrorResponse,
   formatJSONResponse,
@@ -14,7 +12,7 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
-import { container } from "../../common/container";
+import { container } from "@common/container";
 
 export const createCompany: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -56,16 +54,14 @@ export const getCompanyById: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const updateCompany: ValidatedEventAPIGatewayProxyEvent<
+export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    console.log("event.pathParameters", event.pathParameters);
-    console.log("event.body", event.body);
     const { companyId } = event.pathParameters;
     const updatedCompany = await container
       .resolve(CompanyService)
-      .updateCompany(companyId, event.body);
+      .updateCompany(event?.user, companyId, event.body);
     return formatJSONResponse(updatedCompany, 200);
   } catch (e) {
     console.log("e", e);
@@ -114,7 +110,7 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .createConcernedPersons(companyId, event?.user?.sub, event.body);
+      .createConcernedPersons(event?.user, companyId, event.body);
     return formatJSONResponse({ company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -215,6 +211,10 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 };
 
 export const getCompanies = middy(getCompaniesHandler).use(
+  decodeJWTMiddleware()
+);
+
+export const updateCompany = middy(updateCompanyHandler).use(
   decodeJWTMiddleware()
 );
 

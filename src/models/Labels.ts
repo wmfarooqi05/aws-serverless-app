@@ -1,7 +1,7 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 
-export const LABELS_TABLE = process.env.LABELS_TABLE || "labels_local";
+export const LABELS_TABLE = process.env.LABELS_TABLE || "labels";
 
 export interface ILabel {
   id: string;
@@ -13,7 +13,7 @@ export interface ILabel {
 }
 
 @singleton()
-export default class Label extends Model {
+export default class LabelModel extends Model {
   static get tableName() {
     return LABELS_TABLE;
   }
@@ -35,4 +35,4 @@ export default class Label extends Model {
   }
 }
 
-export type ILabelModel = ModelObject<Label>;
+export type ILabelModel = ModelObject<LabelModel>;

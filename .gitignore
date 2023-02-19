@@ -1,5 +1,7 @@
 # package directories
 node_modules
+layers/nodejs/node_modules
+
 
 # Serverless directories
 .serverless
@@ -8,3 +10,13 @@ node_modules
 .esbuild
 .vscode
 .build
+
+layers/nodejs
+
+# yarn v2
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions

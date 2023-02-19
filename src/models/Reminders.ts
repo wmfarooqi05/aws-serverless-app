@@ -1,26 +1,29 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { IWithPagination } from "knex-paginate";
-import Activity, { ACTIVITIES_TABLE } from "./Activity";
+import Activity from "./Activity";
+import { ACTIVITIES_TABLE } from "./commons";
 
-export const REMINDER_TABLE = process.env.REMINDER_TABLE || "reminder_local";
+export const REMINDERS_TABLE = process.env.REMINDERS_TABLE || "reminders";
 
-enum ReminderStatus {
+export enum ReminderStatus {
   PENDING = "PENDING",
   SCHEDULED = "SCHEDULED",
-  SENT = "SENT",
   CANCELLED = "CANCELLED",
   FAILED = "FAILED",
+  ERROR_CLEANUP = "ERROR_CLEANUP",
+  SENT = "SENT",
+  DONE = "DONE",
 }
 
-enum ReminderTimeType {
+export enum ReminderTimeType {
   Reminder_5M_Before = "Reminder_5M_Before",
   Reminder_15M_Before = "Reminder_15M_Before",
   Reminder_1H_Before = "Reminder_1H_Before",
   Reminder_24H_Before = "Reminder_24H_Before",
 }
 
-enum ReminderType {
+export enum ReminderType {
   GENERAL = "GENERAL",
   EMAIL = "EMAIL",
   PHONE_CALL = "PHONE_CALL",
@@ -28,10 +31,24 @@ enum ReminderType {
   TASK = "TASK",
 }
 
+export interface IReminder {
+  id: string;
+  executionArn: string;
+  reminderAwsId: string;
+  reminderTimeType: string;
+  type: string;
+  status: string;
+  reminderTime: string;
+  data: JSON;
+  activityId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @singleton()
-export default class Reminder extends Model {
+export default class ReminderModel extends Model {
   static get tableName() {
-    return REMINDER_TABLE;
+    return REMINDERS_TABLE;
   }
 
   static get jsonSchema() {
@@ -40,20 +57,20 @@ export default class Reminder extends Model {
       properties: {
         id: { type: "string" },
         executionArn: { type: "string" },
-        object_id: { type: "string" },
-        reminder_time_type: {
+        reminderAwsId: { type: "string" },
+        reminderTimeType: {
           type: "string",
           default: ReminderTimeType.Reminder_24H_Before,
         },
         type: { type: "string", default: ReminderType.GENERAL },
         status: { type: "string", default: ReminderStatus.PENDING },
-        reminder_time: { type: "string" },
+        reminderTime: { type: "string" },
         data: { type: "object", default: {} },
         activityId: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["object_id", "reminder_type"],
+      required: ["reminderAwsId", "type"],
       additionalProperties: false,
     };
   }
@@ -65,7 +82,7 @@ export default class Reminder extends Model {
       relation: Model.BelongsToOneRelation,
       modelClass: Activity,
       join: {
-        from: `${REMINDER_TABLE}.activityId`,
+        from: `${REMINDERS_TABLE}.activityId`,
         to: `${ACTIVITIES_TABLE}.id`,
       },
     },
@@ -76,5 +93,5 @@ export default class Reminder extends Model {
   }
 }
 
-export type IReminder = ModelObject<Reminder>;
-export type IReminderPaginated = IWithPagination<IReminder>;
+export type IReminderModel = ModelObject<ReminderModel>;
+export type IReminderPaginated = IWithPagination<IReminderModel>;

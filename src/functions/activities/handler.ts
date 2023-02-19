@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { IActivity, IRemarks } from "../../models/interfaces/Activity";
+import { IActivity, IRemarks } from "@models/interfaces/Activity";
 
 import {
   formatErrorResponse,
@@ -8,13 +8,12 @@ import {
   ValidatedEventAPIGatewayProxyEvent,
 } from "../../libs/api-gateway";
 import { ActivityService } from "./service";
-import middy from "@middy/core";
-import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
+import jwtMWrapper from "@libs/middlewares/jwtMiddleware";
 
 const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
@@ -208,30 +207,12 @@ export const deleteRemarkFromActivity: ValidatedEventAPIGatewayProxyEvent<
 };
 
 // @TODO export these
-export const getActivities = middy(getActivitiesHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const createActivity = middy(createActivityHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const getMyActivities = middy(getMyActivitiesHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const getTopActivities = middy(getTopActivitiesHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const getAllActivitiesByCompany = middy(
+export const getActivities = jwtMWrapper(getActivitiesHandler);
+export const createActivity = jwtMWrapper(createActivityHandler);
+export const getMyActivities = jwtMWrapper(getMyActivitiesHandler);
+export const getTopActivities = jwtMWrapper(getTopActivitiesHandler);
+export const getAllActivitiesByCompany = jwtMWrapper(
   getAllActivitiesByCompanyHandler
-).use(decodeJWTMiddleware());
-
-export const getMyActivitiesByDay = middy(getMyActivitiesByDayHandler).use(
-  decodeJWTMiddleware()
 );
-
-export const updateActivity = middy(updateActivityHandler).use(
-  decodeJWTMiddleware()
-);
+export const getMyActivitiesByDay = jwtMWrapper(getMyActivitiesByDayHandler);
+export const updateActivity = jwtMWrapper(updateActivityHandler);

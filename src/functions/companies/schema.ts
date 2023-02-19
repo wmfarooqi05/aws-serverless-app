@@ -1,7 +1,7 @@
 import * as Joi from "joi";
-import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "src/models/Company";
+import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "@models/Company";
 import { getPaginatedJoiKeys } from "src/common/schema";
-import CompanyModel from "src/models/Company";
+import CompanyModel from "@models/Company";
 
 const schemaKeys = Object.keys(CompanyModel.jsonSchema.properties);
 

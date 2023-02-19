@@ -2,7 +2,7 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import Activity, { ACTIVITIES_TABLE } from "./Activity";
 
-export const LINKED_ACTIVITIES_TABLE = process.env.LINKED_ACTIVITIES_TABLE || "linked_activities_local";
+export const LINKED_ACTIVITIES_TABLE = process.env.LINKED_ACTIVITIES_TABLE || "linked_activities";
 
 enum LINKED_TYPE {
   DUPLICATES = "DUPLICATES",
@@ -24,7 +24,7 @@ export interface ILinkedActivity {
 }
 
 @singleton()
-export default class LinkedActivity extends Model {
+export default class LinkedActivityModel extends Model {
   static get tableName() {
     return LINKED_ACTIVITIES_TABLE;
   }
@@ -67,4 +67,4 @@ export default class LinkedActivity extends Model {
 
 }
 
-export type ILinkedActivityModel = ModelObject<LinkedActivity>;
+export type ILinkedActivityModel = ModelObject<LinkedActivityModel>;

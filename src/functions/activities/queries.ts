@@ -1,5 +1,5 @@
-import { ACTIVITIES_TABLE } from "src/models/commons";
-import { ACTIVITY_STATUS_SHORT } from "src/models/interfaces/Activity";
+import { ACTIVITIES_TABLE } from "@models/commons";
+import { ACTIVITY_STATUS_SHORT } from "@models/interfaces/Activity";
 
 
 export const topNResults = (companyId: string, type: string, limit: number) => `

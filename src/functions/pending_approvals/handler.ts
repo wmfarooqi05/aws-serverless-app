@@ -3,7 +3,7 @@ import "reflect-metadata";
 import {
   IPendingApprovalModel,
   IPendingApprovalPaginated,
-} from "../../models/PendingApproval";
+} from "@models/PendingApproval";
 
 import {
   formatErrorResponse,
@@ -17,7 +17,7 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
-import { container } from "../../common/container";
+import { container } from "@common/container";
 
 export const approvePendingApprovalHandler: ValidatedEventAPIGatewayProxyEvent<
   IPendingApprovalModel

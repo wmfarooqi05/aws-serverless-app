@@ -76,7 +76,7 @@ export enum PRIORITY {
 }
 
 @singleton()
-export default class Company extends Model {
+export default class CompanyModel extends Model {
   static get tableName() {
     return COMPANIES_TABLE_NAME;
   }
@@ -153,5 +153,5 @@ export default class Company extends Model {
   // }
 }
 
-export type ICompanyModel = ModelObject<Company>;
+export type ICompanyModel = ModelObject<CompanyModel>;
 export type ICompanyPaginated = IWithPagination<ICompanyModel>;

@@ -20,22 +20,21 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table.string("activityId");
-      table.string("activityName");
-      table
-        .specificType("approvers", "uuid[]")
-        .defaultTo(knex.raw("ARRAY[]::uuid[]"));
-      table.uuid("createdBy");
-      table
-        .jsonb("on_approval_action_required")
-        .defaultTo('{}');
-      table.dateTime("escalationTime");
-      table.boolean("skipEscalation");
+      table.string("activity_id");
+      table.string("activity_name");
+      table.jsonb("approvers").defaultTo("[]");
+      // table
+      //   .specificType("approvers", "uuid[]")
+      //   .defaultTo(knex.raw("ARRAY[]::uuid[]"));
+      table.uuid("created_by");
+      table.jsonb("on_approval_action_required").defaultTo("{}");
+      table.dateTime("escalation_time");
+      table.boolean("skip_escalation");
       table
         .enum("status", Object.values(PendingApprovalsStatus))
         .defaultTo(PendingApprovalsStatus.PENDING);
-      table.integer("retryCount").defaultTo(0);
-      table.jsonb("resultPayload");
+      table.integer("retry_count").defaultTo(0);
+      table.jsonb("result_payload");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

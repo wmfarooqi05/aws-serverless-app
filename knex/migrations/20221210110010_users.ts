@@ -16,6 +16,7 @@ const tableName = Tables.users;
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable(tableName, (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+    table.string("picture");
     table.string("email").notNullable();
     table.string("name").notNullable();
     table.string("enabled");
@@ -29,6 +30,8 @@ export async function up(knex: Knex): Promise<void> {
     table.jsonb("settings");
     table.jsonb("social_profiles");
     table.string("timezone");
+    // we will store it in elastic cache
+    // table.string("websocket_id");
     table.string("date_format").defaultTo(defaultDateFormat);
     table
       .uuid("added_by")

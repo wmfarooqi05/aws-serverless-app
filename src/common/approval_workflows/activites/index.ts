@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import { DatabaseService } from "src/libs/database/database-service-objection";
-import { ACTIVITIES_TABLE } from "src/models/commons";
+import { DatabaseService } from "@libs/database/database-service-objection";
+import { ACTIVITIES_TABLE } from "@models/commons";
 
-import { injectable, inject } from "tsyringe";
+import { inject, injectable, injectable } from "tsyringe";
 
 // @TODO fix this
 export interface IActivityWorkflowService {}

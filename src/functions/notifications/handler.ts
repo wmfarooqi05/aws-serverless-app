@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { INotificationModel, INotificationPaginated } from "../../models/Notification";
+import { INotificationModel, INotificationPaginated } from "@models/Notification";
 
 import {
   formatErrorResponse,
@@ -14,7 +14,7 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
-import { container } from "../../common/container";
+import { container } from "@common/container";
 
 export const createNotification: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel

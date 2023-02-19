@@ -1,25 +1,24 @@
 import "reflect-metadata";
-import { DatabaseService } from "src/libs/database/database-service-objection";
-import PendingApprovalModel from "src/models/PendingApprovals";
+import { DatabaseService } from "@libs/database/database-service-objection";
+import PendingApprovalModel from "@models/PendingApprovals";
 import {
   IPendingApprovals,
   PendingApprovalType,
   PendingApprovalsStatus,
-  APPROVAL_ACTION_JSONB_PAYLOAD,
   IOnApprovalActionRequired,
-} from "src/models/interfaces/PendingApprovals";
-import { PENDING_APPROVAL_TABLE } from "src/models/commons";
+  APPROVAL_ACTION_JSONB_PAYLOAD,
+} from "@models/interfaces/PendingApprovals";
 import { injectable, inject } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
-import {
-  addJsonbObject,
-  deleteJsonbObject,
-  findIndexFromJsonbArray,
-  transformJSONKeys,
-  updateJsonbObject,
-} from "src/common/json_helpers";
 import { pendingApprovalKnexHelper } from "./helper";
 import { validateCreatePendingApproval } from "./schema";
+// import { WebSocketService } from "@functions/websocket/service";
+import { NotificationService } from "@functions/notifications/service";
+import { INotification } from "@models/Notification";
+import { message } from "./strings";
+import { randomUUID } from "crypto";
+import User from "@models/User";
+import { WebSocketService } from "@functions/websocket/service";
 
 export interface IPendingApprovalService {}
 
@@ -33,15 +32,38 @@ export interface PendingApprovalEBSchedulerPayload {
 @injectable()
 export class PendingApprovalService implements IPendingApprovalService {
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService
+    @inject(DatabaseService) private readonly docClient: DatabaseService,
+    @inject(WebSocketService)
+    private readonly webSocketService: WebSocketService,
+    @inject(NotificationService)
+    private readonly notificationService: NotificationService
   ) {}
 
   async createPendingApproval(
-    payload: IPendingApprovals
+    userId: string,
+    rowId: string,
+    title: string,
+    tableName: string,
+    type: PendingApprovalType,
+    payload?: object | APPROVAL_ACTION_JSONB_PAYLOAD
   ) {
-    await validateCreatePendingApproval(payload);
-    return PendingApprovalModel.query().insert(payload);
+    // await validateCreatePendingApproval(payload);
+
+    const pendingApprovalItem: IPendingApprovals =
+      await this.createPendingApprovalItem(
+        userId,
+        rowId,
+        title,
+        tableName,
+        type,
+        payload
+      );
+
+    // This will move to job maybe
+    await this.createPendingApprovalNotifications(pendingApprovalItem);
+    return pendingApprovalItem;
   }
+
   /**
    *
    * Cases
@@ -62,32 +84,44 @@ export class PendingApprovalService implements IPendingApprovalService {
     let errorCount = 0;
     let resultPayload = {};
     let entry: IPendingApprovals | null = null;
-
+    let taskDone = false; // in case task is done, but something crashes after that,
+    // in that case, either we will do something like rollback(in future) or make pending_approval as done
     try {
       entry = await PendingApprovalModel.query().findById(requestId);
+      console.log("entry", entry);
       if (!entry) {
         // Case 3
         throw new CustomError(
           `Pending Approval entry doesn\'t exists. ${requestId}`,
           404
         );
+      } else if (entry.status === PendingApprovalsStatus.SUCCESS) {
+        return;
+        // throw new CustomError("Pending Approval already completed", 400);
       }
       resultPayload = await pendingApprovalKnexHelper(entry, this.docClient);
-
+      taskDone = true;
       if (resultPayload === 0) {
         throw new CustomError("Item doesn't exists", 404);
       } // update and delete original row doesnt exist }
       if (!resultPayload) {
         // Case 5
         throw new CustomError("Query failed", 502);
+      } else if (resultPayload === 1) {
+        resultPayload = [{ result: "1" }];
+      } else if (typeof resultPayload === "object") {
+        resultPayload = [resultPayload];
       }
 
       await PendingApprovalModel.query().patchAndFetchById(requestId, {
-        resultPayload,
+        resultPayload: resultPayload,
         status: PendingApprovalsStatus.SUCCESS,
       });
     } catch (e) {
-      error[errorCount++] = e;
+      error[errorCount] = e;
+      error[errorCount]._stack = e.stack;
+      error[errorCount]._message = e.message;
+      errorCount++
       if (!entry) {
         // Push to SQS because no data entry exists;
         // Case 3
@@ -96,12 +130,94 @@ export class PendingApprovalService implements IPendingApprovalService {
         // Case 4
         await PendingApprovalModel.query().patchAndFetchById(requestId, {
           retryCount: entry.retryCount + 1,
-          resultPayload: error,
-          status: PendingApprovalsStatus.FAILED,
+          resultPayload: [error],
+          status: taskDone
+            ? PendingApprovalsStatus.SUCCESS // make it success with partially error
+            : PendingApprovalsStatus.FAILED,
         });
       }
     } finally {
       // Do if something is required
+    }
+  }
+
+  private async sendNotification(notifItem: INotification) {
+    console.log("sendNotification", notifItem.id);
+    // @Web Socket
+
+    // @Email
+
+    // @SMS
+
+    // SNS
+  }
+
+  private async createPendingApprovalItem(
+    userId: string,
+    rowId: string,
+    title: string,
+    tableName: string,
+    actionType: PendingApprovalType,
+    payload?: object | APPROVAL_ACTION_JSONB_PAYLOAD
+  ): Promise<IPendingApprovals> {
+    const onApprovalActionRequired: IOnApprovalActionRequired = {
+      rowId,
+      tableName,
+      actionType,
+      payload,
+    };
+
+    const userItem = await User.query().findById(userId);
+
+    const item = {
+      activityId: `${actionType}_${title.toUpperCase()}_${randomUUID()}`,
+      activityName: `${actionType}_${title.toUpperCase()}`,
+      approvers: [userItem["reportingManager"]],
+      createdBy: userId,
+      onApprovalActionRequired: onApprovalActionRequired,
+      status: PendingApprovalsStatus.PENDING,
+    };
+
+    const pendingApproval: IPendingApprovals =
+      await PendingApprovalModel.query().insert(item);
+    return pendingApproval;
+  }
+
+  private async createPendingApprovalNotifications(
+    pendingApprovalItem: IPendingApprovals
+  ) {
+    // get User's connectionId
+    // if connectionId exists
+    //this.webSocketService.sendMessage(connectionId, payload);
+
+    let notifArray = [];
+    for (let i = 0; i < pendingApprovalItem.approvers.length; i++) {
+      // Now we have to create a notification for this
+      // And then send it to users via different transports
+      // Ideally a job should run and send it but here we are sending it from here for now
+
+      // @TODO Put this in job, SQS and SNS
+      const notification: INotification = {
+        isScheduled: false,
+        notificationType: "ACTIONABLE_ITEM",
+        read: false,
+        receiverUser: pendingApprovalItem.approvers[0],
+        senderUser: pendingApprovalItem.createdBy,
+        title: pendingApprovalItem.activityName,
+        subtitle: message.PendingApprovalCreate(
+          pendingApprovalItem.activityName,
+          pendingApprovalItem.onApprovalActionRequired.actionType
+        ),
+        extraData: {
+          module: "PENDING_APPROVALS",
+          rowId: pendingApprovalItem["id"],
+          infoType: pendingApprovalItem.activityName,
+        },
+      };
+      const notifItem: INotification =
+        await this.notificationService.createNotification(notification);
+      await this.sendNotification(notifItem);
+      notifArray.push(notifItem);
     }
   }
 }

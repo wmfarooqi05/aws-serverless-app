@@ -386,8 +386,8 @@ export class ActivityService implements IActivityService {
             name: users[0]?.managerName!,
           }
         : null,
-      createdAt: moment().format(),
-      updatedAt: moment().format(),
+      createdAt: moment().utc().format(),
+      updatedAt: moment().utc().format(),
     } as IRemarks;
   }
 
