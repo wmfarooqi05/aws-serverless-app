@@ -66,6 +66,8 @@ import {
 
 import { importData } from "@functions/jobs";
 
+import { getEmployees } from "@functions/employees";
+
 export default {
   createCompany,
   deleteCompany,
@@ -125,4 +127,7 @@ export default {
   // deleteMeetingById,
 
   createAndSendEmail,
+
+  // employees
+  getEmployees,
 };

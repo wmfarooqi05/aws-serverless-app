@@ -5,7 +5,7 @@ import { inject, injectable } from "tsyringe";
 // import momentTz from "moment-timezone";
 import NotificationModel, { INotification } from "@models/Notification";
 import { WebSocketService } from "@functions/websocket/service";
-import { IEmployeeJwt } from "@models/interfaces/Employee";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 
 export interface INotificationService {}

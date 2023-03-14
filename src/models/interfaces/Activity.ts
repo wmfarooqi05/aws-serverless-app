@@ -1,5 +1,5 @@
 import { IConcernedPerson } from "./Company";
-import { IEmployee } from "../Employee";
+import { IEmployee } from "../Employees";
 
 export enum ACTIVITY_TYPE {
   TASK = "TASK",

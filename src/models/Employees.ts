@@ -3,20 +3,29 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { EMPLOYEES_TABLE_NAME } from "./commons";
 
-export enum RolesEnum {
-  SALES_REP = "SALES_REP",
-  SALES_MANAGER = "SALES_MANAGER",
-  REGIONAL_MANAGER = "REGIONAL_MANAGER",
-  ADMIN = "ADMIN",
-  SUPER_ADMIN = "SUPER_ADMIN",
-}
+export const roleKey = "cognito:groups";
 
-const RolesArray = [
-  "SALES_REP",
-  "SALES_MANAGER",
-  "REGIONAL_MANAGER",
-  "ADMIN",
-  "SUPER_ADMIN",
+export type IRoles =
+  | "SALES_REP_GROUP"
+  | "SALES_MANAGER_GROUP"
+  | "REGIONAL_MANAGER_GROUP"
+  | "ADMIN_GROUP"
+  | "SUPER_ADMIN_GROUP";
+
+export const RolesEnum: Readonly<Record<IRoles, number>> = Object.freeze({
+  SALES_REP_GROUP: 0,
+  SALES_MANAGER_GROUP: 1,
+  REGIONAL_MANAGER_GROUP: 2,
+  ADMIN_GROUP: 3,
+  SUPER_ADMIN_GROUP: 4,
+});
+
+export const RolesArray: IRoles[] = [
+  "SALES_REP_GROUP",
+  "SALES_MANAGER_GROUP",
+  "REGIONAL_MANAGER_GROUP",
+  "ADMIN_GROUP",
+  "SUPER_ADMIN_GROUP",
 ];
 
 type GenderType = "Male" | "Female" | "Other";
@@ -37,13 +46,13 @@ export interface IEmployee {
   state: string;
   country: string;
   birthdate: string;
-  email_verified: boolean;
-  phone_number_verified: boolean;
-  phone_number: string;
+  emailVerified: boolean;
+  phoneNumberVerified: boolean;
+  phoneNumber: string;
   reportingManager: string;
 
   settings: JSON;
-  social_profiles: JSON;
+  socialProfiles: JSON;
   EmployeeStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -74,7 +83,7 @@ export default class EmployeeModel extends Model {
         jobTitle: { type: "string" },
         role: {
           type: "string",
-          default: RolesEnum.SALES_REP,
+          default: RolesArray[RolesEnum.SALES_REP_GROUP],
           enum: RolesArray,
         },
         gender: {
@@ -87,12 +96,12 @@ export default class EmployeeModel extends Model {
         state: { type: "string" },
         country: { type: "string" },
         birthdate: { type: "string" },
-        email_verified: { type: "boolean", default: false },
-        phone_number_verified: { type: "boolean", default: false },
-        phone_number: { type: "string" },
+        emailVerified: { type: "boolean", default: false },
+        phoneNumberVerified: { type: "boolean", default: false },
+        phoneNumber: { type: "string" },
         reportingManager: { type: "string" },
         settings: { type: "jsonb" },
-        social_profiles: { type: "jsonb" },
+        socialProfiles: { type: "jsonb" },
         EmployeeStatus: { type: "string" },
 
         timezone: { type: "string" },
@@ -111,7 +120,7 @@ export default class EmployeeModel extends Model {
     addedBy: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: Employee,
+      modelClass: EmployeeModel,
       join: {
         from: `${EMPLOYEES_TABLE_NAME}.addedBy`,
         to: `${EMPLOYEES_TABLE_NAME}.id`,
@@ -120,7 +129,7 @@ export default class EmployeeModel extends Model {
     reportingManager: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: Employee,
+      modelClass: EmployeeModel,
       join: {
         from: `${EMPLOYEES_TABLE_NAME}.reportingManager`,
         to: `${EMPLOYEES_TABLE_NAME}.id`,

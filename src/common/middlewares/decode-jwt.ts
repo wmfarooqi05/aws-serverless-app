@@ -17,6 +17,8 @@ import { container } from "@common/container";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { COMPANIES_TABLE_NAME } from "@models/commons";
 import { formatErrorResponse } from "@libs/api-gateway";
+import { CustomError } from "@helpers/custom-error";
+import { IRoles, roleKey, RolesArray, RolesEnum } from "@models/Employees";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -61,10 +63,11 @@ export const permissionMiddleware2 = (
     before: async ({ event }) => {
       const { employee } = event;
       employee.role = "manager";
-      const resp: ICompany[] = await container
-        .resolve(DatabaseService)
-        .get(COMPANIES_TABLE_NAME);
-      console.log("employee", resp[0]?.companyName);
+      // Why are we fetching this???
+      // const resp: ICompany[] = await container
+      //   .resolve(DatabaseService)
+      //   .get(COMPANIES_TABLE_NAME);
+      // console.log("employee", resp[0]?.companyName);
       const permissions = getPermissionsForEmployeeRole2();
       const abc = permissions["manager"].rulesFor("all", "COMPANY");
       console.log("rules", abc);
@@ -80,6 +83,34 @@ export const permissionMiddleware2 = (
         );
       } catch (e) {
         return formatErrorResponse(e);
+      }
+    },
+  };
+};
+
+export const jwtRequired = () => {
+  return {
+    before: ({ event }) => {
+      const role = event?.employee?.[roleKey][0] || "";
+      const roleFound = RolesArray.find((x) => x === role) ? true : false;
+      if (!(roleFound && event?.employee?.sub)) {
+        return formatErrorResponse({
+          message: "Auth Token missing or invalid",
+          statusCode: 403,
+        });
+      }
+    },
+  };
+};
+
+export const allowRoleAndAbove = (permittedRole: number) => {
+  return {
+    before: ({ event }) => {
+      if (RolesEnum[event.employee[roleKey]] < permittedRole) {
+        return formatErrorResponse({
+          message: "Current role is not authorized to access this data",
+          statusCode: 403,
+        });
       }
     },
   };

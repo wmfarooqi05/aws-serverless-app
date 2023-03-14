@@ -1,7 +1,7 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { JOBS_RESULTS_TABLE, EMPLOYEES_TABLE_NAME } from "./commons";
-import EmployeeModel from "./Employee";
+import EmployeeModel from "./Employees";
 
 export interface IJobsResults {
   id?: string;

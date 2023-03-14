@@ -12,7 +12,7 @@ import {
   validateUpdateRemarks,
 } from "./schema";
 
-import EmployeeModel, { IEmployee } from "src/models/Employee";
+import EmployeeModel, { IEmployee } from "src/models/Employees";
 import CompanyModel from "src/models/Company";
 import { randomUUID } from "crypto";
 import ActivityModel, {
@@ -35,7 +35,7 @@ import { unionAllResults } from "./queries";
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployeeJwt } from "@models/interfaces/Employee";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";

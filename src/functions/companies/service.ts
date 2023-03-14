@@ -36,8 +36,8 @@ import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
-import { IEmployeeJwt } from "@models/interfaces/Employee";
-import { RolesEnum } from "@models/Employee";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { RolesEnum } from "@models/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
   COMPANIES_TABLE_NAME,
@@ -244,7 +244,7 @@ export class CompanyService implements ICompanyService {
     }
     const company = await CompanyModel.query()
       .patch(
-        addJsonbObject("concernedPersons", this.docClient.knexClient, payload)
+        addJsonbObject("concernedPersons", this.docClient.getKnexClient, payload)
       )
       .where({ id: companyId })
       .returning("*")

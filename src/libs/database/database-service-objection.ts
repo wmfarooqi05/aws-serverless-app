@@ -15,6 +15,7 @@ export default interface IConfig {
 
 @injectable()
 export class DatabaseService {
+  // @TODO make this private
   knexClient: Knex | null = null;
 
   constructor() {
@@ -32,11 +33,10 @@ export class DatabaseService {
     // @TODO add some wrapper here, which saves logs after query
   }
 
-  // @deprecated
   /**
-   * Deprecated
+   * Knex Client
    */
-  public getKnexClient() {
+  public getKnexClient(): Knex {
     if (!this.knexClient) {
       this.initializeClient();
     }
@@ -44,6 +44,11 @@ export class DatabaseService {
     return this.knexClient;
   }
 
+  /**
+   * 
+   * @param tableName table of knex model
+   * @returns knex table instance
+   */
   public get(tableName: string): Knex.QueryBuilder {
     if (!this.knexClient) {
       this.initializeClient();

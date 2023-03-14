@@ -3,7 +3,7 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { COMPANIES_TABLE_NAME, EMPLOYEES_TABLE_NAME } from "./commons";
 import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "./interfaces/Company";
-import Employee from "./Employee";
+import Employee from "./Employees";
 
 // @TODO export them somewhere else
 

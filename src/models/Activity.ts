@@ -70,7 +70,7 @@ export default class ActivityModel extends Model {
       relation: Model.BelongsToOneRelation,
       modelClass: EMPLOYEES_TABLE_NAME,
       join: {
-        from: `${ACTIVITIES_TABLE}.employeeId`,
+        from: `${ACTIVITIES_TABLE}.createdBy`,
         to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
