@@ -24,7 +24,7 @@ export interface INotification {
   receiverUser: string;
   extraData: IExtraData;
   notificationType: NotificationType;
-  read: boolean;
+  readStatus: boolean;
   isScheduled: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -48,7 +48,7 @@ export default class NotificationModel extends Model {
         receiverUser: { type: "string" },
         extraData: { type: "object" }, // object
         notificationType: { type: "string" },
-        read: { type: "boolean" },
+        readStatus: { type: "boolean" },
         isScheduled: { type: "boolean" }, // if yes, extraData will have scheduling info
         createdAt: { type: "string" },
         updatedAt: { type: "string" },

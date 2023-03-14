@@ -64,7 +64,7 @@ const getMyActivitiesByDay = {
       },
     },
   ],
-}
+};
 
 const getActivityById = {
   handler: `${handlerPath(__dirname)}/handler.getActivityById`,
@@ -156,7 +156,6 @@ const deleteRemarkFromActivity = {
     },
   ],
 };
-
 
 export {
   getActivities,

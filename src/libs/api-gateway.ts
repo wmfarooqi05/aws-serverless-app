@@ -21,11 +21,15 @@ export const formatJSONResponse = (
   return {
     statusCode,
     body: JSON.stringify(response),
-    headers: {
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-    },
+    headers: responseHeaders(),
+  };
+};
+
+export const responseHeaders = () => {
+  return {
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
   };
 };
 
@@ -35,5 +39,38 @@ export const formatErrorResponse = (
   return {
     statusCode: error.statusCode,
     body: JSON.stringify({ message: error.message, data: error.data }),
+  };
+};
+
+export const formatGoogleJSONResponse = (
+  response: any,
+  statusCode = 200
+): APIGatewayProxyResult => {
+  delete response.config;
+  delete response.headers;
+  delete response.request;
+
+  return {
+    statusCode,
+    body: formatGoogleErrorBody(response),
+    headers: responseHeaders(),
+  };
+};
+
+export const formatGoogleErrorBody = (response) => {
+  delete response.config;
+  delete response.headers;
+  delete response.request;
+  return JSON.stringify(response);
+};
+
+export const formatGoogleErrorResponse = (error: any) => {
+  return {
+    statusCode: 400,
+    body: JSON.stringify({
+      code: error.code,
+      message: error.message,
+      data: error.errors,
+    }),
   };
 };

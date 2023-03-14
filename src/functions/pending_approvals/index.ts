@@ -13,4 +13,18 @@ const approvePendingApproval = {
     },
   ],
 };
-export { approvePendingApproval };
+
+const sendWebSocketNotification = {
+  handler: `${handlerPath(__dirname)}/handler.sendWebSocketNotification`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "pending-approval/send-notif",
+        cors: true,
+      },
+    },
+  ],
+};
+
+export { approvePendingApproval, sendWebSocketNotification };

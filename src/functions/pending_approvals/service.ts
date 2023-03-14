@@ -18,7 +18,6 @@ import { INotification } from "@models/Notification";
 import { message } from "./strings";
 import { randomUUID } from "crypto";
 import User from "@models/User";
-import { WebSocketService } from "@functions/websocket/service";
 
 export interface IPendingApprovalService {}
 
@@ -33,11 +32,14 @@ export interface PendingApprovalEBSchedulerPayload {
 export class PendingApprovalService implements IPendingApprovalService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(WebSocketService)
-    private readonly webSocketService: WebSocketService,
     @inject(NotificationService)
     private readonly notificationService: NotificationService
   ) {}
+
+  /**@TODO remove this */
+  async sendWebSocketNotification(body: string) {
+    this.notificationService.sendWebSocketNotification(body);
+  }
 
   async createPendingApproval(
     userId: string,
@@ -121,7 +123,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       error[errorCount] = e;
       error[errorCount]._stack = e.stack;
       error[errorCount]._message = e.message;
-      errorCount++
+      errorCount++;
       if (!entry) {
         // Push to SQS because no data entry exists;
         // Case 3
@@ -141,10 +143,10 @@ export class PendingApprovalService implements IPendingApprovalService {
     }
   }
 
-  private async sendNotification(notifItem: INotification) {
+  private async sendNotification(notifItem: string) {
     console.log("sendNotification", notifItem.id);
     // @Web Socket
-
+    this.sendWebSocketNotificationHelper(notifItem);
     // @Email
 
     // @SMS
@@ -200,7 +202,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       const notification: INotification = {
         isScheduled: false,
         notificationType: "ACTIONABLE_ITEM",
-        read: false,
+        readStatus: false,
         receiverUser: pendingApprovalItem.approvers[0],
         senderUser: pendingApprovalItem.createdBy,
         title: pendingApprovalItem.activityName,
@@ -216,8 +218,13 @@ export class PendingApprovalService implements IPendingApprovalService {
       };
       const notifItem: INotification =
         await this.notificationService.createNotification(notification);
-      await this.sendNotification(notifItem);
+      await this.sendNotification(JSON.stringify(notifItem));
       notifArray.push(notifItem);
     }
+  }
+
+  private async sendWebSocketNotificationHelper(notifItem: string) {
+    // Here we will decide which notifications should be invoked
+    this.notificationService.sendWebSocketNotification(notifItem);
   }
 }

@@ -38,6 +38,13 @@ export async function up(knex: Knex): Promise<void> {
     table.string("company_name").notNullable();
     table.jsonb("concerned_persons").defaultTo([]);
     table
+      .uuid("created_by")
+      .index()
+      .references("id")
+      .inTable(Tables.users)
+      .onDelete("SET NULL")
+      .notNullable();
+    table
       .uuid("assigned_to")
       .index()
       .references("id")

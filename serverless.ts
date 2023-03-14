@@ -3,11 +3,11 @@ import * as dotenv from "dotenv";
 // import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
 
-// var fs = require("fs");
-// var contents = fs.readFileSync("package.json");
-// const dependencies = Object.keys(JSON.parse(contents)["devDependencies"]).join(
-//   ...Object.keys(JSON.parse(contents)["dependencies"])
-// );
+var fs = require("fs");
+var contents = fs.readFileSync("package.json");
+const dependencies: string[] = Object.keys(
+  JSON.parse(contents)["devDependencies"]
+).concat(...Object.keys(JSON.parse(contents)["dependencies"]));
 
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
@@ -61,6 +61,7 @@ const serverlessConfiguration: AWS = {
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
       REGION: "${self:custom.region}",
       STACK_NAME: "${self:custom.STACK_NAME}",
+      VPC_NAT_GATEWAY_ID: process.env.NAT_GATEWAY_ID,
 
       // STAGE: "${opt:stage, 'dev'}",
 
@@ -104,9 +105,9 @@ const serverlessConfiguration: AWS = {
         ignore: ["temp/**/*"],
       },
       exclude: [
-        // ...dependencies,
-        // "@aws-sdk",
-        // "aws-sdk",
+        ...dependencies,
+        "@aws-sdk",
+        "aws-sdk",
         "pg-native",
         "pg-hstore",
         "better-sqlite3",
@@ -138,6 +139,11 @@ const serverlessConfiguration: AWS = {
       platform: "node",
       concurrency: 10,
     },
+    "serverless-offline": {
+      resourceRoutes: true,
+      allowCache: true,
+      useChildProcesses: true,
+    },
     serverlessOffline: {
       resourceRoutes: true,
       allowCache: true,
@@ -146,7 +152,7 @@ const serverlessConfiguration: AWS = {
     "serverless-layers": {
       packageManager: "npm",
       dependenciesPath: "package.json",
-      compatibleRuntimes: ['nodejs16.x', 'nodejs18.x'],
+      compatibleRuntimes: ["nodejs16.x", "nodejs18.x"],
     },
   },
   resources: {

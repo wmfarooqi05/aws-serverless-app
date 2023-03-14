@@ -10,7 +10,6 @@ export const UserRolesMigrate = [
   "SUPER_ADMIN",
 ]
 
-const defaultDateFormat = "YYYY-MM-DD";
 const tableName = Tables.users;
 
 export async function up(knex: Knex): Promise<void> {
@@ -31,8 +30,8 @@ export async function up(knex: Knex): Promise<void> {
     table.jsonb("social_profiles");
     table.string("timezone");
     // we will store it in elastic cache
-    // table.string("websocket_id");
-    table.string("date_format").defaultTo(defaultDateFormat);
+    table.string("websocket_id");
+    table.string("team_id").notNullable().defaultTo("team0").index();
     table
       .uuid("added_by")
       .index()

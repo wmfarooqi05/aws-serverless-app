@@ -1,5 +1,5 @@
 import * as Joi from "joi";
-import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "@models/Company";
+import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "@models/interfaces/Company";
 import { getPaginatedJoiKeys } from "src/common/schema";
 import CompanyModel from "@models/Company";
 
@@ -12,7 +12,8 @@ const AddressJoi = Joi.array().items(
     city: Joi.string(),
     state: Joi.string(),
     country: Joi.string(),
-    postalCode: Joi.number(), //.min(10000).max(99999),
+    // fix this
+    postalCode: Joi.alternatives(Joi.number(), Joi.string()), //.min(10000).max(99999),
   })
 );
 
@@ -24,7 +25,7 @@ export const validateGetCompanies = async (obj: any) => {
     returningFields: Joi.string(),
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false,
+    
   });
 };
 
@@ -32,6 +33,7 @@ export const validateCreateCompany = async (obj: any) => {
   await Joi.object({
     companyName: Joi.string(),
     addresses: AddressJoi,
+    createdBy: Joi.string().guid().required(),
     concernedPersons: Joi.array().items(
       Joi.object()
         .keys({
@@ -44,10 +46,10 @@ export const validateCreateCompany = async (obj: any) => {
     ),
     priority: Joi.string().valid(...Object.values(PRIORITY)),
     taskStatus: Joi.string().valid(...Object.values(TASK_STATUS)),
-    stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
+    stage: Joi.string().valid(...Object.values(COMPANY_STAGES))
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false, // @TODO cleanup api update
+     // @TODO cleanup api update
   });
 };
 
@@ -63,7 +65,7 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
     { ...obj, id },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -82,7 +84,7 @@ export const validateUpdateCompanyAssignedUser = async (
     { ...payload, assignedBy, companyId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -105,7 +107,7 @@ export const validateCreateConcernedPerson = async (
       { ...payload, companyId, employeeId },
       {
         abortEarly: true,
-        allowUnknown: false,
+        
       }
     );
 };
@@ -128,7 +130,7 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, companyId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -142,7 +144,7 @@ export const validateGetNotes = async (userId: string, companyId: string) => {
     { companyId, userId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -155,7 +157,7 @@ export const validateAddNotes = async (addedBy: string, companyId: string, paylo
     { ...payload, companyId, addedBy },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -175,7 +177,7 @@ export const validateUpdateNotes = async (
     { ...body, companyId, addedBy, notesId, },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };

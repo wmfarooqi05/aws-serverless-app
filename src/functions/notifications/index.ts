@@ -39,7 +39,7 @@ const getNotificationById = {
     {
       http: {
         method: "get",
-        path: "notification/{notificationId}",
+        path: "notification/{id}",
         cors: true,
       },
     },
@@ -47,12 +47,12 @@ const getNotificationById = {
 };
 
 const updateNotification = {
-  handler: `${handlerPath(__dirname)}/handler.updateNotification`,
+  handler: `${handlerPath(__dirname)}/handler.updateNotificationsReadStatus`,
   events: [
     {
       http: {
         method: "put",
-        path: "notification/{notificationId}",
+        path: "notification",
         cors: true,
       },
     },

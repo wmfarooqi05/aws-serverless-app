@@ -1,13 +1,12 @@
 import "reflect-metadata";
 // import { DatabaseService } from "../../libs/database/database-service-objection";
-import {
-  injectable,
-  // injectable
-} from "tsyringe";
-// import AWS from "aws-sdk";
+import { inject, injectable } from "tsyringe";
 // import { randomUUID } from "crypto";
 // import momentTz from "moment-timezone";
 import NotificationModel, { INotification } from "@models/Notification";
+import { WebSocketService } from "@functions/websocket/service";
+import { IUserJwt } from "@models/interfaces/User";
+import { CustomError } from "@helpers/custom-error";
 
 export interface INotificationService {}
 
@@ -20,7 +19,10 @@ export interface NotificationEBSchedulerPayload {
 
 @injectable()
 export class NotificationService implements INotificationService {
-  constructor() {}
+  constructor(
+    @inject(WebSocketService)
+    private readonly webSocketService: WebSocketService
+  ) {}
   // constructor(private scheduler: AWS.Scheduler) {
   //   this.scheduler = new AWS.Scheduler({
   //     region: process.env.AWS_SCHEDULER_REGION,
@@ -60,7 +62,7 @@ export class NotificationService implements INotificationService {
       // @TODO we will create title
       title,
       notificationType,
-      read: false,
+      readStatus: false,
       extraData,
       isScheduled,
       senderUser,
@@ -70,6 +72,49 @@ export class NotificationService implements INotificationService {
 
     // const { senderUser, receiverUser }: { senderUser: any; receiverUser: any } = req.body
     return NotificationModel.query().insert(notificationPayload);
+  }
+
+  async getNotifications(userId, body) {
+    const payload = JSON.parse(body);
+
+    const whereObj: any = { userId };
+    if (payload.readStatus) {
+      whereObj.readStatus = payload.readStatus;
+    }
+    return NotificationModel.query().where(whereObj);
+  }
+
+  async getNotificationById(userId: string, id: string) {
+    // @TODO add auth guard
+    const notifItem: INotification = await NotificationModel.query().findById(
+      id
+    );
+    if (notifItem.receiverUser !== userId) {
+      throw new CustomError(
+        "The notification doesn't belongs to this user",
+        403
+      );
+    }
+    return notifItem;
+  }
+
+  async updateNotificationsReadStatus(body) {
+    const payload = JSON.parse(body);
+    // @todo add validator JOI
+    await this.updateNotificationsReadStatus(payload);
+
+    const response = await NotificationModel.query()
+      .patch({
+        read: payload.readStatus,
+      })
+      .whereIn("id", payload.ids);
+    return response;
+  }
+
+  /**@TODO remove this */
+  async sendWebSocketNotification(data: string) {
+    // @TODO add Joi validation
+    this.webSocketService.sendMessage(data);
   }
 
   // async ScheduleNotification() {

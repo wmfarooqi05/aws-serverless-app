@@ -106,7 +106,6 @@ const updateConcernedPerson = {
         method: "put",
         path: "/company/{companyId}/concerned-person/{concernedPersonId}",
         cors: true,
-        
       },
     },
   ],
@@ -140,7 +139,6 @@ const getNotes = {
   ],
 };
 
-
 const createNotes = {
   handler: `${handlerPath(__dirname)}/handler.createNotes`,
   events: [
@@ -162,7 +160,6 @@ const updateNotes = {
         method: "put",
         path: "/company/{companyId}/notes/{notesId}",
         cors: true,
-        
       },
     },
   ],
@@ -194,5 +191,5 @@ export {
   getNotes,
   createNotes,
   updateNotes,
-  deleteNotes
+  deleteNotes,
 };

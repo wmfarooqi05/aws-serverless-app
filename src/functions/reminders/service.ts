@@ -1,9 +1,7 @@
 import "reflect-metadata";
-// import { DatabaseService } from "../../libs/database/database-service-objection";
 import {
   inject,
   injectable,
-  // injectable
 } from "tsyringe";
 import {
   SchedulerClient,
@@ -11,14 +9,10 @@ import {
   CreateScheduleCommandInput,
   DeleteScheduleCommand,
   DeleteScheduleCommandInput,
-  GetScheduleCommandInput,
-  GetScheduleCommand,
-  GetScheduleGroupCommandInput,
 } from "@aws-sdk/client-scheduler";
 import {
   S3Client,
   PutObjectCommand,
-  PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
 
 import { randomUUID } from "crypto";

@@ -6,5 +6,6 @@ export const tableName = {
   appAuditLogs: process.env.APP_AUDIT_LOGS_TABLE || "app_audit_logs",
   reminders: process.env.REMINDERS_TABLE || "reminders",
   notifications: process.env.NOTIFICATIONS_TABLE || "notifications",
+  authTokens: process.env.AUTH_TOKENS || "auth_tokens",
+  jobsResults: process.env.JOBS_RESULTS || "jobs_result",
 };
- 

@@ -2,9 +2,17 @@ import * as Joi from "joi";
 import {
   ACTIVITY_TYPE,
   ACTIVITY_STATUS_SHORT,
+  IActivity,
+  IACTIVITY_DETAILS,
+  IPHONE_DETAILS,
+  IEMAIL_DETAILS,
+  IMEETING_DETAILS,
+  ITASK_DETAILS,
 } from "src/models/interfaces/Activity";
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
+import { IUserJwt } from "@models/interfaces/User";
+import moment from "moment-timezone";
 
 const schemaKeys = Object.keys(ActivityModel?.jsonSchema?.properties || {});
 
@@ -27,7 +35,6 @@ export const validateGetActivitiesByCompany = async (
       { ...obj, companyId },
       {
         abortEarly: true,
-        allowUnknown: false,
       }
     );
 };
@@ -45,7 +52,6 @@ export const validateGetActivities = async (obj: any) => {
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(obj, {
       abortEarly: true,
-      allowUnknown: false,
     });
 };
 
@@ -65,7 +71,6 @@ export const validateGetMyActivities = async (createdBy: string, obj: any) => {
       { ...obj, createdBy },
       {
         abortEarly: true,
-        allowUnknown: false,
       }
     );
 };
@@ -73,7 +78,7 @@ export const validateGetMyActivities = async (createdBy: string, obj: any) => {
 // @TODO update validations
 export const validateCreateActivity = async (
   createdBy: string,
-  payload: any
+  payload: IActivity
 ) => {
   await Joi.object({
     summary: Joi.string(), // in case of email, it will be null
@@ -86,15 +91,16 @@ export const validateCreateActivity = async (
       designation: Joi.string().required(),
     }).required(),
     activityType: Joi.string().valid(...Object.values(ACTIVITY_TYPE)),
+    // @TODO add email type validation
     createdAt: Joi.string().isoDate(),
     updatedAt: Joi.string().isoDate(),
   }).validateAsync(
     { ...payload, createdBy },
     {
       abortEarly: true,
-      allowUnknown: false,
     }
   );
+  await validateDetailPayload(payload.activityType, payload.details);
 };
 
 // @TODO update validations
@@ -110,7 +116,6 @@ export const validateUpdateActivity = async (
     .min(1)
     .validateAsync(payload, {
       abortEarly: true,
-      allowUnknown: false,
     });
 
   await Joi.object({
@@ -120,7 +125,6 @@ export const validateUpdateActivity = async (
     { createdBy, activityId },
     {
       abortEarly: true,
-      allowUnknown: false,
     }
   );
 };
@@ -141,7 +145,6 @@ export const validateRemarks = async (
     { ...payload, employeeId, activityId },
     {
       abortEarly: true,
-      allowUnknown: false,
     }
   );
 };
@@ -162,7 +165,79 @@ export const validateUpdateRemarks = async (
     { ...payload, employeeId, activityId, remarksId },
     {
       abortEarly: true,
-      allowUnknown: false,
     }
   );
+};
+
+const validateDetailPayload = async (
+  activityType: ACTIVITY_TYPE,
+  details: IACTIVITY_DETAILS
+) => {
+  switch (activityType) {
+    case ACTIVITY_TYPE.CALL:
+      await validateCallDetails(details as IPHONE_DETAILS);
+      break;
+    case ACTIVITY_TYPE.EMAIL:
+      await validateEmailDetails(details as IEMAIL_DETAILS);
+      break;
+    case ACTIVITY_TYPE.MEETING:
+      await validateMeetingDetails(details as IMEETING_DETAILS);
+      break;
+    case ACTIVITY_TYPE.TASK:
+      await validateTaskDetails(details as ITASK_DETAILS);
+      break;
+  }
+};
+
+const validateCallDetails = async (details: IPHONE_DETAILS) => {
+  console.log(details);
+};
+
+const validateEmailDetails = async (details: IEMAIL_DETAILS) => {
+  await Joi.object({
+    to: Joi.array().items({
+      name: Joi.string(),
+      email: Joi.string().email().required(),
+    }),
+    subject: Joi.string().required(),
+    date: Joi.string().isoDate().required(), // must in case of is scheduled, decide for other cases
+    body: Joi.string().required(),
+    isScheduled: Joi.boolean(),
+    timezone: Joi.string().required(),
+  }).validateAsync(details);
+};
+
+const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
+  await Joi.object({
+    summary: Joi.string().required(),
+    calendarId: Joi.string().required(),
+    description: Joi.string().required(),
+    location: Joi.string(),
+    createVideoLink: Joi.boolean().required(),
+    startDateTime: Joi.string().required(),
+    endDateTime: Joi.string().required(),
+    timezone: Joi.string()
+      .required()
+      .valid(...moment.tz.names()),
+    sendUpdates: Joi.string().valid(...["all", "externalOnly", "none"]),
+    reminders: Joi.object({
+      useDefault: Joi.boolean(),
+      overrides: Joi.array()
+        .items({
+          method: Joi.string()
+            .required()
+            .invalid(...["email", "popup"]),
+          minutes: Joi.number().required().min(1),
+        })
+        .optional(),
+    }),
+    attendees: Joi.array().items({
+      email: Joi.string().required(),
+      displayName: Joi.string(),
+    }),
+  }).validateAsync(details);
+};
+
+const validateTaskDetails = async (details: ITASK_DETAILS) => {
+  console.log(details);
 };

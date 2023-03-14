@@ -33,6 +33,23 @@ export const approvePendingApprovalHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+
+// @TODO only for testing 
+export const sendWebSocketNotification: ValidatedEventAPIGatewayProxyEvent<
+  IPendingApprovalModel
+> = async (event) => {
+  try {
+    const resp = await container
+      .resolve(PendingApprovalService)
+      .sendWebSocketNotification(event.body);
+    return formatJSONResponse(resp, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+
+
 export const approvePendingApproval = middy(approvePendingApprovalHandler).use(
   decodeJWTMiddleware()
 );

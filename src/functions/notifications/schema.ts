@@ -7,7 +7,7 @@ export const validateGetNotifications = async (obj: any) => {
     returningFields: Joi.string(),
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false,
+    
   });
 };
 
@@ -26,23 +26,18 @@ export const validateCreateNotification = async (obj: any) => {
     ),
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false, // @TODO cleanup api update
+     // @TODO cleanup api update
   });
 };
 
-export const validateUpdateNotifications = async (id: string, obj: any) => {
+export const updateNotificationsReadStatus = async (obj: any) => {
   await Joi.object({
-    id: Joi.string().guid(),
-    notificationName: Joi.string(),
-    phoneNumbers: Joi.array().items(Joi.string()),
-    emails: Joi.array().items(Joi.string().email()),
-  }).validateAsync(
-    { ...obj, id },
-    {
-      abortEarly: true,
-      allowUnknown: false,
-    }
-  );
+    ids: Joi.array().items(Joi.string().guid().required()),
+    status: Joi.boolean().required(),
+  }).validateAsync(obj, {
+    abortEarly: true,
+    
+  });
 };
 
 export const validateUpdateNotificationAssignedUser = async (
@@ -59,7 +54,7 @@ export const validateUpdateNotificationAssignedUser = async (
     { ...payload, assignedBy, notificationId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -82,7 +77,7 @@ export const validateCreateConcernedPerson = async (
       { ...payload, notificationId, employeeId },
       {
         abortEarly: true,
-        allowUnknown: false,
+        
       }
     );
 };
@@ -105,7 +100,7 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, notificationId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };

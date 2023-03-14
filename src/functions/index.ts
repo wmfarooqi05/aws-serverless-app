@@ -29,7 +29,10 @@ import {
   deleteNotes,
 } from "@functions/companies";
 
-import { approvePendingApproval } from "@functions/pending_approvals";
+import {
+  approvePendingApproval,
+  sendWebSocketNotification,
+} from "@functions/pending_approvals";
 
 import {
   createReminder,
@@ -42,6 +45,26 @@ import {
   broadcastMessage,
   getAllWebSocketConnections,
 } from "@functions/websocket";
+
+import {
+  googleOauthCallbackHandler,
+  googleOauthHandler,
+  googleOauthExtendRefreshToken,
+  googleOauthTokenScope,
+} from "@functions/google/oauth";
+
+import { createAndSendEmail } from "@functions/google/gmail";
+
+import {
+  getAllCalendars,
+  // getMeetings,
+  // getMeetingById,
+  createMeeting,
+  // updateMeetingById,
+  // deleteMeetingById,
+} from "@functions/google/calendar";
+
+import { importData } from "@functions/jobs";
 
 export default {
   createCompany,
@@ -57,6 +80,9 @@ export default {
   createNotes,
   updateNotes,
   deleteNotes,
+
+  // Jobs
+  importData,
   // Activity
   getActivities,
   getActivityById,
@@ -73,6 +99,7 @@ export default {
   // ACTIVITY
   // createActivity,
   approvePendingApproval,
+  sendWebSocketNotification,
 
   // Reminders
   createReminder,
@@ -82,4 +109,20 @@ export default {
   webSocketHandler,
   broadcastMessage,
   getAllWebSocketConnections,
+
+  // google
+  googleOauthHandler,
+  googleOauthCallbackHandler,
+  googleOauthExtendRefreshToken,
+  googleOauthTokenScope,
+
+  // calendar
+  // getMeetings,
+  // getMeetingById,
+  getAllCalendars,
+  createMeeting,
+  // updateMeetingById,
+  // deleteMeetingById,
+
+  createAndSendEmail,
 };

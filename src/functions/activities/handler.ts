@@ -112,8 +112,8 @@ const createActivityHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const newActivity = await container.resolve(ActivityService).createActivity(
-      // event?.user?.sub,
-      "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
+      event?.user,
+      // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
       event.body
     );
     return formatJSONResponse(newActivity, 201);

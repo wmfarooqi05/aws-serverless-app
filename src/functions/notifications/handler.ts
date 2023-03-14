@@ -1,6 +1,9 @@
 import "reflect-metadata";
 
-import { INotificationModel, INotificationPaginated } from "@models/Notification";
+import {
+  INotificationModel,
+  INotificationPaginated,
+} from "@models/Notification";
 
 import {
   formatErrorResponse,
@@ -20,7 +23,9 @@ export const createNotification: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
-    const newNotification = await container.resolve(NotificationService).createNotification(event.body);
+    const newNotification = await container
+      .resolve(NotificationService)
+      .createNotification(event.body);
     return formatJSONResponse(newNotification, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -33,7 +38,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const notifications = await container
       .resolve(NotificationService)
-      .getAllNotifications(event.queryStringParameters || {});
+      .getNotifications(event.user?.sub, event.queryStringParameters);
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -43,25 +48,25 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
 export const getNotificationById: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
-  const { notificationId } = event.pathParameters;
+  const { id } = event.pathParameters;
   try {
-    const notifications = await container.resolve(NotificationService).getNotification(notificationId);
+    const notifications = await container
+      .resolve(NotificationService)
+      .getNotificationById(event.user?.sub, id);
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-export const updateNotification: ValidatedEventAPIGatewayProxyEvent<
+export const updateNotificationsReadStatus: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
-    console.log("event.pathParameters", event.pathParameters);
     console.log("event.body", event.body);
-    const { notificationId } = event.pathParameters;
     const updatedNotification = await container
       .resolve(NotificationService)
-      .updateNotification(notificationId, event.body);
+      .updateNotificationsReadStatus(event.body);
     return formatJSONResponse(updatedNotification, 200);
   } catch (e) {
     console.log("e", e);
@@ -74,85 +79,24 @@ export const deleteNotification: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { notificationId } = event.pathParameters;
-    await container.resolve(NotificationService).deleteNotification(notificationId);
-    return formatJSONResponse({ message: "Notification deleted successfully" }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const updateNotificationAssignedUserHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
-  try {
-    // @TODO put auth guard
-    // User must be there
-    // Role guard of manager or above
-    const { notificationId } = event.pathParameters;
-    const notification = await container
+    await container
       .resolve(NotificationService)
-      .updateNotificationAssignedUser(notificationId, event?.user?.sub, event.body);
-
-    return formatJSONResponse({ notification }, 200);
+      .deleteNotification(notificationId);
+    return formatJSONResponse(
+      { message: "Notification deleted successfully" },
+      200
+    );
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
-  try {
-    const { notificationId } = event.pathParameters;
-    const notification = await container
-      .resolve(NotificationService)
-      .createConcernedPersons(notificationId, event?.user?.sub, event.body);
-    return formatJSONResponse({ notification }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
-  try {
-    const { notificationId, concernedPersonId } = event.pathParameters;
-    const notification = await container
-      .resolve(NotificationService)
-      .updateConcernedPerson(
-        notificationId,
-        concernedPersonId,
-        event?.user?.sub,
-        event.body
-      );
-
-    return formatJSONResponse({ notification }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
-  try {
-    const { concernedPersonId, notificationId } = event.pathParameters;
-    // Add guard validation if required
-    const notification = await container
-      .resolve(NotificationService)
-      .deleteConcernedPerson(notificationId, concernedPersonId);
-
-    return formatJSONResponse({ notification }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-export const getNotifications = middy(getNotificationsHandler).use(decodeJWTMiddleware());
-export const updateNotificationAssignedUser = middy(updateNotificationAssignedUserHandler).use(
+export const getNotifications = middy(getNotificationsHandler).use(
   decodeJWTMiddleware()
 );
+export const updateNotificationAssignedUser = middy(
+  updateNotificationAssignedUserHandler
+).use(decodeJWTMiddleware());
 
 export const createConcernedPersons = middy(createConcernedPersonsHandler).use(
   decodeJWTMiddleware()

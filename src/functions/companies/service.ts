@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import CompanyModel, {
-  IAddress,
-  IAssignmentHistory,
-  IConcernedPerson,
-  ICompany,
   ICompanyModel,
   ICompanyPaginated,
 } from "@models/Company";
+import {
+  IAssignmentHistory,
+  IConcernedPerson,
+  ICompany,
+} from "@models/interfaces/Company";
 import { DatabaseService } from "../../libs/database/database-service-objection";
 import moment from "moment-timezone";
 
@@ -22,7 +23,7 @@ import {
   validateUpdateNotes,
 } from "./schema";
 
-import { inject, injectable, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
@@ -33,19 +34,14 @@ import {
 } from "src/common/json_helpers";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
-  IOnApprovalActionRequired,
-  IPendingApprovals,
-  PendingApprovalsStatus,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IUserJwt } from "@models/interfaces/User";
-import User, { RolesEnum } from "@models/User";
+import { RolesEnum } from "@models/User";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
   COMPANIES_TABLE_NAME,
   getGlobalPermission,
-  globalPermissions,
-  IPermissionKey,
   ModuleTitles,
 } from "@models/commons";
 
@@ -92,12 +88,13 @@ export class CompanyService implements ICompanyService {
     const activities = await ActivityModel.query().where({
       companyId: id,
     });
-    company.activities = activities;
+    company["activities"] = activities;
     return company;
   }
 
-  async createCompany(body: any): Promise<ICompanyModel> {
+  async createCompany(userId: string, body: any): Promise<ICompanyModel> {
     const payload = JSON.parse(body);
+    payload.createdBy = userId;
     await validateCreateCompany(payload);
 
     const timeNow = moment().utc().format();
@@ -231,7 +228,7 @@ export class CompanyService implements ICompanyService {
     if (!permission && user["cognito:groups"] === RolesEnum.SALES_REP) {
       // or employee is manager, determine if this manager is allowed to see data
       const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
-        key: 'concernedPersons',
+        key: "concernedPersons",
         jsonbItem: payload,
       };
 
@@ -241,7 +238,7 @@ export class CompanyService implements ICompanyService {
         ModuleTitles.COMPANY,
         COMPANIES_TABLE_NAME,
         PendingApprovalType.JSON_PUSH,
-        jsonbPayload,
+        jsonbPayload
       );
       return item;
     }
@@ -266,6 +263,10 @@ export class CompanyService implements ICompanyService {
     employeeId: string,
     body
   ) {
+    /**
+     * Exclude this logic to a middleware
+     */
+
     const payload = JSON.parse(body);
     await validateUpdateConcernedPerson(
       employeeId,

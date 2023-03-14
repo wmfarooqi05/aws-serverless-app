@@ -1,4 +1,4 @@
-import { IConcernedPerson } from "../Company";
+import { IConcernedPerson } from "./Company";
 import { IUser } from "../User";
 
 export enum ACTIVITY_TYPE {
@@ -11,14 +11,14 @@ export enum ACTIVITY_TYPE {
 export enum ACTIVITY_STATUS_SHORT {
   OPEN = "OPEN",
   CLOSED = "CLOSED",
-  SCHEDULED = "SCHEDULED"
+  SCHEDULED = "SCHEDULED",
 }
 
 export enum ACTIVITY_STATUS {
   // OPEN
   DRAFT = "DRAFT", // if task is closed without saving
   // Approval by manager, like for meetings, or some serious emails or calls
-  NEED_APPROVAL = "NEED_APPROVAL", 
+  NEED_APPROVAL = "NEED_APPROVAL",
   BACKLOG = "BACKLOG", // DEFAULT STATUS
   TODO = "TODO", // Employee marks it, that now he is going to working on it soon
   IN_PROGRESS = "IN_PROGRESS",
@@ -42,7 +42,7 @@ export interface IReminder {
 }
 
 export interface IActivity {
-  id: string;
+  id?: string;
   summary: string;
   details: IACTIVITY_DETAILS;
   companyId: string;
@@ -54,7 +54,7 @@ export interface IActivity {
   tags: string[];
   createdAt: string;
   updatedAt: string;
-  reminders: IReminder[];
+  reminders?: IReminder[];
 }
 
 export interface IRemarks {
@@ -86,20 +86,51 @@ export interface IPHONE_DETAILS {
   isScheduled: boolean;
 }
 export interface IEMAIL_DETAILS {
-  email: string;
-  body: string;
+  fromEmail: string;
+  from: string;
+  to: string;
   subject: string;
   date: string;
-  status: string;
+  messageId: string;
+  body: string;
+  status?: string;
   isScheduled: boolean;
+  // attachment: string;
 }
 
 export interface IMEETING_DETAILS {
-  title: string;
   summary: string;
+  calendarId: string;
+  attendees: { email: string; displayName: string }[];
   description: string;
-  isScheduled: boolean;
-  date: string;
+  location: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+  sendUpdates: "all" | "externalOnly" | "none";
+  createVideoLink: boolean;
+  reminders?: {
+    useDefault?: boolean;
+    overrides?: [{
+      /**
+       * The method used by this reminder. Possible values are:
+       * - "email" - Reminders are sent via email.
+       * - "popup" - Reminders are sent via a UI popup.
+       * Required when adding a reminder.
+       */
+      method: "email" | "popup";
+      /**
+       * Number of minutes before the start of the event when the reminder should trigger. Valid values are between 0 and 40320 (4 weeks in minutes).
+       * Required when adding a reminder.
+       */
+      minutes: number;
+    }];
+  };
 }
 
 export interface ITASK_DETAILS {

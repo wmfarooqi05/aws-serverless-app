@@ -26,7 +26,7 @@ export async function up(knex: Knex): Promise<void> {
 
       table.jsonb("extra_data");
       table.string("notification_type").notNullable();
-      table.boolean("read").defaultTo(false);
+      table.boolean("read_status").defaultTo(false);
       table.boolean("is_scheduled").defaultTo(false);
 
       table

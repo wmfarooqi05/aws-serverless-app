@@ -7,20 +7,20 @@ import {
 } from "../../libs/api-gateway";
 import { CompanyService } from "./service";
 import middy from "@middy/core";
-import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
+import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
 
-export const createCompany: ValidatedEventAPIGatewayProxyEvent<
+export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
     const newCompany = await container
       .resolve(CompanyService)
-      .createCompany(event.body);
+      .createCompany(event.user?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", event.body);
     return formatJSONResponse(newCompany, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -210,37 +210,31 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getCompanies = middy(getCompaniesHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const updateCompany = middy(updateCompanyHandler).use(
-  decodeJWTMiddleware()
-);
+export const getCompanies = jwtMiddlewareWrapper(getCompaniesHandler);
+// .use(permissionMiddleware2(["update"], "COMPANY"));
+export const updateCompany = jwtMiddlewareWrapper(updateCompanyHandler);
+export const createCompany = jwtMiddlewareWrapper(createCompanyHandler);
 
 // export const deleteCompany = middy(deleteCompanyHandler).use(
 //   decodeJWTMiddleware()
 // );
 
-export const updateCompanyAssignedUser = middy(
+export const updateCompanyAssignedUser = jwtMiddlewareWrapper(
   updateCompanyAssignedUserHandler
-).use(decodeJWTMiddleware());
-
-export const createConcernedPersons = middy(createConcernedPersonsHandler).use(
-  decodeJWTMiddleware()
 );
 
-export const updateConcernedPerson = middy(updateConcernedPersonHandler).use(
-  decodeJWTMiddleware()
-);
-export const deleteConcernedPerson = middy(deleteConcernedPersonHandler).use(
-  decodeJWTMiddleware()
+export const createConcernedPersons = jwtMiddlewareWrapper(
+  createConcernedPersonsHandler
 );
 
-export const createNotes = middy(createNotesHandler).use(decodeJWTMiddleware());
+export const updateConcernedPerson = jwtMiddlewareWrapper(
+  updateConcernedPersonHandler
+);
+export const deleteConcernedPerson = jwtMiddlewareWrapper(
+  deleteConcernedPersonHandler
+);
 
-export const updateNotes = middy(updateNotesHandler).use(decodeJWTMiddleware());
-
-export const deleteNotes = middy(deleteNotesHandler).use(decodeJWTMiddleware());
-
-export const getNotes = middy(getNotesHandler).use(decodeJWTMiddleware());
+export const createNotes = jwtMiddlewareWrapper(createNotesHandler);
+export const updateNotes = jwtMiddlewareWrapper(updateNotesHandler);
+export const deleteNotes = jwtMiddlewareWrapper(deleteNotesHandler);
+export const getNotes = jwtMiddlewareWrapper(getNotesHandler);

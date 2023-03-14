@@ -24,15 +24,21 @@ import {
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_TYPE,
   IActivity,
+  IACTIVITY_DETAILS,
+  IEMAIL_DETAILS,
   IRemarks,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE, USERS_TABLE_NAME } from "src/models/commons";
 import { unionAllResults } from "./queries";
-import { EmailService } from "src/common/service/EmailServiceSendGrid";
 
 import { injectable, inject } from "tsyringe";
-import { testEmailTemplate } from "./testemail";
+import { GoogleCalendarService } from "@functions/google/calendar/service";
+import { GoogleGmailService } from "@functions/google/gmail/service";
+import { IUserJwt } from "@models/interfaces/User";
+import { formatGoogleErrorBody } from "@libs/api-gateway";
+import { GaxiosResponse } from "gaxios";
+import { calendar_v3 } from "googleapis";
 
 // @TODO fix this
 export interface IActivityService {
@@ -58,7 +64,12 @@ export class ActivityService implements IActivityService {
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(EmailService) private readonly emailService: EmailService
+    // @TODO replace this with generic service (in case of adding multiple calendar service)
+    @inject(GoogleCalendarService)
+    private readonly calendarService: GoogleCalendarService,
+    // @TODO replace this with generic service (in case of adding multiple email service)
+    @inject(GoogleGmailService)
+    private readonly emailService: GoogleGmailService
   ) {}
 
   async getMyActivities(
@@ -91,7 +102,7 @@ export class ActivityService implements IActivityService {
   }
 
   async getAllActivities(
-    user: any, // jwt payload
+    userId: string, // jwt payload
     body: any
   ) {
     await validateGetActivities(body);
@@ -158,16 +169,17 @@ export class ActivityService implements IActivityService {
     const result: any = await this.docClient.knexClient.raw(
       unionAllResults(companyId, 10)
     );
-    const camelCaseArray = result?.rows?.map((item) => {
-      const tmp = {};
-      Object.keys(item).forEach((key: string) => {
-        const camelCase = key
-          .toLowerCase()
-          .replace(/(?:_)([a-z])/g, (_, group1) => group1.toUpperCase());
-        tmp[camelCase] = item[key];
-      });
-      return tmp;
-    }) || [];
+    const camelCaseArray =
+      result?.rows?.map((item) => {
+        const tmp = {};
+        Object.keys(item).forEach((key: string) => {
+          const camelCase = key
+            .toLowerCase()
+            .replace(/(?:_)([a-z])/g, (_, group1) => group1.toUpperCase());
+          tmp[camelCase] = item[key];
+        });
+        return tmp;
+      }) || [];
 
     const result2 = {};
     Object.keys(ACTIVITY_STATUS_SHORT).forEach((key: string) => {
@@ -185,7 +197,7 @@ export class ActivityService implements IActivityService {
     const resp = await this.emailService.send(
       "wmfarooqi05@gmail.com",
       "Testing Email",
-      testEmailTemplate
+      "<p>this is a test email</p>"
     );
     return resp;
   }
@@ -207,17 +219,24 @@ export class ActivityService implements IActivityService {
     return activities[0];
   }
 
-  async createActivity(createdBy: string, body: any): Promise<any> {
+  async createActivity(createdBy: IUserJwt, body: any): Promise<any> {
     const payload = JSON.parse(body);
-    await validateCreateActivity(createdBy, payload);
+    await validateCreateActivity(createdBy.sub, payload);
+    const user: IUser = await UserModel.query().findById(createdBy.sub);
+    if (!user) {
+      throw new CustomError("User not found", 400);
+    }
 
     // @TODO add validations for detail object
-
     const activityObj = {
       summary: payload.summary,
-      details: payload.details,
+      details: this.createDetailsPayload(
+        user,
+        payload.activityType,
+        payload.details
+      ),
       companyId: payload.companyId,
-      createdBy,
+      createdBy: createdBy.sub,
       concernedPersonDetails: payload.concernedPersonDetails,
       activityType: payload.activityType,
       status: payload.status || ACTIVITY_STATUS.BACKLOG,
@@ -225,17 +244,37 @@ export class ActivityService implements IActivityService {
       reminders: payload.reminders || JSON.stringify([]),
       createdAt: payload.createdAt,
       updatedAt: payload.createdAt,
+      remarks: [],
     };
 
+    if (
+      activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
+      activityObj.activityType === ACTIVITY_TYPE.MEETING
+    ) {
+      try {
+        const resp = await this.runSideGoogleJob(activityObj);
+        activityObj.details.status = resp.status;
+      } catch (e) {
+        activityObj.details.status = 500;
+        if (e.config && e.headers) {
+          activityObj.details.errorStack = formatGoogleErrorBody(e);
+        } else {
+          activityObj.details.errorStack = {
+            message: e.message,
+            stack: e.stack,
+          };
+        }
+      }
+    } else {
+      // AWS EB Scheduler Case
+    }
+
     try {
-      const activity = await this.docClient
+      const activity: IActivity = await this.docClient
         .get(this.TableName)
         .insert(activityObj)
         .returning("*");
-      // const activity = await ActivityModel.query()
-      //   .insert(activityObj)
-      //   .returning("*");
-      console.log("activity", activity);
+
       return activity;
     } catch (e) {
       if (e.name === "ForeignKeyViolationError") {
@@ -252,13 +291,16 @@ export class ActivityService implements IActivityService {
     await validateUpdateActivity(createdBy, activityId, payload);
 
     // @TODO add validations for detail object
-    const updatedActivity = await ActivityModel.query().patchAndFetchById(
-      activityId,
-      payload
-    );
+    const updatedActivity: IActivity =
+      await ActivityModel.query().patchAndFetchById(activityId, payload);
     if (!updatedActivity || Object.keys(updatedActivity).length === 0) {
       throw new CustomError("Object not found", 404);
     }
+
+    // @TODO add logic to update job
+    // if (updatedActivity.activityType !== ACTIVITY_TYPE.EMAIL) {
+    //   await this.runSideGoogleJob(updatedActivity);
+    // }
 
     return updatedActivity;
   }
@@ -447,4 +489,106 @@ export class ActivityService implements IActivityService {
   //     throw new CustomError("User not allowed to access this data", 403);
   //   }
   // }
+
+  async runSideGoogleJob(activity: IActivity): Promise<GaxiosResponse> {
+    if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
+      return this.emailService.createAndSendEmailFromActivityPayload(activity);
+    } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
+      return this.calendarService.createMeetingFromActivityPayload(activity);
+    }
+  }
+
+  private createDetailsPayload(
+    user: IUser,
+    activityType: ACTIVITY_TYPE,
+    details: IACTIVITY_DETAILS
+  ) {
+    switch (activityType) {
+      case ACTIVITY_TYPE.EMAIL:
+        return this.createEmailPayload(user, details);
+      case ACTIVITY_TYPE.CALL:
+        return this.createCallPayload(details);
+      case ACTIVITY_TYPE.MEETING:
+        return this.createMeetingPayload(details);
+      case ACTIVITY_TYPE.TASK:
+        return this.createTaskPayload(details);
+    }
+  }
+
+  createEmailPayload(user: IUser, payload): IEMAIL_DETAILS {
+    const { body, isScheduled, subject, timezone, date } = payload;
+    const newDate = isScheduled
+      ? moment.tz(date, timezone).utc()
+      : moment.utc();
+
+    if (isScheduled && newDate.diff(moment.utc()) < 0) {
+      throw new Error("Scheduled date has already passed");
+    }
+
+    let toStr = "";
+    payload.to.forEach((item) => {
+      if (item.name) {
+        toStr += `${item.name} <${item.email}>, `;
+      } else {
+        toStr += item.email;
+      }
+    });
+
+    return {
+      to: toStr,
+      from: `${user.name} <${user.email}>`,
+      body: body,
+      date: newDate.format(),
+      messageId: randomUUID(),
+      fromEmail: user.email,
+      isScheduled: isScheduled || false,
+      subject,
+    };
+  }
+
+  createCallPayload(payload) {
+    return payload;
+  }
+
+  createMeetingPayload(payload) {
+    const {
+      summary,
+      attendees,
+      description,
+      location,
+      createVideoLink,
+      startDateTime,
+      endDateTime,
+      timezone,
+      reminders,
+      calendarId,
+      sendUpdates,
+    } = payload;
+
+    const event: calendar_v3.Schema$Event = {
+      summary: summary,
+      attendees: attendees,
+      description: description,
+      location: createVideoLink ? "Online" : location,
+      start: {
+        dateTime: startDateTime,
+        timeZone: timezone,
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: timezone,
+      },
+      reminders: reminders,
+      id: randomUUID(),
+    };
+
+    event["createVideoLink"] = createVideoLink;
+    event["calendarId"] = calendarId;
+    event["sendUpdates"] = sendUpdates;
+    return event;
+  }
+
+  createTaskPayload(payload) {
+    return payload;
+  }
 }

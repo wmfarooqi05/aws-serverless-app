@@ -8,7 +8,7 @@ export const validateGetPendingApprovals = async (obj: any) => {
     returningFields: Joi.string(),
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false,
+    
   });
 };
 
@@ -32,7 +32,7 @@ export const validateCreatePendingApproval = async (obj: any) => {
     skipEscalation: Joi.boolean(),
   }).validateAsync(obj, {
     abortEarly: true,
-    allowUnknown: false, // @TODO cleanup api update
+     // @TODO cleanup api update
   });
 };
 
@@ -46,7 +46,7 @@ export const validateUpdatePendingApprovals = async (id: string, obj: any) => {
     { ...obj, id },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -65,7 +65,7 @@ export const validateUpdatePendingApprovalAssignedUser = async (
     { ...payload, assignedBy, pendingApprovalId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };
@@ -88,7 +88,7 @@ export const validateCreateConcernedPerson = async (
       { ...payload, pendingApprovalId, employeeId },
       {
         abortEarly: true,
-        allowUnknown: false,
+        
       }
     );
 };
@@ -111,7 +111,7 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, pendingApprovalId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      allowUnknown: false,
+      
     }
   );
 };

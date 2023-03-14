@@ -2,78 +2,10 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { COMPANIES_TABLE_NAME, USERS_TABLE_NAME } from "./commons";
+import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "./interfaces/Company";
 import User from "./User";
 
 // @TODO export them somewhere else
-export interface IAssignmentHistory {
-  assignedTo?: string;
-  assignedBy: string;
-  comments?: string;
-  date: string;
-}
-
-export interface IConcernedPerson {
-  id: string;
-  name: string;
-  designation: string;
-  phoneNumbers: string[];
-  emails: string[];
-  timezone: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface IAddress {
-  title: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  postalCode: number;
-}
-
-export interface ICompany {
-  id: string;
-  companyName: string;
-  emails: string[];
-  phoneNumbers: string[];
-  addresses: IAddress[];
-  concernedPersons: IConcernedPerson[];
-  assignedTo: string;
-  assignedBy: string;
-  assignmentHistory: JSON;
-  updatedAt: string;
-  notes: INotes[];
-}
-
-export enum COMPANY_STAGES {
-  LEAD = "LEAD",
-  PROSPECT = "PROSPECT",
-  OPPORTUNITY = "OPPORTUNITY", // maybe contact or client
-}
-
-export enum TASK_STATUS {
-  ICEBOX = "ICEBOX",
-  BACK_LOG = "BACK_LOG",
-  TO_DO = "TO_DO",
-  DELAYED_BY_CLIENT = "DELAYED_BY_CLIENT",
-  DELAYED_BY_MANAGER = "DELAYED_BY_MANAGER",
-  IN_PROGRESS = "IN_PROGRESS",
-  IN_REVIEW = "IN_REVIEW",
-  BLOCKED = "BLOCKED",
-  WONT_DO = "WONT_DO",
-  NOT_VALID = "NOT_VALID", // @TODO improve
-  DONE = "DONE",
-}
-
-// @TODO v2: Move this to a separate table
-export enum PRIORITY {
-  NO_PRIORITY = "NO_PRIORITY",
-  LOW = "LOW",
-  MEDIUM = "MEDIUM",
-  HIGH = "HIGH",
-  CRUCIAL = "CRUCIAL",
-}
 
 @singleton()
 export default class CompanyModel extends Model {
@@ -87,6 +19,7 @@ export default class CompanyModel extends Model {
       properties: {
         id: { type: "string" },
         companyName: { type: "string" },
+        createdBy: { type: "string" },
         // @TODO Put it in separate table
         concernedPersons: {
           type: "array",
@@ -106,11 +39,7 @@ export default class CompanyModel extends Model {
         stage: { type: "string", default: COMPANY_STAGES.LEAD },
         tags: { type: "string" }, // comma separated strings
         // @TODO typecasting issues
-        // notes: {
-        //   type: ["array", "null"],
-        //   items: { type: "object" },
-        //   default: JSON.stringify([]),
-        // },
+        notes: { type: "array" },
         updatedAt: { type: "string" },
       },
       required: ["companyName"],
@@ -142,7 +71,7 @@ export default class CompanyModel extends Model {
   });
 
   static get jsonAttributes() {
-    return ["concernedPersons", "activities", "assignmentHistory", "addresses"];
+    return ["concernedPersons", "activities", "assignmentHistory", "addresses", "notes"];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();
