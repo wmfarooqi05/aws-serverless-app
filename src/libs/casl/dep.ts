@@ -8,7 +8,7 @@ import {
 
 type Actions = "create" | "read" | "update" | "delete" | "invite" | "manage";
 
-export type ModuleTypeForCasl = "COMPANY" | "User" | "all";
+export type ModuleTypeForCasl = "COMPANY" | "Employee" | "all";
 
 // type Roles =
 //   // | "SALES_REP"
@@ -19,7 +19,7 @@ export type ModuleTypeForCasl = "COMPANY" | "User" | "all";
 //   // | "SUPER_ADMIN"
 //   | "member";
 
-interface IUser {
+interface IEmployee {
   id: string;
   role: string;
 }
@@ -29,48 +29,48 @@ interface IUser {
 //   name: string;
 // }
 
-// const getPermissionsForUserRole = async (user: IUser) => {
+// const getPermissionsForEmployeeRole = async (employee: IEmployee) => {
 //   const permissions = createMongoAbility<[Actions, ModuleTypeForCasl]>([
 //     {
 //       action: "read",
 //       subject: "COMPANY",
-//       conditions: { assignedTo: user.id }
+//       conditions: { assignedTo: employee.id }
 //     }
 //   ]);
 //   return permissions;
 // };
 
-const getPermissionsForUserRole2 = () => {
+const getPermissionsForEmployeeRole2 = () => {
   return {
     admin: createMongoAbility<[Actions, ModuleTypeForCasl]>([
       {
         action: "read",
         subject: "COMPANY"
-        // conditions: { assignedTo: user.id }
+        // conditions: { assignedTo: employee.id }
       },
       {
         action: "create",
         subject: "COMPANY"
-        // conditions: { assignedTo: user.id }
+        // conditions: { assignedTo: employee.id }
       },
       {
         action: "update",
         subject: "COMPANY"
-        // conditions: { assignedTo: user.id }
+        // conditions: { assignedTo: employee.id }
       }
     ]),
     manager: createMongoAbility<[Actions, ModuleTypeForCasl]>([
       {
         action: "read",
         subject: "COMPANY"
-        // conditions: { assignedTo: user.id }
+        // conditions: { assignedTo: employee.id }
       }
     ])
   };
 };
 
 // export const func = async () => {
-//   const permissions = await getPermissionsForUserRole({
+//   const permissions = await getPermissionsForEmployeeRole({
 //     id: "1",
 //     role: "manager"
 //   });
@@ -79,7 +79,7 @@ const getPermissionsForUserRole2 = () => {
 //   console.log("read", permissions.can("read", "COMPANY"));
 // };
 
-export function defineAbilityFor(user: IUser): any {
+export function defineAbilityFor(employee: IEmployee): any {
   const builder = new AbilityBuilder(createMongoAbility);
   return builder.build();
 }
@@ -87,11 +87,11 @@ export function defineAbilityFor(user: IUser): any {
 export type AppAbility = MongoAbility<[Actions, ModuleTypeForCasl]>;
 
 export type DefinePermissions = (
-  user: IUser,
+  employee: IEmployee,
   builder: AbilityBuilder<AppAbility>
 ) => void;
 
-// const defineAbilityFor2 = (user: IUser) => {
+// const defineAbilityFor2 = (employee: IEmployee) => {
 //   // const rolePermissions: Record<
 //   //   Roles,
 //   //   MongoAbility<[Actions, ModuleTypeForCasl]>
@@ -102,7 +102,7 @@ export type DefinePermissions = (
 //       {
 //         action: "update",
 //         subject: "COMPANY",
-//         conditions: { assignedTo: user.id }
+//         conditions: { assignedTo: employee.id }
 //       },
 //       {
 //         action: "update",
@@ -113,7 +113,7 @@ export type DefinePermissions = (
 //       {
 //         action: "read",
 //         subject: "COMPANY",
-//         conditions: { assignedTo: user.id }
+//         conditions: { assignedTo: employee.id }
 //       },
 //       {
 //         action: "update",
@@ -123,26 +123,26 @@ export type DefinePermissions = (
 //   };
 //   return rolePermissions;
 //   // const builder = new AbilityBuilder(createMongoAbility);
-//   // console.log("building for ", user.role);
-//   // const builder = new AbilityBuilder(rolePermissions[user.role](user, builder));
+//   // console.log("building for ", employee.role);
+//   // const builder = new AbilityBuilder(rolePermissions[employee.role](employee, builder));
 //   // console.log('create', rolePermissions['admin']({id: '1'}, builder));
-//   // console.log("create", rolePermissions[user.role](user, builder));
+//   // console.log("create", rolePermissions[employee.role](employee, builder));
 //   // console.log("create", rolePermissions.can("create", "COMPANY"));
 //   // console.log("update", permissions.can("update", "COMPANY"));
 //   // console.log("read", permissions.can("read", "COMPANY"));
-//   // return builder.build(rolePermissions[user.role]);
+//   // return builder.build(rolePermissions[employee.role]);
 // };
 
-const func2 = (user: IUser) => {
-  // const ability = defineAbilityFor2(user);
-  const ability = getPermissionsForUserRole2();
+const func2 = (employee: IEmployee) => {
+  // const ability = defineAbilityFor2(employee);
+  const ability = getPermissionsForEmployeeRole2();
   console.log("ability", ability);
   // ability['admin'].can("create", "COMPANY")
-  console.log(user.role, "create", ability[user.role].can("create", "COMPANY"));
-  console.log(user.role, "update", ability[user.role].can("update", "COMPANY"));
-  console.log(user.role, "read", ability[user.role].can("read", "COMPANY"));
+  console.log(employee.role, "create", ability[employee.role].can("create", "COMPANY"));
+  console.log(employee.role, "update", ability[employee.role].can("update", "COMPANY"));
+  console.log(employee.role, "read", ability[employee.role].can("read", "COMPANY"));
   try {
-    ForbiddenError.from(ability[user.role]).throwUnlessCan(
+    ForbiddenError.from(ability[employee.role]).throwUnlessCan(
       "read",
       subject("COMAPNY", { id: "1" })
     );
@@ -151,13 +151,13 @@ const func2 = (user: IUser) => {
   }
 };
 
-// export const func3 = async (user: IUser) => {
-//   const ability = defineAbilityFor2(user);
+// export const func3 = async (employee: IEmployee) => {
+//   const ability = defineAbilityFor2(employee);
 //   console.log("ability", ability);
-//   // console.log(user.role);
-//   // console.log(user.role, "create", ability.can("create", "COMPANY"));
-//   // console.log(user.role, "update", ability.can("update", "COMPANY"));
-//   // console.log(user.role, "read", ability.can("read", "COMPANY"));
+//   // console.log(employee.role);
+//   // console.log(employee.role, "create", ability.can("create", "COMPANY"));
+//   // console.log(employee.role, "update", ability.can("update", "COMPANY"));
+//   // console.log(employee.role, "read", ability.can("read", "COMPANY"));
 // };
 
 func2({

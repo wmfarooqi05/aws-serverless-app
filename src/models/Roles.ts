@@ -29,7 +29,7 @@ export default class GroupModel extends Model {
           enum: ["super_manager", "manager", "team_lead"],
           required: true,
         },
-        users: {
+        employees: {
           type: "array",
           required: true,
         },

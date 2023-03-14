@@ -8,7 +8,7 @@ import get from "lodash.get";
 
 export const COMPANIES_TABLE_NAME = process.env.COMPANIES_TABLE || "companies";
 export const ACTIVITIES_TABLE = process.env.ACTIVITIES_TABLE || "activities";
-export const USERS_TABLE_NAME = process.env.USERS_TABLE || "users";
+export const EMPLOYEES_TABLE_NAME = process.env.EMPLOYEES_TABLE || "employees";
 export const REMINDERS_TABLE_NAME = process.env.REMINDERS_TABLE || "reminders";
 export const NOTIFICATIONS_TABLE_NAME =
   process.env.NOTIFICATIONS_TABLE || "notifications";

@@ -22,7 +22,7 @@ const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
     const activities = await container
       .resolve(ActivityService)
       .getAllActivities(
-        event?.user?.sub,
+        event?.employee?.sub,
         // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
         event.queryStringParameters || {}
       );
@@ -38,7 +38,7 @@ const getAllActivitiesByCompanyHandler = async (event) => {
     const activities = await container
       .resolve(ActivityService)
       .getAllActivitiesByCompany(
-        event?.user?.sub,
+        event?.employee?.sub,
         companyId,
         // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
         event.queryStringParameters || {}
@@ -54,7 +54,7 @@ const getMyActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const activities = await container.resolve(ActivityService).getMyActivities(
-      event?.user?.sub,
+      event?.employee?.sub,
       // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
       event.queryStringParameters || {}
     );
@@ -69,7 +69,7 @@ export const getTopActivitiesHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getTopActivities(event?.user?.sub, companyId);
+      .getTopActivities(event?.employee?.sub, companyId);
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -80,8 +80,8 @@ export const getMyActivitiesByDayHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getMyActivitiesByDay(event?.user?.sub);
-    // event?.user?.sub,
+      .getMyActivitiesByDay(event?.employee?.sub);
+    // event?.employee?.sub,
     // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
     // activityId
     // );
@@ -97,7 +97,7 @@ export const getActivityById: ValidatedEventAPIGatewayProxyEvent<
   const { activityId } = event.pathParameters;
   try {
     const activities = await container.resolve(ActivityService).getActivityById(
-      event?.user?.sub,
+      event?.employee?.sub,
       // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
       activityId
     );
@@ -112,7 +112,7 @@ const createActivityHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const newActivity = await container.resolve(ActivityService).createActivity(
-      event?.user,
+      event?.employee,
       // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
       event.body
     );
@@ -128,7 +128,7 @@ export const updateActivityHandler = async (event) => {
 
     const updatedActivity = await container
       .resolve(ActivityService)
-      .updateActivity(event?.user?.sub, activityId, event.body);
+      .updateActivity(event?.employee?.sub, activityId, event.body);
     return formatJSONResponse(updatedActivity, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -161,7 +161,7 @@ export const addRemarksToActivity: ValidatedEventAPIGatewayProxyEvent<
       .resolve(ActivityService)
       .addRemarksToActivity(
         "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
-        // event?.user?.sub,
+        // event?.employee?.sub,
         activityId,
         event.body
       );
@@ -180,7 +180,7 @@ export const updateRemarksInActivity: ValidatedEventAPIGatewayProxyEvent<
       .resolve(ActivityService)
       .updateRemarksInActivity(
         "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
-        // event?.user?.sub,
+        // event?.employee?.sub,
         activityId,
         remarksId,
         event.body

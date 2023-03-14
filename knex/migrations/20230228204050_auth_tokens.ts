@@ -8,10 +8,10 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table
-        .uuid("user_id")
+        .uuid("employee_id")
         .index()
         .references("id")
-        .inTable(Tables.users)
+        .inTable(Tables.employees)
         .notNullable()
         .unique()
       table.string("token_type").notNullable();

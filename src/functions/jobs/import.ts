@@ -19,7 +19,7 @@ import { CustomError } from "@helpers/custom-error";
 // @TODO add service
 const importDataHandler = async (event) => {
   try {
-    const userId = event.user?.sub;
+    const employeeId = event.employee?.sub;
     const payload = JSON.parse(event.body);
     const filePath: string = payload.filePath;
     const type: string = filePath?.split(".")[filePath.split(".")?.length - 1];
@@ -27,8 +27,8 @@ const importDataHandler = async (event) => {
       throw new CustomError("Filepath not provided", 400);
     } else if (type !== "xlsx") {
       throw new CustomError("Only .xlsx files are supported", 400);
-    } else if (!userId) {
-      throw new CustomError("User Id not found", 400);
+    } else if (!employeeId) {
+      throw new CustomError("Employee Id not found", 400);
     }
 
     await container.resolve(DatabaseService);
@@ -44,7 +44,7 @@ const importDataHandler = async (event) => {
     if (!data) {
       throw new CustomError("No data found", 400);
     }
-    const transformedData = await transformDataHelper(userId, data);
+    const transformedData = await transformDataHelper(employeeId, data);
     if (!transformedData || transformedData?.length === 0) {
       throw new CustomError("No valid data found", 400);
     }
@@ -54,7 +54,7 @@ const importDataHandler = async (event) => {
     await JobsResultsModel.query().insert({
       jobResultUrl: JSON.stringify({ url }),
       jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
-      uploadedBy: userId,
+      uploadedBy: employeeId,
     });
 
     return formatJSONResponse({ message: "Added data successfully" }, 200);
@@ -71,7 +71,7 @@ interface importType {
 }
 
 const transformDataHelper = async (
-  userId: string,
+  employeeId: string,
   transformData: importType[]
 ) => {
   // @Note not adding extra use cases without discussion
@@ -86,7 +86,7 @@ const transformDataHelper = async (
             {
               id: randomUUID(),
               notesText: record["Remarks"],
-              addedBy: userId,
+              addedBy: employeeId,
               isEdited: false,
               updatedAt: moment().utc().format(),
             },
@@ -100,7 +100,7 @@ const transformDataHelper = async (
           ? [createAddress(record["Address"])]
           : [],
       concernedPersons,
-      createdBy: userId,
+      createdBy: employeeId,
       notes,
     };
     transformedData.push(item);

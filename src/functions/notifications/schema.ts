@@ -40,7 +40,7 @@ export const updateNotificationsReadStatus = async (obj: any) => {
   });
 };
 
-export const validateUpdateNotificationAssignedUser = async (
+export const validateUpdateNotificationAssignedEmployee = async (
   notificationId: string,
   assignedBy: string,
   payload: any

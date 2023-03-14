@@ -7,7 +7,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 Drop table companies;
-drop table users;
+drop table employees;
 
 CREATE TYPE Roles AS ENUM (
 	'SALES_REP',
@@ -33,11 +33,11 @@ CREATE TABLE companies_stage (
 	assigned_by uuid,
 	assignment_history JSONB,
 	
-  FOREIGN KEY (assigned_to) REFERENCES Users(id),
-  FOREIGN KEY (assigned_by) REFERENCES Users(id)
+  FOREIGN KEY (assigned_to) REFERENCES Employees(id),
+  FOREIGN KEY (assigned_by) REFERENCES Employees(id)
 );
 
-CREATE TABLE users_stage (
+CREATE TABLE employees_stage (
 	id uuid PRIMARY KEY,
 	email TEXT,
 	name TEXT NOT NULL,
@@ -54,12 +54,12 @@ CREATE TABLE users_stage (
 	phone_number TEXT,
 	settings JSONB,
 	social_profiles JSONB,
-	UserStatus TEXT,
+	EmployeeStatus TEXT,
 	created_at TIMESTAMP DEFAULT NOW(),
 	updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	reporting_manager uuid,
 		
-  FOREIGN KEY (reporting_manager) REFERENCES Users(id)
+  FOREIGN KEY (reporting_manager) REFERENCES Employees(id)
 );
 
 CREATE TABLE activities_stage (
@@ -75,7 +75,7 @@ CREATE TABLE activities_stage (
 	created_at TIMESTAMP DEFAULT NOW(), 
 	updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 	
-	FOREIGN KEY (employeeId) REFERENCES Users(id),
-	FOREIGN KEY (reportingManagerId) REFERENCES Users(id),
+	FOREIGN KEY (employeeId) REFERENCES Employees(id),
+	FOREIGN KEY (reportingManagerId) REFERENCES Employees(id),
 	FOREIGN KEY (companyId) REFERENCES companies(id)
 );

@@ -41,20 +41,20 @@ export async function up(knex: Knex): Promise<void> {
       .uuid("created_by")
       .index()
       .references("id")
-      .inTable(Tables.users)
+      .inTable(Tables.employees)
       .onDelete("SET NULL")
       .notNullable();
     table
       .uuid("assigned_to")
       .index()
       .references("id")
-      .inTable(Tables.users)
+      .inTable(Tables.employees)
       .onDelete("SET NULL");
     table
       .uuid("assigned_by")
       .index()
       .references("id")
-      .inTable(Tables.users)
+      .inTable(Tables.employees)
       .onDelete("SET NULL");
     table.jsonb("assignment_history").defaultTo([]);
     table.jsonb("addresses").defaultTo([]);

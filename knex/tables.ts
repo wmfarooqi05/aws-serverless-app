@@ -1,6 +1,6 @@
 export const tableName = {
   companies: process.env.COMPANIES_TABLE || "companies",
-  users: process.env.USERS_TABLE || "users",
+  employees: process.env.EMPLOYEES_TABLE || "employees",
   activities: process.env.ACTIVITIES_TABLE || "activities",
   pendingApprovals: process.env.PENDING_APPROVAL_TABLE || "pending_approvals",
   appAuditLogs: process.env.APP_AUDIT_LOGS_TABLE || "app_audit_logs",

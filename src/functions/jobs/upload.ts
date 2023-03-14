@@ -31,4 +31,4 @@ export const uploadToS3 = async (path, body) => {
 //   path.join(dir, `IMPORT_JOB_${randomUUID()}_error_report.text`),
 //   JSON.stringify(body)
 // );
-// Body: fs.createReadStream('/Users/waleedfarooqi/projects/qasid/staffing-api/src/functions/companies/temperror.txt'),
+// Body: fs.createReadStream('/Employees/waleedfarooqi/projects/qasid/staffing-api/src/functions/companies/temperror.txt'),

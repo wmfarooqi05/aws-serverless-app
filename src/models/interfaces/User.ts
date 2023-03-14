@@ -1,4 +1,4 @@
-export interface IUserJwt {
+export interface IEmployeeJwt {
   sub: string;
   role: string;
 }

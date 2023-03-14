@@ -4,7 +4,7 @@ import { AUTH_TOKEN_TABLE } from "./commons";
 
 export interface IAuthToken {
   id: string;
-  userId: string;
+  employeeId: string;
   tokenType: string;
   tokenIssuer: string;
   accessToken: string;
@@ -26,7 +26,7 @@ export default class AuthTokenModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        userId: { type: "string" },
+        employeeId: { type: "string" },
         tokenType: { type: "string" },
         tokenIssuer: { type: "string" },
         accessToken: { type: "string" },
@@ -37,7 +37,7 @@ export default class AuthTokenModel extends Model {
         updatedAt: { type: "string" },
       },
       required: [
-        "userId",
+        "employeeId",
         "tokenType",
         "tokenIssuer",
         "accessToken",

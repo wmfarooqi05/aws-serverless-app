@@ -25,7 +25,7 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .index()
       .references("id")
-      .inTable(tableName.users)
+      .inTable(tableName.employees)
       .onDelete("SET NULL");
     table.string("created_by_name").notNullable();
 

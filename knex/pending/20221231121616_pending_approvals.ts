@@ -28,18 +28,18 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .index()
       .references("id")
-      .inTable(tableName.users);
+      .inTable(tableName.employees);
     table
       .uuid("assigned_to")
       .notNullable()
       .index()
       .references("id")
-      .inTable(tableName.users);
+      .inTable(tableName.employees);
     table
       .uuid("reporting_manager_id")
       .index()
       .references("id")
-      .inTable(tableName.users);
+      .inTable(tableName.employees);
     table.json("on_approval_action_required").defaultTo(onApprovalActionRequired);
     table.string("reason_statement");
     table.string("remarks_by_approver");

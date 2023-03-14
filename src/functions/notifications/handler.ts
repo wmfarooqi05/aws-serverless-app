@@ -38,7 +38,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const notifications = await container
       .resolve(NotificationService)
-      .getNotifications(event.user?.sub, event.queryStringParameters);
+      .getNotifications(event.employee?.sub, event.queryStringParameters);
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -52,7 +52,7 @@ export const getNotificationById: ValidatedEventAPIGatewayProxyEvent<
   try {
     const notifications = await container
       .resolve(NotificationService)
-      .getNotificationById(event.user?.sub, id);
+      .getNotificationById(event.employee?.sub, id);
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -94,8 +94,8 @@ export const deleteNotification: ValidatedEventAPIGatewayProxyEvent<
 export const getNotifications = middy(getNotificationsHandler).use(
   decodeJWTMiddleware()
 );
-export const updateNotificationAssignedUser = middy(
-  updateNotificationAssignedUserHandler
+export const updateNotificationAssignedEmployee = middy(
+  updateNotificationAssignedEmployeeHandler
 ).use(decodeJWTMiddleware());
 
 export const createConcernedPersons = middy(createConcernedPersonsHandler).use(

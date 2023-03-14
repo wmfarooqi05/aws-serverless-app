@@ -20,7 +20,7 @@ export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const newCompany = await container
       .resolve(CompanyService)
-      .createCompany(event.user?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", event.body);
+      .createCompany(event.employee?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", event.body);
     return formatJSONResponse(newCompany, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -61,7 +61,7 @@ export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const updatedCompany = await container
       .resolve(CompanyService)
-      .updateCompany(event?.user, companyId, event.body);
+      .updateCompany(event?.employee, companyId, event.body);
     return formatJSONResponse(updatedCompany, 200);
   } catch (e) {
     console.log("e", e);
@@ -75,7 +75,7 @@ export const deleteCompany: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
       const { companyId } = event.pathParameters;
       await container
         .resolve(CompanyService)
-        .deleteCompany(event?.user, companyId);
+        .deleteCompany(event?.employee, companyId);
       return formatJSONResponse(
         { message: "Company deleted successfully" },
         200
@@ -85,17 +85,17 @@ export const deleteCompany: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
     }
   });
 
-const updateCompanyAssignedUserHandler: ValidatedEventAPIGatewayProxyEvent<
+const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
     // @TODO put auth guard
-    // User must be there
+    // Employee must be there
     // Role guard of manager or above
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .updateCompanyAssignedUser(companyId, event?.user?.sub, event.body);
+      .updateCompanyAssignedEmployee(companyId, event?.employee?.sub, event.body);
 
     return formatJSONResponse({ company }, 200);
   } catch (e) {
@@ -110,7 +110,7 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .createConcernedPersons(event?.user, companyId, event.body);
+      .createConcernedPersons(event?.employee, companyId, event.body);
     return formatJSONResponse({ company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -127,7 +127,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
       .updateConcernedPerson(
         companyId,
         concernedPersonId,
-        event?.user?.sub,
+        event?.employee?.sub,
         event.body
       );
 
@@ -160,7 +160,7 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .getNotes(event?.user?.sub, companyId);
+      .getNotes(event?.employee?.sub, companyId);
     return formatJSONResponse({ company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -172,7 +172,7 @@ const createNotesHandler = async (event) => {
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .createNotes(event?.user?.sub, companyId, event.body);
+      .createNotes(event?.employee?.sub, companyId, event.body);
     return formatJSONResponse({ company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -186,7 +186,7 @@ const updateNotesHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId, notesId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .updateNotes(event?.user?.sub, companyId, notesId, event.body);
+      .updateNotes(event?.employee?.sub, companyId, notesId, event.body);
 
     return formatJSONResponse({ company }, 200);
   } catch (e) {
@@ -219,8 +219,8 @@ export const createCompany = jwtMiddlewareWrapper(createCompanyHandler);
 //   decodeJWTMiddleware()
 // );
 
-export const updateCompanyAssignedUser = jwtMiddlewareWrapper(
-  updateCompanyAssignedUserHandler
+export const updateCompanyAssignedEmployee = jwtMiddlewareWrapper(
+  updateCompanyAssignedEmployeeHandler
 );
 
 export const createConcernedPersons = jwtMiddlewareWrapper(

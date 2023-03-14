@@ -11,17 +11,17 @@ export async function up(knex: Knex): Promise<void> {
       table.string("title").notNullable();
       table.string("subtitle");
       table
-        .uuid("sender_user")
+        .uuid("sender_employee")
         .references("id")
-        .inTable(Tables.users)
+        .inTable(Tables.employees)
         .onDelete("SET NULL");
 
       table
-        .uuid("receiver_user")
+        .uuid("receiver_employee")
         .notNullable()
         .index()
         .references("id")
-        .inTable(Tables.users)
+        .inTable(Tables.employees)
         .onDelete("CASCADE");
 
       table.jsonb("extra_data");

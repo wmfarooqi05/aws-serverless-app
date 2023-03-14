@@ -23,7 +23,7 @@ const getCompanies = {
         path: "companies",
         cors: true,
         // authorizer: {
-        //   type: "COGNITO_USER_POOLS",
+        //   type: "COGNITO_EMPLOYEE_POOLS",
         //   authorizerId: {
         //     Ref: "ApiGatewayAuthorizer"
         //   }
@@ -72,8 +72,8 @@ const deleteCompany = {
   ],
 };
 
-const updateCompanyAssignedUser = {
-  handler: `${handlerPath(__dirname)}/handler.updateCompanyAssignedUser`,
+const updateCompanyAssignedEmployee = {
+  handler: `${handlerPath(__dirname)}/handler.updateCompanyAssignedEmployee`,
   events: [
     {
       http: {
@@ -184,7 +184,7 @@ export {
   getCompanyById,
   updateCompany,
   deleteCompany,
-  updateCompanyAssignedUser,
+  updateCompanyAssignedEmployee,
   createConcernedPersons,
   updateConcernedPerson,
   deleteConcernedPerson,

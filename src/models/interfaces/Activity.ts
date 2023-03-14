@@ -1,5 +1,5 @@
 import { IConcernedPerson } from "./Company";
-import { IUser } from "../User";
+import { IEmployee } from "../Employee";
 
 export enum ACTIVITY_TYPE {
   TASK = "TASK",
@@ -61,8 +61,8 @@ export interface IRemarks {
   id: string;
   activityId: string;
   remarksText: string;
-  employeeDetails: Pick<IUser, "name" | "email" | "id">;
-  reportingManager?: Pick<IUser, "name" | "email" | "id">;
+  employeeDetails: Pick<IEmployee, "name" | "email" | "id">;
+  reportingManager?: Pick<IEmployee, "name" | "email" | "id">;
   createdAt: string;
   updatedAt: string;
 }

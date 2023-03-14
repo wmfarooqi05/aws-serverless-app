@@ -17,7 +17,7 @@ export class ActivityWorkflowService implements IActivityWorkflowService {
 
   async approveDeleteActivityRequest(
     pendingApprovalRequestId: string,
-    userId: string,
+    employeeId: string,
   ): Promise<any> {
 
 

@@ -26,8 +26,8 @@
   //       Type: 'AWS::RDS::DBInstance',
   //       Properties: {
   //         DBName: "geldbtest",
-  //         MasterUsername: "postgres",
-  //         MasterUserPassword: "postgres_qasid123",
+  //         MasterEmployeename: "postgres",
+  //         MasterEmployeePassword: "postgres_qasid123",
   //         AvailabilityZone: "ca-central-1",
 
   //         // VPCSecurityGroups: [{ Ref: "sg-0bcaf1e5086effdd5" }],
@@ -45,21 +45,21 @@
   //     ApiGatewayAuthorizer: {
   //       Type: "AWS::ApiGateway::Authorizer",
   //       Properties: {
-  //         Name: "CognitoUserPool",
-  //         Type: "COGNITO_USER_POOLS",
+  //         Name: "CognitoEmployeePool",
+  //         Type: "COGNITO_EMPLOYEE_POOLS",
   //         IdentitySource: "method.request.header.Authorization",
   //         RestApiId: {
   //           Ref: "ApiGatewayRestApi",
   //         },
   //         ProviderARNs: [
-  //           "arn:aws:cognito-idp:ca-central-1:524073432557:userpool/ca-central-1_mJllgwkkd",
+  //           "arn:aws:cognito-idp:ca-central-1:524073432557:employeepool/ca-central-1_mJllgwkkd",
   //         ],
   //       },
   //     },
-  //     // UserPool: { // this line is name
-  //     //   Type: "AWS::Cognito::UserPool",
+  //     // EmployeePool: { // this line is name
+  //     //   Type: "AWS::Cognito::EmployeePool",
   //     //   Properties:{
-  //     //     "UserPoolName": "SALES_REP"
+  //     //     "EmployeePoolName": "SALES_REP"
   //     //   }
   //     // }
   //   },

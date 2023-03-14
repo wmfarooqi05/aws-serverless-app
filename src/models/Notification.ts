@@ -20,8 +20,8 @@ export interface INotification {
   id?: string;
   title: string;
   subtitle: string;
-  senderUser: string;
-  receiverUser: string;
+  senderEmployee: string;
+  receiverEmployee: string;
   extraData: IExtraData;
   notificationType: NotificationType;
   readStatus: boolean;
@@ -43,9 +43,9 @@ export default class NotificationModel extends Model {
         id: { type: "string" },
         title: { type: "string" },
         subtitle: { type: "string" },
-        senderUser: { type: "string" },
+        senderEmployee: { type: "string" },
         // comma separated items
-        receiverUser: { type: "string" },
+        receiverEmployee: { type: "string" },
         extraData: { type: "object" }, // object
         notificationType: { type: "string" },
         readStatus: { type: "boolean" },
@@ -53,7 +53,7 @@ export default class NotificationModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["title", "senderUser", "receiverUser", "receiverUser"],
+      required: ["title", "senderEmployee", "receiverEmployee", "receiverEmployee"],
       additionalProperties: false,
     };
   }

@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
 import { google, Auth, gmail_v1 } from "googleapis";
 import { GoogleOAuthService } from "../oauth/service";
-import UserModel, { IUser } from "@models/User";
+import EmployeeModel, { IEmployee } from "@models/Employee";
 import { IActivity, IEMAIL_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
@@ -15,21 +15,21 @@ export class GoogleGmailService {
     private readonly googleOAuthService: GoogleOAuthService
   ) {}
 
-  async getGoogleGmailClient(userId: string): Promise<gmail_v1.Gmail> {
-    const client = await this.googleOAuthService.getOAuth2Client(userId);
+  async getGoogleGmailClient(employeeId: string): Promise<gmail_v1.Gmail> {
+    const client = await this.googleOAuthService.getOAuth2Client(employeeId);
     client.getTokenInfo;
     return google.gmail({ version: "v1", auth: client });
   }
 
-  async createAndSendEmail(userId: string, bodyStr: string) {
+  async createAndSendEmail(employeeId: string, bodyStr: string) {
     const payload = JSON.parse(bodyStr);
     const { from, to, subject, date, messageId, body } = payload;
 
     // @TODO validate payload
-    const user: IUser = await UserModel.query().findById(userId);
-    // const token = await this.googleOAuthService.getRefreshedAccessToken(userId);
-    console.log("user", user.email);
-    const _client = await this.getGoogleGmailClient(userId);
+    const employee: IEmployee = await EmployeeModel.query().findById(employeeId);
+    // const token = await this.googleOAuthService.getRefreshedAccessToken(employeeId);
+    console.log("employee", employee.email);
+    const _client = await this.getGoogleGmailClient(employeeId);
     const raw = this.formatRFC2822Message(
       from,
       to,
@@ -38,8 +38,8 @@ export class GoogleGmailService {
       messageId,
       body
     );
-    const resp = await _client.users.messages.send({
-      userId: user.email,
+    const resp = await _client.employees.messages.send({
+      employeeId: employee.email,
       requestBody: {
         raw,
       },
@@ -60,8 +60,8 @@ export class GoogleGmailService {
       messageId,
       body
     );
-    const resp = await _client.users.messages.send({
-      userId: fromEmail,
+    const resp = await _client.employees.messages.send({
+      employeeId: fromEmail,
       requestBody: {
         raw,
       },

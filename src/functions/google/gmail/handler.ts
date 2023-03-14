@@ -23,7 +23,7 @@ export const createAndSendEmailHandler = async (event) => {
   try {
     const response = await container
       .resolve(GoogleGmailService)
-      .createAndSendEmail(event.user?.sub, event.body);
+      .createAndSendEmail(event.employee?.sub, event.body);
       return formatGoogleJSONResponse(response, 201);
     } catch (e) {
     return formatErrorResponse(e);
@@ -54,7 +54,7 @@ const createMeetingHandler = async (event, _context) => {
     const { gmailId } = event.pathParameters;
     const meeting = await container
       .resolve(GoogleGmailService)
-      .createMeeting(event.user?.sub, gmailId, event.body);
+      .createMeeting(event.employee?.sub, gmailId, event.body);
     return formatGoogleJSONResponse(meeting, 201);
   } catch (e) {
     console.log("error", e);
@@ -67,7 +67,7 @@ export const updateMeetingById = async (event, _context) => {
     const { gmailId, meetingId } = event.pathParameters;
     // const meeting = await container
     //   .resolve(GoogleGmailService)
-    //   .updateMeeting(event.user?.sub, gmailId, meetingId, event.body);
+    //   .updateMeeting(event.employee?.sub, gmailId, meetingId, event.body);
 
     // console.log("meeting success", meeting);
   } catch (e) {

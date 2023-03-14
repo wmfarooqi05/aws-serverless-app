@@ -90,17 +90,17 @@ export const deleteReminder: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-const updateReminderAssignedUserHandler: ValidatedEventAPIGatewayProxyEvent<
+const updateReminderAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
   IReminderModel
 > = async (event) => {
   try {
     // @TODO put auth guard
-    // User must be there
+    // Employee must be there
     // Role guard of manager or above
     const { reminderId } = event.pathParameters;
     const reminder = await container
       .resolve(ReminderService)
-      .updateReminderAssignedUser(reminderId, event?.user?.sub, event.body);
+      .updateReminderAssignedEmployee(reminderId, event?.employee?.sub, event.body);
 
     return formatJSONResponse({ reminder }, 200);
   } catch (e) {
@@ -115,7 +115,7 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
     const { reminderId } = event.pathParameters;
     const reminder = await container
       .resolve(ReminderService)
-      .createConcernedPersons(reminderId, event?.user?.sub, event.body);
+      .createConcernedPersons(reminderId, event?.employee?.sub, event.body);
     return formatJSONResponse({ reminder }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -132,7 +132,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
       .updateConcernedPerson(
         reminderId,
         concernedPersonId,
-        event?.user?.sub,
+        event?.employee?.sub,
         event.body
       );
 
@@ -172,8 +172,8 @@ export const dailyReminderCleanup = async () => {
 export const getReminders = middy(getRemindersHandler).use(
   decodeJWTMiddleware()
 );
-export const updateReminderAssignedUser = middy(
-  updateReminderAssignedUserHandler
+export const updateReminderAssignedEmployee = middy(
+  updateReminderAssignedEmployeeHandler
 ).use(decodeJWTMiddleware());
 
 export const createConcernedPersons = middy(createConcernedPersonsHandler).use(

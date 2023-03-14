@@ -40,7 +40,7 @@ const createMeetingHandler = async (event, _context) => {
     const { calendarId } = event.pathParameters;
     const meeting = await container
       .resolve(GoogleCalendarService)
-      .createMeeting(event.user?.sub, calendarId, event.body);
+      .createMeeting(event.employee?.sub, calendarId, event.body);
     return formatGoogleJSONResponse(meeting, 201);
   } catch (e) {
     console.log("error", e);
@@ -53,7 +53,7 @@ export const updateMeetingById = async (event, _context) => {
     const { calendarId, meetingId } = event.pathParameters;
     // const meeting = await container
     //   .resolve(GoogleCalendarService)
-    //   .updateMeeting(event.user?.sub, calendarId, meetingId, event.body);
+    //   .updateMeeting(event.employee?.sub, calendarId, meetingId, event.body);
 
     // console.log("meeting success", meeting);
   } catch (e) {
@@ -72,7 +72,7 @@ export const getAllCalendarsHandler = async (event) => {
   try {
     const calendars = await container
       .resolve(GoogleCalendarService)
-      .getAllCalendars(event.user?.sub, event?.queryStringParameters?.nextSyncToken);
+      .getAllCalendars(event.employee?.sub, event?.queryStringParameters?.nextSyncToken);
     return formatGoogleJSONResponse(calendars, 200);
   } catch (e) {
     return formatErrorResponse(e);

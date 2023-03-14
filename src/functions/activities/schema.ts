@@ -11,7 +11,7 @@ import {
 } from "src/models/interfaces/Activity";
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
-import { IUserJwt } from "@models/interfaces/User";
+import { IEmployeeJwt } from "@models/interfaces/Employee";
 import moment from "moment-timezone";
 
 const schemaKeys = Object.keys(ActivityModel?.jsonSchema?.properties || {});

@@ -50,7 +50,7 @@ export async function up(knex: Knex): Promise<void> {
         .notNullable()
         .index()
         .references("id")
-        .inTable(Tables.users)
+        .inTable(Tables.employees)
         .onDelete("SET NULL");
       table.string("summary");
       table.jsonb("details").notNullable().defaultTo({});

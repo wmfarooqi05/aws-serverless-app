@@ -1,7 +1,7 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { JOBS_RESULTS_TABLE, USERS_TABLE_NAME } from "./commons";
-import UserModel from "./User";
+import { JOBS_RESULTS_TABLE, EMPLOYEES_TABLE_NAME } from "./commons";
+import EmployeeModel from "./Employee";
 
 export interface IJobsResults {
   id?: string;
@@ -38,10 +38,10 @@ export default class JobsResultsModel extends Model {
   static relationMappings = () => ({
     uploaded_by: {
       relation: Model.BelongsToOneRelation,
-      modelClass: UserModel,
+      modelClass: EmployeeModel,
       join: {
         from: `${JOBS_RESULTS_TABLE}.uploadedBy`,
-        to: `${USERS_TABLE_NAME}.id`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
   });

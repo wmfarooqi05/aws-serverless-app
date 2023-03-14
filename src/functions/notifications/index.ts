@@ -23,7 +23,7 @@ const getNotifications = {
         path: "notifications",
         cors: true,
         // authorizer: {
-        //   type: "COGNITO_USER_POOLS",
+        //   type: "COGNITO_EMPLOYEE_POOLS",
         //   authorizerId: {
         //     Ref: "ApiGatewayAuthorizer"
         //   }

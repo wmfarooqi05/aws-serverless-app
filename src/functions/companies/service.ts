@@ -12,7 +12,7 @@ import { DatabaseService } from "../../libs/database/database-service-objection"
 import moment from "moment-timezone";
 
 import {
-  validateUpdateCompanyAssignedUser,
+  validateUpdateCompanyAssignedEmployee,
   validateGetCompanies,
   validateUpdateCompanies,
   validateCreateConcernedPerson,
@@ -36,8 +36,8 @@ import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
-import { IUserJwt } from "@models/interfaces/User";
-import { RolesEnum } from "@models/User";
+import { IEmployeeJwt } from "@models/interfaces/Employee";
+import { RolesEnum } from "@models/Employee";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
   COMPANIES_TABLE_NAME,
@@ -50,11 +50,11 @@ export interface ICompanyService {
   createCompany(company: ICompanyModel): Promise<ICompanyModel>;
   getCompany(id: string): Promise<ICompanyModel>;
   updateCompany(
-    user: IUserJwt,
+    employee: IEmployeeJwt,
     id: string,
     status: string
   ): Promise<ICompanyModel>;
-  deleteCompany(user: IUserJwt, id: string): Promise<any>;
+  deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
 }
 
 @injectable()
@@ -92,9 +92,9 @@ export class CompanyService implements ICompanyService {
     return company;
   }
 
-  async createCompany(userId: string, body: any): Promise<ICompanyModel> {
+  async createCompany(employeeId: string, body: any): Promise<ICompanyModel> {
     const payload = JSON.parse(body);
-    payload.createdBy = userId;
+    payload.createdBy = employeeId;
     await validateCreateCompany(payload);
 
     const timeNow = moment().utc().format();
@@ -111,15 +111,15 @@ export class CompanyService implements ICompanyService {
   }
 
   async updateCompany(
-    user: IUserJwt,
+    employee: IEmployeeJwt,
     id: string,
     body: any
   ): Promise<ICompanyModel> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
-    if (user["cognito:groups"] === RolesEnum.SALES_REP) {
+    if (employee["cognito:groups"] === RolesEnum.SALES_REP) {
       const item = await this.pendingApprovalService.createPendingApproval(
-        user.sub,
+        employee.sub,
         id,
         ModuleTitles.COMPANY,
         COMPANIES_TABLE_NAME,
@@ -139,10 +139,10 @@ export class CompanyService implements ICompanyService {
     }
   }
 
-  async deleteCompany(user: IUserJwt, id: string): Promise<any> {
-    if (user["cognito:groups"] === RolesEnum.SALES_REP) {
+  async deleteCompany(employee: IEmployeeJwt, id: string): Promise<any> {
+    if (employee["cognito:groups"] === RolesEnum.SALES_REP) {
       const item = await this.pendingApprovalService.createPendingApproval(
-        user.sub,
+        employee.sub,
         id,
         ModuleTitles.COMPANY,
         COMPANIES_TABLE_NAME,
@@ -157,10 +157,10 @@ export class CompanyService implements ICompanyService {
       }
     }
   }
-  async updateCompanyAssignedUser(companyId, assignedBy, body) {
-    // @TODO: @Auth this user should be the manager of changing person
+  async updateCompanyAssignedEmployee(companyId, assignedBy, body) {
+    // @TODO: @Auth this employee should be the manager of changing person
     // @Paul No need for pending approval [Check with Paul]
-    await validateUpdateCompanyAssignedUser(
+    await validateUpdateCompanyAssignedEmployee(
       companyId,
       assignedBy,
       JSON.parse(body)
@@ -203,15 +203,15 @@ export class CompanyService implements ICompanyService {
     return updatedCompany;
   }
 
-  async createConcernedPersons(user: IUserJwt, companyId, body) {
+  async createConcernedPersons(employee: IEmployeeJwt, companyId, body) {
     const payload = JSON.parse(body);
-    await validateCreateConcernedPerson(companyId, user.sub, payload);
+    await validateCreateConcernedPerson(companyId, employee.sub, payload);
 
     const date = moment().utc().format();
 
     payload["id"] = randomUUID();
-    payload["addedBy"] = user.sub;
-    payload["updatedBy"] = user.sub;
+    payload["addedBy"] = employee.sub;
+    payload["updatedBy"] = employee.sub;
     payload["createdAt"] = date;
     payload["updatedAt"] = date;
 
@@ -220,12 +220,12 @@ export class CompanyService implements ICompanyService {
      *  Store it in redis, fetch here and check if create is permitted by default or not
      * if yes, then ok, otherwise put this in pending approval
      *  */
-    user["cognito:groups"] = RolesEnum.SALES_REP;
+    employee["cognito:groups"] = RolesEnum.SALES_REP;
     const permission: boolean = getGlobalPermission(
       "company.childModules.concernedPersons",
       "create"
     );
-    if (!permission && user["cognito:groups"] === RolesEnum.SALES_REP) {
+    if (!permission && employee["cognito:groups"] === RolesEnum.SALES_REP) {
       // or employee is manager, determine if this manager is allowed to see data
       const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
         key: "concernedPersons",
@@ -233,7 +233,7 @@ export class CompanyService implements ICompanyService {
       };
 
       const item = await this.pendingApprovalService.createPendingApproval(
-        user.sub,
+        employee.sub,
         companyId,
         ModuleTitles.COMPANY,
         COMPANIES_TABLE_NAME,
@@ -333,8 +333,8 @@ export class CompanyService implements ICompanyService {
   }
 
   // Notes
-  async getNotes(userId: string, companyId: any) {
-    await validateGetNotes(userId, companyId);
+  async getNotes(employeeId: string, companyId: any) {
+    await validateGetNotes(employeeId, companyId);
     return this.docClient
       .getKnexClient()(CompanyModel.tableName)
       .select(["id", "notes"])
@@ -464,7 +464,7 @@ export class CompanyService implements ICompanyService {
     /**
      * We have to resolve these things
      * If this key is permitted to be updated
-     * If assigned_user is permitted to be updated
+     * If assigned_employee is permitted to be updated
      * If his manager is permitted to be updated
      *
      * Even if key is allowed to change, we have to check if every sales rep can update it

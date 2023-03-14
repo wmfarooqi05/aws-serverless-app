@@ -53,7 +53,7 @@ export class DynamoService implements IDynamoService {
       const command: PutItemCommand = new PutItemCommand({
         TableName: tableName,
         Item: {
-          userId: {
+          employeeId: {
             S: key,
           },
           data: {

@@ -38,7 +38,7 @@ export class WebSocketService implements IWebSocketService {
   ) {}
 
   async handle(
-    userId: string,
+    employeeId: string,
     body: any,
     connectionId: string,
     routeKey: string
@@ -47,7 +47,7 @@ export class WebSocketService implements IWebSocketService {
       console.log("[websocket] handle: ", connectionId, routeKey);
       const payload = {
         message: `Received on ${routeKey}: ${body}`,
-        userId,
+        employeeId,
         connectionId,
       };
       let item = null;
@@ -56,13 +56,13 @@ export class WebSocketService implements IWebSocketService {
           console.log("connected, $connect: ", connectionId);
           await this.dynamoService.putKey(
             this.tableName,
-            userId,
+            employeeId,
             JSON.stringify({ connectionId })
           );
           item = await this.dynamoService.getItem(
             this.tableName,
             this.partitionKeyName,
-            userId
+            employeeId
           );
           console.log("item", item);
           break;
@@ -72,7 +72,7 @@ export class WebSocketService implements IWebSocketService {
           await this.dynamoService.deleteKey(
             this.tableName,
             this.partitionKeyName,
-            userId
+            employeeId
           );
           break;
 
@@ -105,11 +105,11 @@ export class WebSocketService implements IWebSocketService {
       console.log("websocket deployed 28 Feb 2:41AM");
       console.log("[Websocket] sendMessage, data", data);
       const payload = JSON.parse(data);
-      const userId = payload.userId;
-      delete payload.userId;
+      const employeeId = payload.employeeId;
+      delete payload.employeeId;
       // @TODO add joi validations on payload
 
-      const connectionId = await this.getConnectionId(userId);
+      const connectionId = await this.getConnectionId(employeeId);
       console.log("[Websocket] sendMessage: connectionID found ", connectionId);
 
       return this.sendSimpleMessage(connectionId, payload);
@@ -166,13 +166,13 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  private async getConnectionId(userId: string) {
+  private async getConnectionId(employeeId: string) {
     try {
       console.log("[Websocket], getConnectionId, calling getItem");
       const connectionItem = await this.dynamoService.getItem(
         this.tableName,
         this.partitionKeyName,
-        userId
+        employeeId
       );
 
       console.log(
@@ -190,7 +190,7 @@ export class WebSocketService implements IWebSocketService {
       );
       return connectionPayload.connectionId;
     } catch (e) {
-      console.error("getConnectionId, userId", userId, e);
+      console.error("getConnectionId, employeeId", employeeId, e);
     }
   }
 }

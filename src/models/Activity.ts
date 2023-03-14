@@ -1,7 +1,7 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import {
-  USERS_TABLE_NAME,
+  EMPLOYEES_TABLE_NAME,
   COMPANIES_TABLE_NAME,
   ACTIVITIES_TABLE,
 } from "./commons";
@@ -68,10 +68,10 @@ export default class ActivityModel extends Model {
     },
     activityToEmployee: {
       relation: Model.BelongsToOneRelation,
-      modelClass: USERS_TABLE_NAME,
+      modelClass: EMPLOYEES_TABLE_NAME,
       join: {
         from: `${ACTIVITIES_TABLE}.employeeId`,
-        to: `${USERS_TABLE_NAME}.id`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
   });

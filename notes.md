@@ -1,6 +1,6 @@
 Tables
 
-User (who can login)
+Employee (who can login)
 call agent + admin people + boss
 
 

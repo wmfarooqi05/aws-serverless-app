@@ -1,9 +1,9 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { COMPANIES_TABLE_NAME, USERS_TABLE_NAME } from "./commons";
+import { COMPANIES_TABLE_NAME, EMPLOYEES_TABLE_NAME } from "./commons";
 import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "./interfaces/Company";
-import User from "./User";
+import Employee from "./Employee";
 
 // @TODO export them somewhere else
 
@@ -53,19 +53,19 @@ export default class CompanyModel extends Model {
     assigned_by: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: User,
+      modelClass: Employee,
       join: {
         from: `${COMPANIES_TABLE_NAME}.assignedBy`,
-        to: `${USERS_TABLE_NAME}.id`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
     assigned_to: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: User,
+      modelClass: Employee,
       join: {
         from: `${COMPANIES_TABLE_NAME}.assignedTo`,
-        to: `${USERS_TABLE_NAME}.id`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
   });

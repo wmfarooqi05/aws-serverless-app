@@ -11,7 +11,7 @@ export async function up(knex: Knex): Promise<void> {
         .uuid("uploaded_by")
         .index()
         .references("id")
-        .inTable(Tables.users)
+        .inTable(Tables.employees)
         .notNullable()
       table.string("job_type").notNullable();
       table.string("job_result_url").notNullable();

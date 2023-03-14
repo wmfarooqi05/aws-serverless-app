@@ -1,7 +1,7 @@
 import Company from './Company';
-import User from './User';
+import Employee from './Employee';
 
 export default {
   Company,
-  User
+  Employee
 };

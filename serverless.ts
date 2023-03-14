@@ -71,7 +71,7 @@ const serverlessConfiguration: AWS = {
       // AURORA_PORT: "${self:custom.AURORA.PORT}",
       // #common
       // DB_NAME: "${self:custom.DB_NAME}"
-      // USERNAME: "${self:custom.USERNAME}"
+      // EMPLOYEENAME: "${self:custom.EMPLOYEENAME}"
       // PASSWORD: "${self:custom.PASSWORD}"
     },
     tracing: {
@@ -89,7 +89,7 @@ const serverlessConfiguration: AWS = {
     STACK_NAME: "${opt:stage, self:provider.stage}",
     // TIMEOUT: process.env.TIMEOUT,
     DB_NAME: "ge-db-dev-1",
-    USERNAME: "postgres",
+    EMPLOYEENAME: "postgres",
     PASSWORD: "v16pwn1QyN8iCixbWfbL",
     // TIMEOUT: process.env.TIMEOUT,
     STAGE: process.env.NODE_ENV,

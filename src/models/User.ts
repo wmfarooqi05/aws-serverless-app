@@ -1,7 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { USERS_TABLE_NAME } from "./commons";
+import { EMPLOYEES_TABLE_NAME } from "./commons";
 
 export enum RolesEnum {
   SALES_REP = "SALES_REP",
@@ -23,7 +23,7 @@ type GenderType = "Male" | "Female" | "Other";
 
 const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
-export interface IUser {
+export interface IEmployee {
   id: string;
   name: string;
   picture?: string;
@@ -44,15 +44,15 @@ export interface IUser {
 
   settings: JSON;
   social_profiles: JSON;
-  UserStatus: string;
+  EmployeeStatus: string;
   createdAt: string;
   updatedAt: string;
 }
 
 @singleton()
-export default class UserModel extends Model {
+export default class EmployeeModel extends Model {
   static get tableName() {
-    return USERS_TABLE_NAME;
+    return EMPLOYEES_TABLE_NAME;
   }
 
   static get jsonSchema() {
@@ -93,7 +93,7 @@ export default class UserModel extends Model {
         reportingManager: { type: "string" },
         settings: { type: "jsonb" },
         social_profiles: { type: "jsonb" },
-        UserStatus: { type: "string" },
+        EmployeeStatus: { type: "string" },
 
         timezone: { type: "string" },
         dateFormat: { type: "string" },
@@ -111,19 +111,19 @@ export default class UserModel extends Model {
     addedBy: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: User,
+      modelClass: Employee,
       join: {
-        from: `${USERS_TABLE_NAME}.addedBy`,
-        to: `${USERS_TABLE_NAME}.id`,
+        from: `${EMPLOYEES_TABLE_NAME}.addedBy`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
     reportingManager: {
       relation: Model.BelongsToOneRelation,
       // The related model.
-      modelClass: User,
+      modelClass: Employee,
       join: {
-        from: `${USERS_TABLE_NAME}.reportingManager`,
-        to: `${USERS_TABLE_NAME}.id`,
+        from: `${EMPLOYEES_TABLE_NAME}.reportingManager`,
+        to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
   });
@@ -137,5 +137,5 @@ export default class UserModel extends Model {
   // }
 }
 
-export type IUserModel = ModelObject<UserModel>;
-export type IUserPaginated = IWithPagination<IUserModel>;
+export type IEmployeeModel = ModelObject<EmployeeModel>;
+export type IEmployeePaginated = IWithPagination<IEmployeeModel>;

@@ -1,19 +1,19 @@
 import { Knex } from "knex";
 import { tableName } from "..";
-import { UserRolesMigrate } from '../migrations/20221210110010_users';
+import { EmployeeRolesMigrate } from '../migrations/20221210110010_employees';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
-  await knex(tableName.users).del();
+  await knex(tableName.employees).del();
 
   // Inserts seed entries
-  await knex(tableName.users).insert([
+  await knex(tableName.employees).insert([
     {
       id: "ef19fed2-8862-4412-980e-886812e3fd9c",
       email: "wmfarooqi05@gmail.com",
       name: "waleed [manager]",
       enabled: true,
-      role: UserRolesMigrate[4],
+      role: EmployeeRolesMigrate[4],
     //   email_verified: true,
     //   phone_verified: false,
       reporting_manager: 'ef19fed2-8862-4412-980e-886812e3fd9c',
@@ -23,7 +23,7 @@ export async function seed(knex: Knex): Promise<void> {
       email: "wmfarooqi70@gmail.com",
       name: "waleed",
       enabled: true,
-      role: UserRolesMigrate[0],
+      role: EmployeeRolesMigrate[0],
     //   email_verified: true,
     //   phone_verified: false,
       reporting_manager: 'ef19fed2-8862-4412-980e-886812e3fd9c',

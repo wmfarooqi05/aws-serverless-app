@@ -19,13 +19,13 @@ import { GoogleOAuthService } from "./service";
 import { container } from "@common/container";
 import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
 
-export const oauthHandlerWithUser: ValidatedEventAPIGatewayProxyEvent<
+export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
     const response = await container
       .resolve(GoogleOAuthService)
-      .getGoogleOauthRequestTokenByUser(event.headers.Origin, event.user?.sub);
+      .getGoogleOauthRequestTokenByEmployee(event.headers.Origin, event.employee?.sub);
     return formatJSONResponse(response, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -67,7 +67,7 @@ export const googleOauthExtendRefreshTokenHandler = async (event) => {
   try {
     await container
       .resolve(GoogleOAuthService)
-      .googleOauthExtendRefreshTokenHandler(event.user?.sub);
+      .googleOauthExtendRefreshTokenHandler(event.employee?.sub);
     return formatJSONResponse({ message: "Token updated successfully" }, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -78,14 +78,14 @@ export const googleOauthTokenScopeHandler = async (event) => {
   try {
     const resp = await container
       .resolve(GoogleOAuthService)
-      .googleOauthTokenScope(event.user?.sub);
+      .googleOauthTokenScope(event.employee?.sub);
     return formatJSONResponse({ resp }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-export const oauthHandler = jwtMiddlewareWrapper(oauthHandlerWithUser);
+export const oauthHandler = jwtMiddlewareWrapper(oauthHandlerWithEmployee);
 export const googleOauthExtendRefreshToken = jwtMiddlewareWrapper(
   googleOauthExtendRefreshTokenHandler
 );

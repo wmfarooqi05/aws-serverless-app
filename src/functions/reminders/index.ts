@@ -23,7 +23,7 @@ const getReminders = {
         path: "reminders",
         cors: true,
         // authorizer: {
-        //   type: "COGNITO_USER_POOLS",
+        //   type: "COGNITO_EMPLOYEE_POOLS",
         //   authorizerId: {
         //     Ref: "ApiGatewayAuthorizer"
         //   }

@@ -9,8 +9,8 @@ import AuthTokenModel, { IAuthToken } from "@models/AuthToken";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 const SCOPE_FOR_AUTH = [
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/userinfo.profile",
+  "https://www.googleapis.com/auth/employeeinfo.email",
+  "https://www.googleapis.com/auth/employeeinfo.profile",
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
@@ -35,9 +35,9 @@ export class GoogleOAuthService {
   }
 
   async getAuthenticatedCalendarClient(
-    userId: string
+    employeeId: string
   ): Promise<calendar_v3.Calendar> {
-    const client: Auth.OAuth2Client = await this.getOAuth2Client(userId);
+    const client: Auth.OAuth2Client = await this.getOAuth2Client(employeeId);
     if (!client) {
       throw new CustomError("Token expired or not found", 400);
     }
@@ -45,16 +45,16 @@ export class GoogleOAuthService {
     return google.calendar({ version: "v3", auth: client });
   }
 
-  async googleOauthTokenScope(userId: string) {
-    const token = await this.getRefreshedAccessToken(userId);
+  async googleOauthTokenScope(employeeId: string) {
+    const token = await this.getRefreshedAccessToken(employeeId);
 
     const tokenInfo = await google.oauth2("v2").tokeninfo({
       access_token: token.accessToken,
     });
     return tokenInfo.data;
   }
-  async getOAuth2Client(userId: string): Promise<Auth.OAuth2Client | null> {
-    const token = await this.getRefreshedAccessToken(userId);
+  async getOAuth2Client(employeeId: string): Promise<Auth.OAuth2Client | null> {
+    const token = await this.getRefreshedAccessToken(employeeId);
     if (token) {
       const credentials: Auth.Credentials = {
         access_token: token.accessToken,
@@ -67,15 +67,15 @@ export class GoogleOAuthService {
     return null;
   }
 
-  async getGoogleOauthRequestTokenByUser(origin: string, userId: string) {
+  async getGoogleOauthRequestTokenByEmployee(origin: string, employeeId: string) {
     const response: any = {};
     const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
-      userId
+      employeeId
     );
     if (!token) {
       const authUrl = await this.generateGoogleAuthenticationUrl(
         origin,
-        userId
+        employeeId
       );
       response.authUrl = authUrl;
     } else {
@@ -86,24 +86,24 @@ export class GoogleOAuthService {
   }
 
   async getGoogleOauthRequestTokenFromDB(
-    userId: string,
+    employeeId: string,
     checkExpired: boolean = true
   ): Promise<IAuthToken | null> {
-    if (!userId) {
-      throw new Error("UserId not provided");
+    if (!employeeId) {
+      throw new Error("EmployeeId not provided");
     }
-    const token: IAuthToken = await AuthTokenModel.query().findOne({ userId });
+    const token: IAuthToken = await AuthTokenModel.query().findOne({ employeeId });
     if (checkExpired && !this.isTokenValid(token?.expiryDate)) {
       return null;
     }
     return token;
   }
 
-  async generateGoogleAuthenticationUrl(origin: string, userId: string) {
-    const payload = { userId, origin }; // any payload we want to keep in token
+  async generateGoogleAuthenticationUrl(origin: string, employeeId: string) {
+    const payload = { employeeId, origin }; // any payload we want to keep in token
     if (!this.client) {
       throw new Error("no client found");
-      // await this.getAuthenticatedCalendarClient(userId);
+      // await this.getAuthenticatedCalendarClient(employeeId);
     }
     return this.client.generateAuthUrl({
       access_type: "offline",
@@ -112,14 +112,14 @@ export class GoogleOAuthService {
     });
   }
 
-  deleteGoogleOAuthTokenByUserId() {
+  deleteGoogleOAuthTokenByEmployeeId() {
     // delete from db
   }
 
   async exchangeAuthCodeForAccessToken(code: string, state: string) {
     const payload = JSON.parse(state);
-    if (!payload.userId) {
-      throw new Error("UserId not found");
+    if (!payload.employeeId) {
+      throw new Error("EmployeeId not found");
     }
     const token = await this.getAccessTokenByCode(code);
     if (!token) {
@@ -127,21 +127,21 @@ export class GoogleOAuthService {
       // return;
     }
     console.log("token", token);
-    // now store this token using userId
-    await this.storeTokenInDB(token, payload.userId);
+    // now store this token using employeeId
+    await this.storeTokenInDB(token, payload.employeeId);
     return token;
   }
 
-  async googleOauthExtendRefreshTokenHandler(userId: string) {
-    await this.getRefreshedAccessToken(userId);
+  async googleOauthExtendRefreshTokenHandler(employeeId: string) {
+    await this.getRefreshedAccessToken(employeeId);
   }
 
   async getRefreshedAccessToken(
-    userId,
+    employeeId,
     storeTokenInDB: boolean = true
   ): Promise<IAuthToken> {
     let token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
-      userId,
+      employeeId,
       false
     );
     if (!token) {
@@ -154,7 +154,7 @@ export class GoogleOAuthService {
       });
       const newToken = await this.client.refreshAccessToken();
       if (storeTokenInDB) {
-        token = await this.storeTokenInDB(newToken.credentials, userId);
+        token = await this.storeTokenInDB(newToken.credentials, employeeId);
       } else {
         return {
           ...token,
@@ -169,7 +169,7 @@ export class GoogleOAuthService {
   // Move all these in helper class file
   async storeTokenInDB(
     token: Auth.Credentials,
-    userId: string,
+    employeeId: string,
     tokenIssuer: string = "GOOGLE"
   ): Promise<IAuthToken> {
     const tokenObj: IAuthToken = {
@@ -178,12 +178,12 @@ export class GoogleOAuthService {
       refreshToken: token.refresh_token,
       idToken: token.id_token,
       tokenIssuer,
-      userId,
+      employeeId,
       tokenType: token.token_type,
     };
     const newToken: IAuthToken = await AuthTokenModel.query()
       .insert(tokenObj)
-      .onConflict("userId")
+      .onConflict("employeeId")
       .merge();
     return newToken;
   }

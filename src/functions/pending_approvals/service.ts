@@ -17,7 +17,7 @@ import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
 import { message } from "./strings";
 import { randomUUID } from "crypto";
-import User from "@models/User";
+import Employee from "@models/Employee";
 
 export interface IPendingApprovalService {}
 
@@ -42,7 +42,7 @@ export class PendingApprovalService implements IPendingApprovalService {
   }
 
   async createPendingApproval(
-    userId: string,
+    employeeId: string,
     rowId: string,
     title: string,
     tableName: string,
@@ -53,7 +53,7 @@ export class PendingApprovalService implements IPendingApprovalService {
 
     const pendingApprovalItem: IPendingApprovals =
       await this.createPendingApprovalItem(
-        userId,
+        employeeId,
         rowId,
         title,
         tableName,
@@ -155,7 +155,7 @@ export class PendingApprovalService implements IPendingApprovalService {
   }
 
   private async createPendingApprovalItem(
-    userId: string,
+    employeeId: string,
     rowId: string,
     title: string,
     tableName: string,
@@ -169,13 +169,13 @@ export class PendingApprovalService implements IPendingApprovalService {
       payload,
     };
 
-    const userItem = await User.query().findById(userId);
+    const employeeItem = await Employee.query().findById(employeeId);
 
     const item = {
       activityId: `${actionType}_${title.toUpperCase()}_${randomUUID()}`,
       activityName: `${actionType}_${title.toUpperCase()}`,
-      approvers: [userItem["reportingManager"]],
-      createdBy: userId,
+      approvers: [employeeItem["reportingManager"]],
+      createdBy: employeeId,
       onApprovalActionRequired: onApprovalActionRequired,
       status: PendingApprovalsStatus.PENDING,
     };
@@ -188,14 +188,14 @@ export class PendingApprovalService implements IPendingApprovalService {
   private async createPendingApprovalNotifications(
     pendingApprovalItem: IPendingApprovals
   ) {
-    // get User's connectionId
+    // get Employee's connectionId
     // if connectionId exists
     //this.webSocketService.sendMessage(connectionId, payload);
 
     let notifArray = [];
     for (let i = 0; i < pendingApprovalItem.approvers.length; i++) {
       // Now we have to create a notification for this
-      // And then send it to users via different transports
+      // And then send it to employees via different transports
       // Ideally a job should run and send it but here we are sending it from here for now
 
       // @TODO Put this in job, SQS and SNS
@@ -203,8 +203,8 @@ export class PendingApprovalService implements IPendingApprovalService {
         isScheduled: false,
         notificationType: "ACTIONABLE_ITEM",
         readStatus: false,
-        receiverUser: pendingApprovalItem.approvers[0],
-        senderUser: pendingApprovalItem.createdBy,
+        receiverEmployee: pendingApprovalItem.approvers[0],
+        senderEmployee: pendingApprovalItem.createdBy,
         title: pendingApprovalItem.activityName,
         subtitle: message.PendingApprovalCreate(
           pendingApprovalItem.activityName,

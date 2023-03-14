@@ -12,7 +12,7 @@ import {
   validateUpdateRemarks,
 } from "./schema";
 
-import UserModel, { IUser } from "src/models/User";
+import EmployeeModel, { IEmployee } from "src/models/Employee";
 import CompanyModel from "src/models/Company";
 import { randomUUID } from "crypto";
 import ActivityModel, {
@@ -29,13 +29,13 @@ import {
   IRemarks,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
-import { ACTIVITIES_TABLE, USERS_TABLE_NAME } from "src/models/commons";
+import { ACTIVITIES_TABLE, EMPLOYEES_TABLE_NAME } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IUserJwt } from "@models/interfaces/User";
+import { IEmployeeJwt } from "@models/interfaces/Employee";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";
@@ -102,7 +102,7 @@ export class ActivityService implements IActivityService {
   }
 
   async getAllActivities(
-    userId: string, // jwt payload
+    employeeId: string, // jwt payload
     body: any
   ) {
     await validateGetActivities(body);
@@ -121,7 +121,7 @@ export class ActivityService implements IActivityService {
       whereClause.activityType = type;
     }
 
-    // if manager, get employees else return everything in case of above user
+    // if manager, get employees else return everything in case of above employee
     return this.docClient
       .get(this.TableName)
       .where(whereClause)
@@ -132,7 +132,7 @@ export class ActivityService implements IActivityService {
 
   // @TODO fix this
   async getAllActivitiesByCompany(
-    user: any, // jwt payload
+    employee: any, // jwt payload
     companyId: string,
     body: any
   ) {
@@ -152,7 +152,7 @@ export class ActivityService implements IActivityService {
       whereClause.activityType = type;
     }
 
-    // if manager, get employees else return everything in case of above user
+    // if manager, get employees else return everything in case of above employee
     return this.docClient
       .get(this.TableName)
       .where(whereClause)
@@ -161,7 +161,7 @@ export class ActivityService implements IActivityService {
       .paginate(paginateClause);
   }
 
-  async getTopActivities(userId: string, companyId: string) {
+  async getTopActivities(employeeId: string, companyId: string) {
     const company = await CompanyModel.query().findById(companyId);
     if (!company) {
       throw new CustomError("Company doesn't exists", 404);
@@ -193,7 +193,7 @@ export class ActivityService implements IActivityService {
     return result2;
   }
 
-  async getMyActivitiesByDay(userId: string) {
+  async getMyActivitiesByDay(employeeId: string) {
     const resp = await this.emailService.send(
       "wmfarooqi05@gmail.com",
       "Testing Email",
@@ -203,7 +203,7 @@ export class ActivityService implements IActivityService {
   }
 
   async getActivityById(
-    userId: string,
+    employeeId: string,
     activityId: string
   ): Promise<IActivityModel> {
     const activities: IActivity[] = await this.docClient
@@ -219,19 +219,19 @@ export class ActivityService implements IActivityService {
     return activities[0];
   }
 
-  async createActivity(createdBy: IUserJwt, body: any): Promise<any> {
+  async createActivity(createdBy: IEmployeeJwt, body: any): Promise<any> {
     const payload = JSON.parse(body);
     await validateCreateActivity(createdBy.sub, payload);
-    const user: IUser = await UserModel.query().findById(createdBy.sub);
-    if (!user) {
-      throw new CustomError("User not found", 400);
+    const employee: IEmployee = await EmployeeModel.query().findById(createdBy.sub);
+    if (!employee) {
+      throw new CustomError("Employee not found", 400);
     }
 
     // @TODO add validations for detail object
     const activityObj = {
       summary: payload.summary,
       details: this.createDetailsPayload(
-        user,
+        employee,
         payload.activityType,
         payload.details
       ),
@@ -278,7 +278,7 @@ export class ActivityService implements IActivityService {
       return activity;
     } catch (e) {
       if (e.name === "ForeignKeyViolationError") {
-        // @TODO: check maybe user doesn't exists
+        // @TODO: check maybe employee doesn't exists
         throw new CustomError("Company doesn't exists", 404);
       } else {
         throw new CustomError(e.message, 502);
@@ -378,7 +378,7 @@ export class ActivityService implements IActivityService {
       throw new CustomError("This activity doesn't belong to the Company", 400);
     }
 
-    // @TODO add user checks
+    // @TODO add employee checks
 
     const index = activity?.remarks?.findIndex((x) => x.id === remarksId);
 
@@ -407,10 +407,10 @@ export class ActivityService implements IActivityService {
     payload: any
   ): Promise<IRemarks> {
     // @TODO there is not check here if person's manager doesn't exists
-    const users: IUser[] = await this.docClient
-      .knexClient(USERS_TABLE_NAME)
-      .table(`${USERS_TABLE_NAME} as u`)
-      .leftJoin(`${USERS_TABLE_NAME} as m`, "u.reporting_manager", "m.id")
+    const employees: IEmployee[] = await this.docClient
+      .knexClient(EMPLOYEES_TABLE_NAME)
+      .table(`${EMPLOYEES_TABLE_NAME} as u`)
+      .leftJoin(`${EMPLOYEES_TABLE_NAME} as m`, "u.reporting_manager", "m.id")
       .select("u.*", "m.id as managerId", "m.name as managerName")
       .where({ "u.id": employeeId });
 
@@ -419,13 +419,13 @@ export class ActivityService implements IActivityService {
       activityId,
       remarksText: payload.remarksText,
       employeeDetails: {
-        name: users[0].name,
-        id: users[0].id,
+        name: employees[0].name,
+        id: employees[0].id,
       },
-      reportingManager: users[0]?.managerId!
+      reportingManager: employees[0]?.managerId!
         ? {
-            id: users[0]?.managerId!,
-            name: users[0]?.managerName!,
+            id: employees[0]?.managerId!,
+            name: employees[0]?.managerName!,
           }
         : null,
       createdAt: moment().utc().format(),
@@ -468,25 +468,25 @@ export class ActivityService implements IActivityService {
   // @TODO re-write with help of jwt payload,
   // manager will be there and also role
   // if role is above manager, he can see,
-  // else either userId === activityEmployeeId OR this user's manager should be activity user
-  // async checkUserAuthorization(
-  //   requestingUserId: string,
+  // else either employeeId === activityEmployeeId OR this employee's manager should be activity employee
+  // async checkEmployeeAuthorization(
+  //   requestingEmployeeId: string,
   //   activityEmployeeId: string
   // ) {
   //   // @TODO add getEmployees who is allowed to see this company
-  //   const requestingUser: IUser = await this.docClient
-  //     .get(USERS_TABLE_NAME)
+  //   const requestingEmployee: IEmployee = await this.docClient
+  //     .get(EMPLOYEES_TABLE_NAME)
   //     .where({
-  //       id: requestingUserId,
+  //       id: requestingEmployeeId,
   //     })[0];
 
   //   if (
   //     !(
-  //       activity.employeeId === userId ||
-  //       userManager.reportingManager === userId
+  //       activity.employeeId === employeeId ||
+  //       employeeManager.reportingManager === employeeId
   //     )
   //   ) {
-  //     throw new CustomError("User not allowed to access this data", 403);
+  //     throw new CustomError("Employee not allowed to access this data", 403);
   //   }
   // }
 
@@ -499,13 +499,13 @@ export class ActivityService implements IActivityService {
   }
 
   private createDetailsPayload(
-    user: IUser,
+    employee: IEmployee,
     activityType: ACTIVITY_TYPE,
     details: IACTIVITY_DETAILS
   ) {
     switch (activityType) {
       case ACTIVITY_TYPE.EMAIL:
-        return this.createEmailPayload(user, details);
+        return this.createEmailPayload(employee, details);
       case ACTIVITY_TYPE.CALL:
         return this.createCallPayload(details);
       case ACTIVITY_TYPE.MEETING:
@@ -515,7 +515,7 @@ export class ActivityService implements IActivityService {
     }
   }
 
-  createEmailPayload(user: IUser, payload): IEMAIL_DETAILS {
+  createEmailPayload(employee: IEmployee, payload): IEMAIL_DETAILS {
     const { body, isScheduled, subject, timezone, date } = payload;
     const newDate = isScheduled
       ? moment.tz(date, timezone).utc()
@@ -536,11 +536,11 @@ export class ActivityService implements IActivityService {
 
     return {
       to: toStr,
-      from: `${user.name} <${user.email}>`,
+      from: `${employee.name} <${employee.email}>`,
       body: body,
       date: newDate.format(),
       messageId: randomUUID(),
-      fromEmail: user.email,
+      fromEmail: employee.email,
       isScheduled: isScheduled || false,
       subject,
     };

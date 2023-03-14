@@ -70,7 +70,7 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
   );
 };
 
-export const validateUpdateCompanyAssignedUser = async (
+export const validateUpdateCompanyAssignedEmployee = async (
   companyId: string,
   assignedBy: string,
   payload: any
@@ -136,12 +136,12 @@ export const validateUpdateConcernedPerson = async (
 };
 
 // Notes
-export const validateGetNotes = async (userId: string, companyId: string) => {
+export const validateGetNotes = async (employeeId: string, companyId: string) => {
   await Joi.object({
-    userId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
     companyId: Joi.string().guid().required(),
   }).validateAsync(
-    { companyId, userId },
+    { companyId, employeeId },
     {
       abortEarly: true,
       

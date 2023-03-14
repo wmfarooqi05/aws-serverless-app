@@ -5,7 +5,7 @@ import { decode } from "jsonwebtoken";
 import { ICompany } from "@models/interfaces/Company";
 import {
   Actions,
-  getPermissionsForUserRole2,
+  getPermissionsForEmployeeRole2,
   ModuleTypeForCasl,
 } from "@libs/casl";
 import { ForbiddenError } from "@casl/ability";
@@ -21,9 +21,9 @@ import { formatErrorResponse } from "@libs/api-gateway";
 export const decodeJWTMiddleware = () => {
   return {
     before: ({ event }) => {
-      // @TODO dont send extra things in event.user
+      // @TODO dont send extra things in event.employee
       const token = event.headers?.Authorization?.split(" ")[1];
-      event.user = decode(token);
+      event.employee = decode(token);
     },
   };
 };
@@ -31,10 +31,10 @@ export const decodeJWTMiddleware = () => {
 export const decodeJWTMiddlewareWebsocket = () => {
   return {
     before: ({ event }) => {
-      // @TODO dont send extra things in event.user
+      // @TODO dont send extra things in event.employee
       if (event.queryStringParameters?.Authorization) {
         const token = event.queryStringParameters?.Authorization?.split(" ")[1];
-        event.user = decode(token);
+        event.employee = decode(token);
       }
     },
   };
@@ -48,7 +48,7 @@ export function permissionMiddleware(): MiddlewareObject<
     before: async (
       handler: HandlerLambda<APIGatewayEvent, APIGatewayProxyResult>
     ): Promise<void> => {
-      console.log("user", handler.event.headers.user);
+      console.log("employee", handler.event.headers.employee);
     },
   };
 }
@@ -59,13 +59,13 @@ export const permissionMiddleware2 = (
 ) => {
   return {
     before: async ({ event }) => {
-      const { user } = event;
-      user.role = "manager";
+      const { employee } = event;
+      employee.role = "manager";
       const resp: ICompany[] = await container
         .resolve(DatabaseService)
         .get(COMPANIES_TABLE_NAME);
-      console.log("user", resp[0]?.companyName);
-      const permissions = getPermissionsForUserRole2();
+      console.log("employee", resp[0]?.companyName);
+      const permissions = getPermissionsForEmployeeRole2();
       const abc = permissions["manager"].rulesFor("all", "COMPANY");
       console.log("rules", abc);
       try {
@@ -73,7 +73,7 @@ export const permissionMiddleware2 = (
         // service will check which action is permitted.
         // to keep logic separate
         actions.forEach((action) =>
-          ForbiddenError.from(permissions[user.role]).throwUnlessCan(
+          ForbiddenError.from(permissions[employee.role]).throwUnlessCan(
             action,
             subject
           )

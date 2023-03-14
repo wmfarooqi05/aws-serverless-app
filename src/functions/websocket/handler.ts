@@ -31,7 +31,7 @@ export const _webSocketHandler = async (event) => {
     const newReminder = await container
       .resolve(WebSocketService)
       .handle(
-        event.user?.sub,
+        event.employee?.sub,
         body,
         connectionId,
         routeKey

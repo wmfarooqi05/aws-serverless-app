@@ -51,7 +51,7 @@ export const validateUpdatePendingApprovals = async (id: string, obj: any) => {
   );
 };
 
-export const validateUpdatePendingApprovalAssignedUser = async (
+export const validateUpdatePendingApprovalAssignedEmployee = async (
   pendingApprovalId: string,
   assignedBy: string,
   payload: any

@@ -1,7 +1,7 @@
 {
-    "Users": [
+    "Employees": [
         {
-            "Username": "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
+            "Employeename": "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
             "Attributes": [
                 {
                     "Name": "sub",
@@ -32,13 +32,13 @@
                     "Value": "wmfarooqi70@gmail.com"
                 }
             ],
-            "UserCreateDate": "2022-11-26T22:58:38.100000+05:00",
-            "UserLastModifiedDate": "2022-11-26T22:58:38.100000+05:00",
+            "EmployeeCreateDate": "2022-11-26T22:58:38.100000+05:00",
+            "EmployeeLastModifiedDate": "2022-11-26T22:58:38.100000+05:00",
             "Enabled": true,
-            "UserStatus": "UNCONFIRMED"
+            "EmployeeStatus": "UNCONFIRMED"
         },
         {
-            "Username": "ef19fed2-8862-4412-980e-886812e3fd9c",
+            "Employeename": "ef19fed2-8862-4412-980e-886812e3fd9c",
             "Attributes": [
                 {
                     "Name": "sub",
@@ -69,10 +69,10 @@
                     "Value": "wmfarooqi05@gmail.com"
                 }
             ],
-            "UserCreateDate": "2022-11-27T03:29:13.873000+05:00",
-            "UserLastModifiedDate": "2022-11-27T03:29:58.150000+05:00",
+            "EmployeeCreateDate": "2022-11-27T03:29:13.873000+05:00",
+            "EmployeeLastModifiedDate": "2022-11-27T03:29:58.150000+05:00",
             "Enabled": true,
-            "UserStatus": "CONFIRMED"
+            "EmployeeStatus": "CONFIRMED"
         }
     ]
 }

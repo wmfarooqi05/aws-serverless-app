@@ -5,7 +5,7 @@ import { inject, injectable } from "tsyringe";
 // import momentTz from "moment-timezone";
 import NotificationModel, { INotification } from "@models/Notification";
 import { WebSocketService } from "@functions/websocket/service";
-import { IUserJwt } from "@models/interfaces/User";
+import { IEmployeeJwt } from "@models/interfaces/Employee";
 import { CustomError } from "@helpers/custom-error";
 
 export interface INotificationService {}
@@ -30,7 +30,7 @@ export class NotificationService implements INotificationService {
   // }
 
   /**
-   * Here, user will request for a creating a notification
+   * Here, employee will request for a creating a notification
    * It will decide on basis of some logic to which modules, it should be sent.
    * First it will create a notification item in DB. It will have module which relates to this notification.
    * There will be X type of notifications. Like Actionable Notification, InfoNotif
@@ -38,8 +38,8 @@ export class NotificationService implements INotificationService {
    * It will have type "ACTIONABLE_NOTIFICATION", extraData will have
    * module as "PENDING_APPROVAL", rowId "123". So frontend will simply fetch pending_approval->row123
    * For module we will have a map where "PENDING_APPROVAL" will map to PendingService Instance.
-   * Other example can be of Info Notif, "User_A changed status of activity to X". It will have extra
-   * data of module "Activity", rowId of activity, and on click we will show user detailed activity.
+   * Other example can be of Info Notif, "Employee_A changed status of activity to X". It will have extra
+   * data of module "Activity", rowId of activity, and on click we will show employee detailed activity.
    * next, it will have
    *
    * @returns
@@ -52,11 +52,11 @@ export class NotificationService implements INotificationService {
       notificationType,
       extraData,
       isScheduled,
-      senderUser,
-      receiverUser,
+      senderEmployee,
+      receiverEmployee,
       subtitle,
     } = body;
-    // maybe we will take receive user by running a loop on DB? here or maybe in parent service
+    // maybe we will take receive employee by running a loop on DB? here or maybe in parent service
     // for multiple receiver we will create an entry for each of them to tackle `read` status issue
     const notificationPayload: INotification = {
       // @TODO we will create title
@@ -65,33 +65,33 @@ export class NotificationService implements INotificationService {
       readStatus: false,
       extraData,
       isScheduled,
-      senderUser,
-      receiverUser,
+      senderEmployee,
+      receiverEmployee,
       subtitle,
     };
 
-    // const { senderUser, receiverUser }: { senderUser: any; receiverUser: any } = req.body
+    // const { senderEmployee, receiverEmployee }: { senderEmployee: any; receiverEmployee: any } = req.body
     return NotificationModel.query().insert(notificationPayload);
   }
 
-  async getNotifications(userId, body) {
+  async getNotifications(employeeId, body) {
     const payload = JSON.parse(body);
 
-    const whereObj: any = { userId };
+    const whereObj: any = { employeeId };
     if (payload.readStatus) {
       whereObj.readStatus = payload.readStatus;
     }
     return NotificationModel.query().where(whereObj);
   }
 
-  async getNotificationById(userId: string, id: string) {
+  async getNotificationById(employeeId: string, id: string) {
     // @TODO add auth guard
     const notifItem: INotification = await NotificationModel.query().findById(
       id
     );
-    if (notifItem.receiverUser !== userId) {
+    if (notifItem.receiverEmployee !== employeeId) {
       throw new CustomError(
-        "The notification doesn't belongs to this user",
+        "The notification doesn't belongs to this employee",
         403
       );
     }

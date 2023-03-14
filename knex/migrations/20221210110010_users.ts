@@ -2,7 +2,7 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers";
 
-export const UserRolesMigrate = [
+export const EmployeeRolesMigrate = [
   "SALES_REP",
   "SALES_MANAGER",
   "REGIONAL_MANAGER",
@@ -10,7 +10,7 @@ export const UserRolesMigrate = [
   "SUPER_ADMIN",
 ]
 
-const tableName = Tables.users;
+const tableName = Tables.employees;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable(tableName, (table) => {
@@ -20,7 +20,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string("name").notNullable();
     table.string("enabled");
     table.string("job_title");
-    table.enum("role", UserRolesMigrate).defaultTo(UserRolesMigrate[0]);
+    table.enum("role", EmployeeRolesMigrate).defaultTo(EmployeeRolesMigrate[0]);
     table.jsonb("addresses").defaultTo([]);
     table.date("birthdate");
     table.date("email_verified");
@@ -38,7 +38,7 @@ export async function up(knex: Knex): Promise<void> {
       .references("id")
       .inTable(tableName)
       .onDelete('SET NULL');
-    table.string("user_status");
+    table.string("employee_status");
     table
       .uuid("reporting_manager")
       .index()
