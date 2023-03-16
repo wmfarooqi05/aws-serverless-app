@@ -28,9 +28,9 @@ import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
 import {
-  addJsonbObject,
-  deleteJsonbObject,
-  updateJsonbObject,
+  addJsonbObjectHelper,
+  deleteJsonbObjectHelper,
+  updateJsonbObjectHelper,
 } from "src/common/json_helpers";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
@@ -117,45 +117,49 @@ export class CompanyService implements ICompanyService {
   ): Promise<ICompanyModel> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
-    if (employee["cognito:groups"] === RolesEnum.SALES_REP) {
-      const item = await this.pendingApprovalService.createPendingApproval(
-        employee.sub,
-        id,
-        ModuleTitles.COMPANY,
-        COMPANIES_TABLE_NAME,
-        PendingApprovalType.UPDATE,
-        payload
-      );
-      return item;
-    } else {
-      const updatedCompany = await CompanyModel.query().patchAndFetchById(
-        id,
-        payload
-      );
-      if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
-        throw new CustomError("Object not found", 404);
-      }
-      return updatedCompany;
+    // if (
+    //   RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
+    // ) {
+    //   const item = await this.pendingApprovalService.createPendingApproval(
+    //     employee.sub,
+    //     id,
+    //     ModuleTitles.COMPANY,
+    //     COMPANIES_TABLE_NAME,
+    //     PendingApprovalType.UPDATE,
+    //     payload
+    //   );
+    //   return item;
+    // } else {
+    const updatedCompany = await CompanyModel.query().patchAndFetchById(
+      id,
+      payload
+    );
+    if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
+      throw new CustomError("Object not found", 404);
     }
+    return updatedCompany;
+    // }
   }
 
   async deleteCompany(employee: IEmployeeJwt, id: string): Promise<any> {
-    if (employee["cognito:groups"] === RolesEnum.SALES_REP) {
-      const item = await this.pendingApprovalService.createPendingApproval(
-        employee.sub,
-        id,
-        ModuleTitles.COMPANY,
-        COMPANIES_TABLE_NAME,
-        PendingApprovalType.DELETE
-      );
-      return item;
-    } else {
-      const deleted = await CompanyModel.query().deleteById(id);
+    // if (
+    //   RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
+    // ) {
+    //   const item = await this.pendingApprovalService.createPendingApproval(
+    //     employee.sub,
+    //     id,
+    //     ModuleTitles.COMPANY,
+    //     COMPANIES_TABLE_NAME,
+    //     PendingApprovalType.DELETE
+    //   );
+    //   return item;
+    // } else {
+    const deleted = await CompanyModel.query().deleteById(id);
 
-      if (!deleted) {
-        throw new CustomError("Company not found", 404);
-      }
+    if (!deleted) {
+      throw new CustomError("Company not found", 404);
     }
+    // }
   }
   async updateCompanyAssignedEmployee(companyId, assignedBy, body) {
     // @TODO: @Auth this employee should be the manager of changing person
@@ -168,6 +172,11 @@ export class CompanyService implements ICompanyService {
 
     const { assignTo, comments } = JSON.parse(body);
 
+    const company = await CompanyModel.query().findById(companyId);
+    if (!company) {
+      throw new CustomError("Company not found", 404);
+    }
+
     // const update
     const assignmentHistory: IAssignmentHistory = {
       assignedTo: assignTo || null,
@@ -176,24 +185,19 @@ export class CompanyService implements ICompanyService {
       date: moment().utc().format(),
     };
 
+    const updateQuery = {
+      ...addJsonbObjectHelper(
+        "assignmentHistory",
+        this.docClient.getKnexClient(),
+        assignmentHistory
+      ),
+      assignedTo: assignTo ? assignTo : CompanyModel.raw("NULL"),
+      assignedBy,
+    };
+
     const updatedCompany = await CompanyModel.query().patchAndFetchById(
       companyId,
-      {
-        assignedTo: assignTo ? assignTo : CompanyModel.raw("NULL"),
-        assignedBy,
-        assignmentHistory: CompanyModel.raw(
-          `(
-            CASE
-              WHEN assignment_history IS NULL THEN :assignmentWithArray::JSONB
-              ELSE assignment_history || :assignmentWithoutArray::jsonb
-            END
-          )`,
-          {
-            assignmentWithArray: JSON.stringify([assignmentHistory]),
-            assignmentWithoutArray: JSON.stringify(assignmentHistory),
-          }
-        ),
-      }
+      updateQuery
     );
 
     if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
@@ -220,12 +224,14 @@ export class CompanyService implements ICompanyService {
      *  Store it in redis, fetch here and check if create is permitted by default or not
      * if yes, then ok, otherwise put this in pending approval
      *  */
-    employee["cognito:groups"] = RolesEnum.SALES_REP;
     const permission: boolean = getGlobalPermission(
       "company.childModules.concernedPersons",
       "create"
     );
-    if (!permission && employee["cognito:groups"] === RolesEnum.SALES_REP) {
+    if (
+      !permission &&
+      RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
+    ) {
       // or employee is manager, determine if this manager is allowed to see data
       const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
         key: "concernedPersons",
@@ -240,11 +246,15 @@ export class CompanyService implements ICompanyService {
         PendingApprovalType.JSON_PUSH,
         jsonbPayload
       );
-      return item;
+      return { pendingApproval: item };
     }
     const company = await CompanyModel.query()
       .patch(
-        addJsonbObject("concernedPersons", this.docClient.getKnexClient, payload)
+        addJsonbObjectHelper(
+          "concernedPersons",
+          this.docClient.getKnexClient(),
+          payload
+        )
       )
       .where({ id: companyId })
       .returning("*")
@@ -254,7 +264,7 @@ export class CompanyService implements ICompanyService {
       throw new CustomError("Company does't exists", 404);
     }
 
-    return company;
+    return { company };
   }
 
   async updateConcernedPerson(
@@ -290,7 +300,7 @@ export class CompanyService implements ICompanyService {
       throw new CustomError("Concerned Person doesn't exist", 404);
     }
 
-    const updateQuery = updateJsonbObject(
+    const updateQuery = updateJsonbObjectHelper(
       "concernedPersons",
       this.docClient.knexClient,
       {
@@ -323,7 +333,7 @@ export class CompanyService implements ICompanyService {
       throw new CustomError("Concerned Person doesn't exist", 404);
     }
 
-    const deleteQuery = deleteJsonbObject(
+    const deleteQuery = deleteJsonbObjectHelper(
       "concernedPersons",
       this.docClient.knexClient,
       index

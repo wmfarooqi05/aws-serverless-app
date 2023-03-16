@@ -30,11 +30,11 @@ export default class ActivityModel extends Model {
         createdBy: { type: "string" },
         remarks: {
           type: "array",
-          default:  JSON.stringify([]),
+          default: JSON.stringify([]),
         },
         concernedPersonDetails: {
-          type: "object",
-          default: {},
+          type: "array",
+          default: JSON.stringify([]),
         },
         activityType: {
           type: "string",

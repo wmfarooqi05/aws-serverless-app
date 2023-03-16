@@ -39,6 +39,11 @@ import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";
+import {
+  addJsonbObjectHelper,
+  deleteJsonbObjectHelper,
+  validateJSONItemAndGetIndex,
+} from "@common/json_helpers";
 
 // @TODO fix this
 export interface IActivityService {
@@ -222,13 +227,15 @@ export class ActivityService implements IActivityService {
   async createActivity(createdBy: IEmployeeJwt, body: any): Promise<any> {
     const payload = JSON.parse(body);
     await validateCreateActivity(createdBy.sub, payload);
-    const employee: IEmployee = await EmployeeModel.query().findById(createdBy.sub);
+    const employee: IEmployee = await EmployeeModel.query().findById(
+      createdBy.sub
+    );
     if (!employee) {
       throw new CustomError("Employee not found", 400);
     }
 
     // @TODO add validations for detail object
-    const activityObj = {
+    const activityObj: IActivity = {
       summary: payload.summary,
       details: this.createDetailsPayload(
         employee,
@@ -244,7 +251,6 @@ export class ActivityService implements IActivityService {
       reminders: payload.reminders || JSON.stringify([]),
       createdAt: payload.createdAt,
       updatedAt: payload.createdAt,
-      remarks: [],
     };
 
     if (
@@ -322,10 +328,7 @@ export class ActivityService implements IActivityService {
     const payload = JSON.parse(body);
     await validateRemarks(employeeId, activityId, payload);
 
-    const { companyId }: { companyId: string } = payload;
-
     delete payload.activityId;
-    delete payload.companyId;
 
     const remarks = await this.createRemarksHelper(
       employeeId,
@@ -334,13 +337,10 @@ export class ActivityService implements IActivityService {
     );
 
     const activity = await ActivityModel.query()
-      .patch({
-        remarks: ActivityModel.raw(
-          `remarks || ?::jsonb`,
-          JSON.stringify(remarks)
-        ),
-      })
-      .where({ id: activityId, companyId })
+      .patch(
+        addJsonbObjectHelper("remarks", this.docClient.getKnexClient(), remarks)
+      )
+      .where({ id: activityId })
       .returning("*")
       .first();
 
@@ -360,31 +360,13 @@ export class ActivityService implements IActivityService {
     const payload = JSON.parse(body);
     await validateUpdateRemarks(employeeId, activityId, remarksId, payload);
 
-    const { companyId }: { companyId: string } = payload;
-
-    delete payload.companyId;
-
-    // @TODO: validate first by fetching remark and activity
-
-    const activity: IActivity = await ActivityModel.query().findById(
-      activityId
+    const index = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      ActivityModel.tableName,
+      activityId,
+      `remarks`,
+      remarksId
     );
-
-    if (!activity) {
-      throw new CustomError("Activity not found", 404);
-    }
-
-    if (activity.companyId !== companyId) {
-      throw new CustomError("This activity doesn't belong to the Company", 400);
-    }
-
-    // @TODO add employee checks
-
-    const index = activity?.remarks?.findIndex((x) => x.id === remarksId);
-
-    if (index === -1 || index === undefined) {
-      throw new CustomError("Remarks doesn't exist", 404);
-    }
 
     return ActivityModel.query().patchAndFetchById(activityId, {
       remarks: ActivityModel.raw(
@@ -399,6 +381,23 @@ export class ActivityService implements IActivityService {
         `
       ),
     });
+  }
+
+  async deleteRemarkFromActivity(activityId: string, remarksId: string) {
+    const index = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      ActivityModel.tableName,
+      activityId,
+      `remarks`,
+      remarksId
+    );
+
+    await ActivityModel.query().patchAndFetchById(
+      activityId,
+      deleteJsonbObjectHelper("remarks", this.docClient.getKnexClient(), index)
+    );
+
+    return index;
   }
 
   private async createRemarksHelper(
@@ -432,26 +431,6 @@ export class ActivityService implements IActivityService {
       updatedAt: moment().utc().format(),
     } as IRemarks;
   }
-
-  async deleteRemarkFromActivity(activityId: string, remarksId: string) {
-    // @ADD some query to find index of id directly
-    const activity: IActivity = await ActivityModel.query().findOne({
-      id: activityId,
-    });
-
-    const index = activity?.remarks?.findIndex((x) => x.id === remarksId);
-
-    if (index === -1 || index === undefined) {
-      throw new CustomError("Remark doesn't exist in this activity", 404);
-    }
-
-    await ActivityModel.query().patchAndFetchById(activityId, {
-      remarks: ActivityModel.raw(`remarks - ${index}`),
-    });
-
-    return activity.remarks[index];
-  }
-
   sanitizeActivitiesColumnNames(fields: string): string | string[] {
     if (!fields) return "*";
     const columnNames = Object.keys(ActivityModel.jsonSchema.properties);
@@ -547,7 +526,7 @@ export class ActivityService implements IActivityService {
   }
 
   createCallPayload(payload) {
-    return payload;
+    return payload ? payload : {};
   }
 
   createMeetingPayload(payload) {
@@ -589,6 +568,6 @@ export class ActivityService implements IActivityService {
   }
 
   createTaskPayload(payload) {
-    return payload;
+    return payload ? payload : {};
   }
 }

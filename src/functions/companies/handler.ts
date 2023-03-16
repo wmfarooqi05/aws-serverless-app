@@ -12,7 +12,7 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
+import { allowRoleWrapper } from "@libs/middlewares/jwtMiddleware";
 
 export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -69,7 +69,7 @@ export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const deleteCompany: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
+export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
   middy(async (event) => {
     try {
       const { companyId } = event.pathParameters;
@@ -111,7 +111,7 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
     const company = await container
       .resolve(CompanyService)
       .createConcernedPersons(event?.employee, companyId, event.body);
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse({ ...company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -210,31 +210,28 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getCompanies = jwtMiddlewareWrapper(getCompaniesHandler);
+export const getCompanies = allowRoleWrapper(getCompaniesHandler);
 // .use(permissionMiddleware2(["update"], "COMPANY"));
-export const updateCompany = jwtMiddlewareWrapper(updateCompanyHandler);
-export const createCompany = jwtMiddlewareWrapper(createCompanyHandler);
+export const updateCompany = allowRoleWrapper(updateCompanyHandler);
+export const createCompany = allowRoleWrapper(createCompanyHandler);
+export const deleteCompany = allowRoleWrapper(deleteCompanyHandler);
 
-// export const deleteCompany = middy(deleteCompanyHandler).use(
-//   decodeJWTMiddleware()
-// );
-
-export const updateCompanyAssignedEmployee = jwtMiddlewareWrapper(
+export const updateCompanyAssignedEmployee = allowRoleWrapper(
   updateCompanyAssignedEmployeeHandler
 );
 
-export const createConcernedPersons = jwtMiddlewareWrapper(
+export const createConcernedPersons = allowRoleWrapper(
   createConcernedPersonsHandler
 );
 
-export const updateConcernedPerson = jwtMiddlewareWrapper(
+export const updateConcernedPerson = allowRoleWrapper(
   updateConcernedPersonHandler
 );
-export const deleteConcernedPerson = jwtMiddlewareWrapper(
+export const deleteConcernedPerson = allowRoleWrapper(
   deleteConcernedPersonHandler
 );
 
-export const createNotes = jwtMiddlewareWrapper(createNotesHandler);
-export const updateNotes = jwtMiddlewareWrapper(updateNotesHandler);
-export const deleteNotes = jwtMiddlewareWrapper(deleteNotesHandler);
-export const getNotes = jwtMiddlewareWrapper(getNotesHandler);
+export const createNotes = allowRoleWrapper(createNotesHandler);
+export const updateNotes = allowRoleWrapper(updateNotesHandler);
+export const deleteNotes = allowRoleWrapper(deleteNotesHandler);
+export const getNotes = allowRoleWrapper(getNotesHandler);

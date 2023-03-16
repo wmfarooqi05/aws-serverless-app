@@ -1,10 +1,10 @@
 import { DatabaseService } from "@libs/database/database-service-objection";
 import {
-  addJsonbObject,
-  deleteJsonbObject,
+  addJsonbObjectHelper,
+  deleteJsonbObjectHelper,
   findIndexFromJsonbArray,
   transformJSONKeys,
-  updateJsonbObject,
+  updateJsonbObjectHelper,
 } from "src/common/json_helpers";
 // import { CustomError } from "src/helpers/custom-error";
 import {
@@ -40,7 +40,7 @@ export const pendingApprovalKnexHelper = async (
   } else if (actionType === PendingApprovalType.JSON_PUSH) {
     // use helper function to push item to array or add [item]
     const { jsonbItem, key }: APPROVAL_ACTION_JSONB_PAYLOAD = payloadWithJson;
-    const createQuery = addJsonbObject(
+    const createQuery = addJsonbObjectHelper(
       key,
       knexClient,
       JSON.parse(jsonbItem as string)
@@ -56,14 +56,14 @@ export const pendingApprovalKnexHelper = async (
     const index = await findIndexFromJsonbArray(rowId, key, id, knexWTable);
     let finalQuery = {};
     if (actionType === PendingApprovalType.JSON_UPDATE) {
-      finalQuery = updateJsonbObject(
+      finalQuery = updateJsonbObjectHelper(
         key,
         knexClient,
         JSON.parse(jsonbItem as string),
         index
       );
     } else {
-      finalQuery = deleteJsonbObject(key, knexClient, index);
+      finalQuery = deleteJsonbObjectHelper(key, knexClient, index);
     }
     return knexWTable.update(finalQuery).where(whereObj).returning(key);
   }

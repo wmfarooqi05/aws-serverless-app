@@ -135,7 +135,7 @@ export const validateRemarks = async (
   payload: any
 ) => {
   await Joi.object({
-    companyId: Joi.string().guid().required(),
+    companyId: Joi.string().guid(), // @TODO remove in future
     activityId: Joi.string().guid().required(),
     remarksText: Joi.string().required().min(10).max(1500),
     employeeId: Joi.string().guid().required(),
@@ -156,7 +156,7 @@ export const validateUpdateRemarks = async (
   payload: any
 ) => {
   await Joi.object({
-    companyId: Joi.string().guid().required(),
+    companyId: Joi.string().guid(),
     activityId: Joi.string().guid().required(),
     remarksId: Joi.string().guid().required(),
     remarksText: Joi.string().required().min(10).max(1500),

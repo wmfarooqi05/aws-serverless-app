@@ -54,11 +54,11 @@ export async function up(knex: Knex): Promise<void> {
         .onDelete("SET NULL");
       table.string("summary");
       table.jsonb("details").notNullable().defaultTo({});
-      table.jsonb("remarks").notNullable().defaultTo([]);
+      table.jsonb("remarks").notNullable().defaultTo(JSON.stringify([]));
       table
         .enum("activity_type", Object.values(ACTIVITY_TYPE))
         .defaultTo(ACTIVITY_TYPE.TASK);
-      table.jsonb("concerned_person_details");
+      table.jsonb("concerned_person_details").defaultTo(JSON.stringify([]));
       table
         .enum("status", Object.values(ACTIVITY_STATUS))
         .defaultTo(ACTIVITY_STATUS.BACKLOG);

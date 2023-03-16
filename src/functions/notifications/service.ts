@@ -4,7 +4,7 @@ import { inject, injectable } from "tsyringe";
 // import { randomUUID } from "crypto";
 // import momentTz from "moment-timezone";
 import NotificationModel, { INotification } from "@models/Notification";
-import { WebSocketService } from "@functions/websocket/service";
+// import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 
@@ -20,8 +20,8 @@ export interface NotificationEBSchedulerPayload {
 @injectable()
 export class NotificationService implements INotificationService {
   constructor(
-    @inject(WebSocketService)
-    private readonly webSocketService: WebSocketService
+    // @inject(WebSocketService)
+    // private readonly webSocketService: WebSocketService
   ) {}
   // constructor(private scheduler: AWS.Scheduler) {
   //   this.scheduler = new AWS.Scheduler({
@@ -114,7 +114,7 @@ export class NotificationService implements INotificationService {
   /**@TODO remove this */
   async sendWebSocketNotification(data: string) {
     // @TODO add Joi validation
-    this.webSocketService.sendMessage(data);
+    // this.webSocketService.sendMessage(data);
   }
 
   // async ScheduleNotification() {

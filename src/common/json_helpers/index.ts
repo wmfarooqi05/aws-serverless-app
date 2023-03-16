@@ -1,7 +1,11 @@
 import { Knex } from "knex";
 import { CustomError } from "src/helpers/custom-error";
 
-export const addJsonbObject = (key: string, knex: any, item: any) => {
+export const addJsonbObjectHelper = (
+  key: string,
+  knex: any,
+  item: any
+): Object => {
   const keySnakeCase = key
     .split(/(?=[A-Z])/)
     .join("_")
@@ -22,7 +26,7 @@ export const addJsonbObject = (key: string, knex: any, item: any) => {
   };
 };
 
-export const updateJsonbObject = (
+export const updateJsonbObjectHelper = (
   key: string,
   knex: any,
   item: any,
@@ -46,7 +50,11 @@ export const updateJsonbObject = (
   };
 };
 
-export const deleteJsonbObject = (key: string, knex: any, index: number) => {
+export const deleteJsonbObjectHelper = (
+  key: string,
+  knex: any,
+  index: number
+) => {
   const keySnakeCase = key
     .split(/(?=[A-Z])/)
     .join("_")
@@ -80,4 +88,39 @@ export const transformJSONKeys = (payload: any | null) => {
   });
 
   return payload;
+};
+
+export const validateJSONItemAndGetIndex = async (
+  knexClient: Knex,
+  tableName: string,
+  tableRowId: string,
+  jsonColumnName: string,
+  jsonItemId: string,
+  errorRowNotFound = null,
+  errorJSONItemNotFound = null
+): Promise<number> => {
+  const originalRowItem = await knexClient
+    .table(tableName)
+    .where({ id: tableRowId })
+    .first();
+
+  if (!originalRowItem) {
+    throw new CustomError(
+      errorRowNotFound ? errorRowNotFound : `${tableName} not found`,
+      404
+    );
+  }
+  // @TODO add employee checks
+  const index = originalRowItem?.[jsonColumnName]?.findIndex(
+    (x: any) => x.id === jsonItemId
+  );
+  if (index === -1 || index === undefined) {
+    throw new CustomError(
+      errorJSONItemNotFound
+        ? errorJSONItemNotFound
+        : `${jsonColumnName} doesn't exist`,
+      404
+    );
+  }
+  return index;
 };
