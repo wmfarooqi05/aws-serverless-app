@@ -232,6 +232,10 @@ export class CompanyService implements ICompanyService {
       !permission &&
       RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
     ) {
+      const company = await CompanyModel.query().findById(companyId);
+      if (!company) {
+        throw new CustomError("Company not found", 404);
+      }
       // or employee is manager, determine if this manager is allowed to see data
       const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
         key: "concernedPersons",

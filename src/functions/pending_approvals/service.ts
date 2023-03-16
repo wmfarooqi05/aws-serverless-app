@@ -17,7 +17,7 @@ import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
 import { message } from "./strings";
 import { randomUUID } from "crypto";
-import Employee from "@models/Employees";
+import Employee, { IEmployee } from "@models/Employees";
 
 export interface IPendingApprovalService {}
 
@@ -169,12 +169,16 @@ export class PendingApprovalService implements IPendingApprovalService {
       payload,
     };
 
-    const employeeItem = await Employee.query().findById(employeeId);
+    const employeeItem: IEmployee = await Employee.query().findById(employeeId);
+
+    if (!employeeItem.reportingManager) {
+      throw new CustomError("User do not have any reporting manager", 400);
+    }
 
     const item = {
       activityId: `${actionType}_${title.toUpperCase()}_${randomUUID()}`,
       activityName: `${actionType}_${title.toUpperCase()}`,
-      approvers: [employeeItem["reportingManager"]],
+      approvers: [employeeItem.reportingManager],
       createdBy: employeeId,
       onApprovalActionRequired: onApprovalActionRequired,
       status: PendingApprovalsStatus.PENDING,
