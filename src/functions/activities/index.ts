@@ -66,6 +66,19 @@ const getMyActivitiesByDay = {
   ],
 };
 
+const getMyStaleActivityByStatus = {
+  handler: `${handlerPath(__dirname)}/handler.getMyStaleActivityByStatus`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "my-activities-by-status-time",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const getActivityById = {
   handler: `${handlerPath(__dirname)}/handler.getActivityById`,
   events: [
@@ -170,4 +183,6 @@ export {
   getMyActivities,
   getAllActivitiesByCompany,
   getMyActivitiesByDay,
+
+  getMyStaleActivityByStatus,
 };

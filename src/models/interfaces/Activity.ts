@@ -52,6 +52,12 @@ export interface IReminder {
 
 export interface IRepeatReminder {}
 
+export interface IStatusHistory {
+  id: string;
+  status: string;
+  updatedAt: string;
+}
+
 export interface IActivity {
   id?: string;
   summary: string;
@@ -65,6 +71,7 @@ export interface IActivity {
   scheduled: boolean;
 
   status: ACTIVITY_STATUS; // @TODO replace with status
+  statusHistory: IStatusHistory[];
   tags: string[];
   reminders?: IReminder[];
   repeatReminders: IRepeatReminder[];

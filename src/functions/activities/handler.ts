@@ -107,6 +107,20 @@ export const getActivityById: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+const getMyStaleActivityByStatusHandler = async (event) => {
+  try {
+    const activities = await container
+      .resolve(ActivityService)
+      .getMyStaleActivityByStatus(
+        event?.employee,
+        event.queryStringParameters
+      );
+    return formatJSONResponse(activities, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 const createActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
@@ -214,5 +228,9 @@ export const getTopActivities = jwtMWrapper(getTopActivitiesHandler);
 export const getAllActivitiesByCompany = jwtMWrapper(
   getAllActivitiesByCompanyHandler
 );
+export const getMyStaleActivityByStatus = jwtMWrapper(
+  getMyStaleActivityByStatusHandler
+);
+
 export const getMyActivitiesByDay = jwtMWrapper(getMyActivitiesByDayHandler);
 export const updateActivity = jwtMWrapper(updateActivityHandler);

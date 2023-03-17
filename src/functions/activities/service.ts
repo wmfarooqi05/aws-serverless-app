@@ -281,20 +281,25 @@ export class ActivityService implements IActivityService {
       payload.details
     );
 
+    const status = payload.status
+      ? payload.status
+      : ACTIVITY_STATUS.NOT_STARTED;
     // @TODO add validations for detail object
-    const activityObj: IActivity = {
+    const activityObj = {
       summary: payload.summary,
       details,
       companyId: payload.companyId,
       createdBy: createdBy.sub,
-      // concernedPersonDetails: [payload.concernedPersonDetails],
+      concernedPersonDetails: JSON.stringify([payload.concernedPersonDetails]),
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
-      status: payload.status ? payload.status : ACTIVITY_STATUS.NOT_STARTED,
-
-      // tags: payload.tags || JSON.stringify([]),
-      // reminders: payload.reminders || JSON.stringify([]),
-      // repeatReminders: payload.repeatReminders || JSON.stringify([]),
+      status,
+      statusHistory: JSON.stringify([
+        { id: randomUUID(), status, updatedAt: moment().utc().format() },
+      ]),
+      tags: payload.tags || JSON.stringify([]),
+      reminders: payload.reminders || JSON.stringify([]),
+      repeatReminders: payload.repeatReminders || JSON.stringify([]),
       // createdAt: payload.createdAt,
       // updatedAt: payload.createdAt,
 
@@ -449,6 +454,34 @@ export class ActivityService implements IActivityService {
     return index;
   }
 
+  async getMyStaleActivityByStatus(employee: IEmployeeJwt, body: any) {
+    const { status, daysAgo } = body;
+
+    const sevenDaysAgo = moment()
+      .subtract(parseInt(daysAgo), "days")
+      .startOf("day")
+      .utc()
+      .format();
+
+    const result = await ActivityModel.query()
+      .whereNotNull("status_history")
+      .where("createdBy", employee.sub)
+      .where((builder) => {
+        builder
+          .whereRaw(`jsonb_array_length(status_history) > 0`)
+          .whereRaw(`((status_history->>-1)::jsonb)->>'status' = ?`, status)
+          .whereRaw(
+            `(((status_history->>-1)::jsonb)->>'updatedAt')::timestamp < ?`,
+            sevenDaysAgo
+          );
+      })
+      .orderByRaw(
+        "(((status_history->> -1)::jsonb)->>'updatedAt')::timestamp DESC"
+      );
+    return result;
+  }
+
+  // from here, move code to helper function
   private async createRemarksHelper(
     employeeId: string,
     activityId: string,

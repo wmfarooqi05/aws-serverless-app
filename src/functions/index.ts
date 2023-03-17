@@ -11,6 +11,7 @@ import {
   getTopActivities,
   getAllActivitiesByCompany,
   getMyActivitiesByDay,
+  getMyStaleActivityByStatus,
 } from "@functions/activities";
 
 import {
@@ -98,6 +99,7 @@ export default {
   getTopActivities,
   getAllActivitiesByCompany,
   getMyActivitiesByDay,
+  getMyStaleActivityByStatus,
   // ACTIVITY
   // createActivity,
   approvePendingApproval,

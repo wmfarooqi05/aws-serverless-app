@@ -73,6 +73,9 @@ export async function up(knex: Knex): Promise<void> {
       table
         .enum("status_short", Object.values(ACTIVITY_STATUS_SHORT))
         .defaultTo(ACTIVITY_STATUS_SHORT.OPEN);
+
+      table.jsonb("status_history").notNullable().defaultTo(JSON.stringify([]));
+
       table
         .enum("priority", Object.values(ACTIVITY_PRIORITY))
         .defaultTo(ACTIVITY_PRIORITY.NORMAL);

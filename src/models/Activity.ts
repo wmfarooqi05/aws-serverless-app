@@ -29,24 +29,13 @@ export default class ActivityModel extends Model {
         details: { type: "object" },
         companyId: { type: "string" },
         createdBy: { type: "string" },
-        remarks: {
-          type: "array",
-          default: JSON.stringify([]),
-        },
-        concernedPersonDetails: {
-          type: "array",
-          default: JSON.stringify([]),
-        },
-        activityType: {
-          type: "string",
-          default: ACTIVITY_TYPE.EMAIL,
-        },
+        remarks: { type: "array", default: JSON.stringify([]) },
+        concernedPersonDetails: { type: "array", default: JSON.stringify([]) },
+        activityType: { type: "string", default: ACTIVITY_TYPE.EMAIL },
         priority: { type: "string", default: ACTIVITY_PRIORITY.NORMAL },
         status: { type: "string", default: ACTIVITY_STATUS.NOT_STARTED }, // will turn false after scheduled work is done
-        statusShort: {
-          type: "string",
-          default: ACTIVITY_STATUS_SHORT.OPEN,
-        },
+        statusShort: { type: "string", default: ACTIVITY_STATUS_SHORT.OPEN },
+        statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
         reminders: { type: "array", default: JSON.stringify([]) }, // @TODO move to reminders table
         createdAt: { type: "string" },
@@ -86,6 +75,7 @@ export default class ActivityModel extends Model {
       "remarks",
       "concernedPersonDetails",
       "reminders",
+      "statusHistory",
     ];
   }
   // $beforeInsert() {
