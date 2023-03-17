@@ -1,9 +1,7 @@
 import "reflect-metadata";
 
 import {
-  IEmployeeModel,
   IEmployeePaginated,
-  RolesEnum,
 } from "@models/Employees";
 
 import {
@@ -24,6 +22,7 @@ import {
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
 import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
+import { RolesEnum } from "@models/interfaces/Employees";
 
 // export const createEmployee: ValidatedEventAPIGatewayProxyEvent<
 //   IEmployeeModel

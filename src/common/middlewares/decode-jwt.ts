@@ -18,7 +18,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { COMPANIES_TABLE_NAME } from "@models/commons";
 import { formatErrorResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
-import { IRoles, roleKey, RolesArray, RolesEnum } from "@models/Employees";
+import { IRoles, roleKey, RolesArray, RolesEnum } from "@models/interfaces/Employees";
 
 export const decodeJWTMiddleware = () => {
   return {

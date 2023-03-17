@@ -17,7 +17,8 @@ import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
 import { message } from "./strings";
 import { randomUUID } from "crypto";
-import Employee, { IEmployee } from "@models/Employees";
+import Employee from "@models/Employees";
+import { IEmployee } from "@models/interfaces/Employees";
 
 export interface IPendingApprovalService {}
 

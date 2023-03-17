@@ -1,13 +1,15 @@
-import * as Joi from "joi";
+import Joi from "joi";
+import JoiDate from "@joi/date";
 import {
   ACTIVITY_TYPE,
-  ACTIVITY_STATUS_SHORT,
+  ACTIVITY_STATUS,
   IActivity,
   IACTIVITY_DETAILS,
   IPHONE_DETAILS,
   IEMAIL_DETAILS,
   IMEETING_DETAILS,
   ITASK_DETAILS,
+  ACTIVITY_PRIORITY,
 } from "src/models/interfaces/Activity";
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
@@ -27,7 +29,7 @@ export const validateGetActivitiesByCompany = async (
     ),
     // This is get all api, so we will not filter unless status is passed
     status: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_STATUS_SHORT))
+      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
     ),
   })
     .concat(getPaginatedJoiKeys(schemaKeys))
@@ -46,7 +48,7 @@ export const validateGetActivities = async (obj: any) => {
     ),
     // This is get all api, so we will not filter unless status is passed
     status: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_STATUS_SHORT))
+      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
     ),
   })
     .concat(getPaginatedJoiKeys(schemaKeys))
@@ -56,6 +58,7 @@ export const validateGetActivities = async (obj: any) => {
 };
 
 export const validateGetMyActivities = async (createdBy: string, obj: any) => {
+  // const _Joi = Joi.extend(JoiDate);
   await Joi.object({
     createdBy: Joi.string().guid().required(),
     type: Joi.array().items(
@@ -63,12 +66,20 @@ export const validateGetMyActivities = async (createdBy: string, obj: any) => {
     ),
     // This is get all api, so we will not filter unless status is passed
     status: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_STATUS_SHORT))
+      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
     ),
+    dateFrom: Joi.string().isoDate(),
+    dateTo: Joi.string().isoDate(),
+    // dateTo: _Joi.date().format("YYYY-DD-MM"),
   })
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(
-      { ...obj, createdBy },
+      {
+        ...obj,
+        createdBy,
+        status: obj?.status?.split(","),
+        type: obj?.type?.split(","),
+      },
       {
         abortEarly: true,
       }
@@ -90,8 +101,12 @@ export const validateCreateActivity = async (
       name: Joi.string().required(),
       designation: Joi.string().required(),
     }).required(),
+    isScheduled: Joi.boolean(),
     activityType: Joi.string().valid(...Object.values(ACTIVITY_TYPE)),
+    status: Joi.string().valid(...Object.values(ACTIVITY_STATUS)),
+    priority: Joi.string().valid(...Object.values(ACTIVITY_PRIORITY)),
     // @TODO add email type validation
+    dueDate: Joi.string().isoDate(),
     createdAt: Joi.string().isoDate(),
     updatedAt: Joi.string().isoDate(),
   }).validateAsync(
@@ -161,6 +176,7 @@ export const validateUpdateRemarks = async (
     remarksId: Joi.string().guid().required(),
     remarksText: Joi.string().required().min(10).max(1500),
     employeeId: Joi.string().guid().required(),
+    dueDate: Joi.string(),
   }).validateAsync(
     { ...payload, employeeId, activityId, remarksId },
     {

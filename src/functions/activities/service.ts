@@ -12,7 +12,7 @@ import {
   validateUpdateRemarks,
 } from "./schema";
 
-import EmployeeModel, { IEmployee } from "src/models/Employees";
+import EmployeeModel from "src/models/Employees";
 import CompanyModel from "src/models/Company";
 import { randomUUID } from "crypto";
 import ActivityModel, {
@@ -20,7 +20,9 @@ import ActivityModel, {
   IActivityPaginated,
 } from "src/models/Activity";
 import {
+  ACTIVITY_PRIORITY,
   ACTIVITY_STATUS,
+  ACTIVITY_STATUSES,
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_TYPE,
   IActivity,
@@ -35,7 +37,7 @@ import { unionAllResults } from "./queries";
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";
@@ -81,21 +83,42 @@ export class ActivityService implements IActivityService {
     createdBy: string, // jwt payload
     body: any
   ): Promise<IActivityPaginated> {
-    if (body) {
-      await validateGetMyActivities(createdBy, body);
-    }
+    /**
+     * My Tasks
+     * My Open Tasks
+     * My Closed Tasks
+     * My Today's Tasks
+     * My Tomorrow's Tasks
+     * My Overdue Tasks
+     * My Today + Overdue Tasks
+     */
 
-    const { page, pageSize, returningFields, type } = body;
+    await validateGetMyActivities(createdBy, body);
+    const { page, pageSize, returningFields, type, status, dateFrom, dateTo } =
+      body;
     const whereClause: any = { createdBy };
     const sortBy = body.sortBy || "updatedAt";
     const sortAscending = body.sortAscending || "desc";
-    if (type) {
-      whereClause.activityType = type;
-    }
+
     return (
       this.docClient
         .get(this.TableName)
         .where(whereClause)
+        .modify(function (queryBuilder) {
+          if (status) {
+            queryBuilder.whereIn("status", status?.split(","));
+          }
+          if (type) {
+            queryBuilder.whereIn("activityType", type?.split(","));
+          }
+          if (dateFrom && dateTo) {
+            queryBuilder.whereBetween("dueDate", [dateFrom, dateTo]);
+          } else if (dateFrom) {
+            queryBuilder.where("dueDate", ">=", dateFrom);
+          } else if (dateTo) {
+            queryBuilder.where("dueDate", "<=", dateTo);
+          }
+        })
         // .whereIn("employee_id", employeeIds)
         .select(this.sanitizeActivitiesColumnNames(returningFields))
         .orderBy(sortBy, sortAscending ? "asc" : "desc")
@@ -106,21 +129,14 @@ export class ActivityService implements IActivityService {
     );
   }
 
-  async getAllActivities(
-    employeeId: string, // jwt payload
-    body: any
-  ) {
+  async getAllActivities(user: IEmployeeJwt, body: any) {
     await validateGetActivities(body);
 
-    const { page, pageSize, returningFields, type } = body;
-    const whereClause: any = {};
-    const sortBy = body.sortBy || "updatedAt";
-    const sortAscending = body.sortAscending || "desc";
+    const { returningFields, type } = body;
 
-    const paginateClause: any = {
-      perPage: pageSize ? parseInt(pageSize) : 12,
-      currentPage: page ? parseInt(page) : 1,
-    };
+    const paginateClause = this.getPaginateClauseObject(body);
+    const orderByItems = this.getOrderByItems(body);
+    const whereClause: any = {};
 
     if (type) {
       whereClause.activityType = type;
@@ -131,8 +147,29 @@ export class ActivityService implements IActivityService {
       .get(this.TableName)
       .where(whereClause)
       .select(this.sanitizeActivitiesColumnNames(returningFields))
-      .orderBy(sortBy, sortAscending)
+      .orderBy(...orderByItems)
       .paginate(paginateClause);
+  }
+
+  getPaginateClauseObject(body: any) {
+    if (!body) return;
+    const { page, pageSize } = body;
+
+    return {
+      perPage: pageSize ? parseInt(pageSize) : 12,
+      currentPage: page ? parseInt(page) : 1,
+    };
+  }
+
+  getOrderByItems(body: any) {
+    if (!body) return;
+    const { sortBy, sortAscending } = body;
+    const sortKey = sortBy ? sortBy : "updatedAt";
+    let sortOrder = "desc";
+    if (sortAscending === "true") {
+      sortOrder = "asc";
+    }
+    return [sortKey, sortOrder];
   }
 
   // @TODO fix this
@@ -234,54 +271,66 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Employee not found", 400);
     }
 
+    const company = await CompanyModel.query().findById(payload.companyId);
+    if (!company) {
+      throw new CustomError("Company not found", 400);
+    }
+    const details = this.createDetailsPayload(
+      employee,
+      payload.activityType,
+      payload.details
+    );
+
     // @TODO add validations for detail object
     const activityObj: IActivity = {
       summary: payload.summary,
-      details: this.createDetailsPayload(
-        employee,
-        payload.activityType,
-        payload.details
-      ),
+      details,
       companyId: payload.companyId,
       createdBy: createdBy.sub,
-      concernedPersonDetails: payload.concernedPersonDetails,
+      // concernedPersonDetails: [payload.concernedPersonDetails],
       activityType: payload.activityType,
-      status: payload.status || ACTIVITY_STATUS.BACKLOG,
-      tags: payload.tags || JSON.stringify([]),
-      reminders: payload.reminders || JSON.stringify([]),
-      createdAt: payload.createdAt,
-      updatedAt: payload.createdAt,
+      priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
+      status: payload.status ? payload.status : ACTIVITY_STATUS.NOT_STARTED,
+
+      // tags: payload.tags || JSON.stringify([]),
+      // reminders: payload.reminders || JSON.stringify([]),
+      // repeatReminders: payload.repeatReminders || JSON.stringify([]),
+      // createdAt: payload.createdAt,
+      // updatedAt: payload.createdAt,
+
+      scheduled: details.isScheduled ? true : false,
+      dueDate: payload.dueDate,
     };
 
-    if (
-      activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
-      activityObj.activityType === ACTIVITY_TYPE.MEETING
-    ) {
-      try {
-        const resp = await this.runSideGoogleJob(activityObj);
-        activityObj.details.status = resp.status;
-      } catch (e) {
-        activityObj.details.status = 500;
-        if (e.config && e.headers) {
-          activityObj.details.errorStack = formatGoogleErrorBody(e);
-        } else {
-          activityObj.details.errorStack = {
-            message: e.message,
-            stack: e.stack,
-          };
-        }
-      }
-    } else {
-      // AWS EB Scheduler Case
-    }
+    // if (
+    //   activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
+    //   activityObj.activityType === ACTIVITY_TYPE.MEETING
+    // ) {
+    //   try {
+    //     const resp = await this.runSideGoogleJob(activityObj);
+    //     activityObj.details.status = resp.status;
+    //   } catch (e) {
+    //     activityObj.details.status = 500;
+    //     if (e.config && e.headers) {
+    //       activityObj.details.errorStack = formatGoogleErrorBody(e);
+    //     } else {
+    //       activityObj.details.errorStack = {
+    //         message: e.message,
+    //         stack: e.stack,
+    //       };
+    //     }
+    //   }
+    // } else {
+    //   // AWS EB Scheduler Case
+    // }
 
     try {
-      const activity: IActivity = await this.docClient
+      const activity: IActivity[] = await this.docClient
         .get(this.TableName)
         .insert(activityObj)
         .returning("*");
 
-      return activity;
+      return activity[0];
     } catch (e) {
       if (e.name === "ForeignKeyViolationError") {
         // @TODO: check maybe employee doesn't exists

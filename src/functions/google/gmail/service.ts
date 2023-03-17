@@ -2,9 +2,10 @@ import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
 import { google, Auth, gmail_v1 } from "googleapis";
 import { GoogleOAuthService } from "../oauth/service";
-import EmployeeModel, { IEmployee } from "@models/Employees";
+import EmployeeModel from "@models/Employees";
 import { IActivity, IEMAIL_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { IEmployee } from "@models/interfaces/Employees";
 
 @injectable()
 export class GoogleGmailService {

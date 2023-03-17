@@ -10,7 +10,7 @@ export const getPaginatedJoiKeys = (
     pageSize: Joi.number().min(1),
     // @TODO test returning Fields
     returningFields: Joi.array().items(schemaValidString),
-    sortBy: Joi.array().items(schemaValidString),
+    sortBy: schemaValidString,
     sortAscending: Joi.boolean(),
   });
 };

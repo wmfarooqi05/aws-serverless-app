@@ -1,5 +1,5 @@
 import { IConcernedPerson } from "./Company";
-import { IEmployee } from "../Employees";
+import { IEmployee } from "./Employees";
 
 export enum ACTIVITY_TYPE {
   TASK = "TASK",
@@ -15,20 +15,29 @@ export enum ACTIVITY_STATUS_SHORT {
 }
 
 export enum ACTIVITY_STATUS {
-  // OPEN
-  DRAFT = "DRAFT", // if task is closed without saving
-  // Approval by manager, like for meetings, or some serious emails or calls
+  NOT_STARTED = "NOT_STARTED",
   NEED_APPROVAL = "NEED_APPROVAL",
-  BACKLOG = "BACKLOG", // DEFAULT STATUS
-  TODO = "TODO", // Employee marks it, that now he is going to working on it soon
+  WAITING_FOR_SOMEONE_ELSE = "WAITING_FOR_SOMEONE_ELSE",
   IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  DEFERRED = "DEFERRED",
+}
 
-  // SCHEDULED
-  SCHEDULED = "SCHEDULED",
+export const ACTIVITY_STATUSES = [
+  "NOT_STARTED",
+  "NEED_APPROVAL",
+  "WAITING_FOR_SOMEONE_ELSE",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "DEFERRED",
+];
 
-  // COMPLETED
-  DONE = "DONE",
-  CANCELLED = "CANCELLED",
+export enum ACTIVITY_PRIORITY {
+  LOWEST = "LOWEST",
+  LOW = "LOW",
+  NORMAL = "NORMAL",
+  HIGH = "HIGH",
+  HIGHEST = "HIGHEST",
 }
 
 // rename this to Activity
@@ -41,20 +50,27 @@ export interface IReminder {
   // add whole reminder logic here
 }
 
+export interface IRepeatReminder {}
+
 export interface IActivity {
   id?: string;
   summary: string;
   details: IACTIVITY_DETAILS;
   companyId: string;
   createdBy: string;
-  remarks: IRemarks[];
-  concernedPersonDetails: Pick<IConcernedPerson, "id" | "name">;
+  remarks?: IRemarks[];
+  concernedPersonDetails: Pick<IConcernedPerson, "id" | "name">[];
   activityType: ACTIVITY_TYPE;
+  priority: ACTIVITY_PRIORITY;
+  scheduled: boolean;
+
   status: ACTIVITY_STATUS; // @TODO replace with status
   tags: string[];
+  reminders?: IReminder[];
+  repeatReminders: IRepeatReminder[];
+  dueDate: string;
   createdAt: string;
   updatedAt: string;
-  reminders?: IReminder[];
 }
 
 export interface IRemarks {
@@ -116,20 +132,22 @@ export interface IMEETING_DETAILS {
   createVideoLink: boolean;
   reminders?: {
     useDefault?: boolean;
-    overrides?: [{
-      /**
-       * The method used by this reminder. Possible values are:
-       * - "email" - Reminders are sent via email.
-       * - "popup" - Reminders are sent via a UI popup.
-       * Required when adding a reminder.
-       */
-      method: "email" | "popup";
-      /**
-       * Number of minutes before the start of the event when the reminder should trigger. Valid values are between 0 and 40320 (4 weeks in minutes).
-       * Required when adding a reminder.
-       */
-      minutes: number;
-    }];
+    overrides?: [
+      {
+        /**
+         * The method used by this reminder. Possible values are:
+         * - "email" - Reminders are sent via email.
+         * - "popup" - Reminders are sent via a UI popup.
+         * Required when adding a reminder.
+         */
+        method: "email" | "popup";
+        /**
+         * Number of minutes before the start of the event when the reminder should trigger. Valid values are between 0 and 40320 (4 weeks in minutes).
+         * Required when adding a reminder.
+         */
+        minutes: number;
+      }
+    ];
   };
 }
 

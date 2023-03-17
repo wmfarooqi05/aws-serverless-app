@@ -1,5 +1,5 @@
 import { ACTIVITIES_TABLE } from "@models/commons";
-import { ACTIVITY_STATUS_SHORT } from "@models/interfaces/Activity";
+import { ACTIVITY_STATUS, ACTIVITY_STATUS_SHORT } from "@models/interfaces/Activity";
 
 
 export const topNResults = (companyId: string, type: string, limit: number) => `
@@ -12,11 +12,11 @@ export const topNResults = (companyId: string, type: string, limit: number) => `
     FROM
       ${ACTIVITIES_TABLE}
     WHERE
-      company_id = '${companyId}' AND ${ACTIVITIES_TABLE}.status_short = '${type}') row_number_filter
+      company_id = '${companyId}' AND ${ACTIVITIES_TABLE}.status = '${type}') row_number_filter
   WHERE
     ROW_NUMBER <= ${limit}
 `;
 
 export const unionAllResults = (companyId: string, limit: number) => {
-  return Object.values(ACTIVITY_STATUS_SHORT).map(x => topNResults(companyId, x, limit)).join('\nUNION\n')
+  return Object.values(ACTIVITY_STATUS).map(x => topNResults(companyId, x, limit)).join('\nUNION\n')
 }

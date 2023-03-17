@@ -3,7 +3,7 @@ import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
 // import { randomUUID } from "crypto";
 // import momentTz from "moment-timezone";
-import EmployeeModel, { IEmployee } from "@models/Employees";
+import EmployeeModel from "@models/Employees";
 import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";

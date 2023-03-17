@@ -11,6 +11,7 @@ import {
   ACTIVITY_TYPE,
   ACTIVITY_STATUS_DETAILED,
   ACTIVITY_STATUS_SHORT,
+  ACTIVITY_PRIORITY,
 } from "./interfaces/Activity";
 
 @singleton()
@@ -40,7 +41,8 @@ export default class ActivityModel extends Model {
           type: "string",
           default: ACTIVITY_TYPE.EMAIL,
         },
-        status: { type: "string", default: ACTIVITY_STATUS.BACKLOG }, // will turn false after scheduled work is done
+        priority: { type: "string", default: ACTIVITY_PRIORITY.NORMAL },
+        status: { type: "string", default: ACTIVITY_STATUS.NOT_STARTED }, // will turn false after scheduled work is done
         statusShort: {
           type: "string",
           default: ACTIVITY_STATUS_SHORT.OPEN,

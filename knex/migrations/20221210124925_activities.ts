@@ -11,11 +11,11 @@ export enum ACTIVITY_TYPE {
 
 export enum ACTIVITY_STATUS {
   // OPEN
+  NOT_STARTED = "NOT_STARTED",
+
   DRAFT = "DRAFT", // if task is closed without saving
   // Approval by manager, like for meetings, or some serious emails or calls
   NEED_APPROVAL = "NEED_APPROVAL",
-  BACKLOG = "BACKLOG", // DEFAULT STATUS
-  TODO = "TODO", // Employee marks it, that now he is going to working on it soon
   IN_PROGRESS = "IN_PROGRESS",
 
   // SCHEDULED
@@ -30,6 +30,14 @@ export enum ACTIVITY_STATUS_SHORT {
   OPEN = "OPEN",
   CLOSED = "CLOSED",
   SCHEDULED = "SCHEDULED",
+}
+
+export enum ACTIVITY_PRIORITY {
+  LOWEST = "LOWEST",
+  LOW = "LOW",
+  NORMAL = "NORMAL",
+  HIGH = "HIGH",
+  HIGHEST = "HIGHEST",
 }
 const tableName = Tables.activities;
 
@@ -61,12 +69,22 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("concerned_person_details").defaultTo(JSON.stringify([]));
       table
         .enum("status", Object.values(ACTIVITY_STATUS))
-        .defaultTo(ACTIVITY_STATUS.BACKLOG);
+        .defaultTo(ACTIVITY_STATUS.NOT_STARTED);
       table
         .enum("status_short", Object.values(ACTIVITY_STATUS_SHORT))
         .defaultTo(ACTIVITY_STATUS_SHORT.OPEN);
+      table
+        .enum("priority", Object.values(ACTIVITY_PRIORITY))
+        .defaultTo(ACTIVITY_PRIORITY.NORMAL);
+      table.boolean("scheduled").defaultTo(false);
+
       table.jsonb("tags").notNullable().defaultTo([]);
-      table.jsonb("reminders").notNullable().defaultTo([]);
+      table.jsonb("reminders").notNullable().defaultTo(JSON.stringify([]));
+      table
+        .jsonb("repeat_reminders")
+        .notNullable()
+        .defaultTo(JSON.stringify([]));
+      table.timestamp("due_date", { useTz: true });
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

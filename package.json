@@ -14,9 +14,9 @@
     "deploy:dev": "NODE_ENV=dev sls deploy",
     "deploy:stage": "NODE_ENV=stage sls deploy",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "knex:migrate:make": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:make",
-    "knex:migrate:latest": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:latest",
-    "knex:migrate:rollback": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:rollback"
+    "knex:migrate:make": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:make",
+    "knex:migrate:latest": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:latest",
+    "knex:migrate:rollback": "NODE_ENV=local knex --knexfile knex/knex-migrate.ts migrate:rollback"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -29,6 +29,7 @@
     "@aws-sdk/client-s3": "^3.267.0",
     "@aws-sdk/client-scheduler": "^3.267.0",
     "@casl/ability": "^6.3.3",
+    "@joi/date": "^2.1.0",
     "@middy/core": "^4.2.3",
     "@middy/http-json-body-parser": "^4.2.3",
     "@sendgrid/mail": "^7.7.0",

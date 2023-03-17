@@ -4,7 +4,7 @@ import {
   jwtRequired,
 } from "@common/middlewares/decode-jwt";
 import middy from "@middy/core";
-import { RolesEnum } from "@models/Employees";
+import { RolesEnum } from "@models/interfaces/Employees";
 
 const jwtMiddlewareWrapper = (func: any) => {
   return middy(func).use(decodeJWTMiddleware());

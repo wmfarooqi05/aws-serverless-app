@@ -37,7 +37,7 @@ import {
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { RolesEnum } from "@models/Employees";
+import { RolesEnum } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
   COMPANIES_TABLE_NAME,
