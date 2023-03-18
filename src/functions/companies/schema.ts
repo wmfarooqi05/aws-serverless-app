@@ -1,7 +1,12 @@
 import * as Joi from "joi";
-import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "@models/interfaces/Company";
+import {
+  COMPANY_STAGES,
+  PRIORITY,
+  TASK_STATUS,
+} from "@models/interfaces/Company";
 import { getPaginatedJoiKeys } from "src/common/schema";
 import CompanyModel from "@models/Company";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 
 const schemaKeys = Object.keys(CompanyModel.jsonSchema.properties);
 
@@ -18,14 +23,8 @@ const AddressJoi = Joi.array().items(
 );
 
 export const validateGetCompanies = async (obj: any) => {
-  await Joi.object({
-    // @TODO replace with paginated schema
-    page: Joi.number().min(0),
-    pageSize: Joi.number().min(0),
-    returningFields: Joi.string(),
-  }).validateAsync(obj, {
+  await getPaginatedJoiKeys(schemaKeys).validateAsync(obj, {
     abortEarly: true,
-    
   });
 };
 
@@ -46,10 +45,10 @@ export const validateCreateCompany = async (obj: any) => {
     ),
     priority: Joi.string().valid(...Object.values(PRIORITY)),
     taskStatus: Joi.string().valid(...Object.values(TASK_STATUS)),
-    stage: Joi.string().valid(...Object.values(COMPANY_STAGES))
+    stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
   }).validateAsync(obj, {
     abortEarly: true,
-     // @TODO cleanup api update
+    // @TODO cleanup api update
   });
 };
 
@@ -65,7 +64,6 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
     { ...obj, id },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -84,7 +82,6 @@ export const validateUpdateCompanyAssignedEmployee = async (
     { ...payload, assignedBy, companyId },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -107,7 +104,6 @@ export const validateCreateConcernedPerson = async (
       { ...payload, companyId, employeeId },
       {
         abortEarly: true,
-        
       }
     );
 };
@@ -130,13 +126,15 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, companyId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      
     }
   );
 };
 
 // Notes
-export const validateGetNotes = async (employeeId: string, companyId: string) => {
+export const validateGetNotes = async (
+  employeeId: string,
+  companyId: string
+) => {
   await Joi.object({
     employeeId: Joi.string().guid().required(),
     companyId: Joi.string().guid().required(),
@@ -144,11 +142,14 @@ export const validateGetNotes = async (employeeId: string, companyId: string) =>
     { companyId, employeeId },
     {
       abortEarly: true,
-      
     }
   );
 };
-export const validateAddNotes = async (addedBy: string, companyId: string, payload: any) => {
+export const validateAddNotes = async (
+  addedBy: string,
+  companyId: string,
+  payload: any
+) => {
   await Joi.object({
     addedBy: Joi.string().guid().required(),
     companyId: Joi.string().guid().required(),
@@ -157,7 +158,6 @@ export const validateAddNotes = async (addedBy: string, companyId: string, paylo
     { ...payload, companyId, addedBy },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -174,10 +174,9 @@ export const validateUpdateNotes = async (
     notesId: Joi.string().guid().required(),
     notesText: Joi.string().required(),
   }).validateAsync(
-    { ...body, companyId, addedBy, notesId, },
+    { ...body, companyId, addedBy, notesId },
     {
       abortEarly: true,
-      
     }
   );
 };

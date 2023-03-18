@@ -5,7 +5,12 @@ import { inject, injectable } from "tsyringe";
 // import momentTz from "moment-timezone";
 import EmployeeModel from "@models/Employees";
 import { WebSocketService } from "@functions/websocket/service";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  roleKey,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 import { validateGetEmployees } from "./schema";
 import { DatabaseService } from "@libs/database/database-service-objection";
@@ -59,5 +64,27 @@ export class EmployeeService implements IEmployeeService {
     }
   }
 
+  async validateRequestByEmployeeRole(
+    employeeJwt: IEmployeeJwt,
+    requestedUserId
+  ) {
+    if (employeeJwt.sub === requestedUserId || requestedUserId === "me") return;
+
+    const employeeRole: IEmployee = await EmployeeModel.query()
+      .findById(requestedUserId)
+      .returning(["role"]);
+
+    if (
+      !(
+        RolesEnum[employeeJwt[roleKey][0]] >= RolesEnum.ADMIN_GROUP ||
+        RolesEnum[employeeJwt[roleKey][0]] > RolesEnum[employeeRole.role]
+      )
+    ) {
+      throw new CustomError(
+        "You are not authorized to see this role's data",
+        400
+      );
+    }
+  }
   // async;
 }

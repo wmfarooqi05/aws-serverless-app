@@ -31,6 +31,11 @@ export default class AppAuditLogsModel extends Model {
     return APP_AUDIT_LOGS_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

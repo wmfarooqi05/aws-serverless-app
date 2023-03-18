@@ -46,6 +46,11 @@ import {
   deleteJsonbObjectHelper,
   validateJSONItemAndGetIndex,
 } from "@common/json_helpers";
+import {
+  getOrderByItems,
+  getPaginateClauseObject,
+  sanitizeColumnNames,
+} from "@common/query";
 
 // @TODO fix this
 export interface IActivityService {
@@ -120,7 +125,7 @@ export class ActivityService implements IActivityService {
           }
         })
         // .whereIn("employee_id", employeeIds)
-        .select(this.sanitizeActivitiesColumnNames(returningFields))
+        .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
         .orderBy(sortBy, sortAscending ? "asc" : "desc")
         .paginate({
           perPage: pageSize ? parseInt(pageSize) : 12,
@@ -134,8 +139,8 @@ export class ActivityService implements IActivityService {
 
     const { returningFields, type } = body;
 
-    const paginateClause = this.getPaginateClauseObject(body);
-    const orderByItems = this.getOrderByItems(body);
+    const paginateClause = getPaginateClauseObject(body);
+    const orderByItems = getOrderByItems(body);
     const whereClause: any = {};
 
     if (type) {
@@ -146,30 +151,9 @@ export class ActivityService implements IActivityService {
     return this.docClient
       .get(this.TableName)
       .where(whereClause)
-      .select(this.sanitizeActivitiesColumnNames(returningFields))
+      .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
       .orderBy(...orderByItems)
       .paginate(paginateClause);
-  }
-
-  getPaginateClauseObject(body: any) {
-    if (!body) return;
-    const { page, pageSize } = body;
-
-    return {
-      perPage: pageSize ? parseInt(pageSize) : 12,
-      currentPage: page ? parseInt(page) : 1,
-    };
-  }
-
-  getOrderByItems(body: any) {
-    if (!body) return;
-    const { sortBy, sortAscending } = body;
-    const sortKey = sortBy ? sortBy : "updatedAt";
-    let sortOrder = "desc";
-    if (sortAscending === "true") {
-      sortOrder = "asc";
-    }
-    return [sortKey, sortOrder];
   }
 
   // @TODO fix this
@@ -198,7 +182,7 @@ export class ActivityService implements IActivityService {
     return this.docClient
       .get(this.TableName)
       .where(whereClause)
-      .select(this.sanitizeActivitiesColumnNames(returningFields))
+      .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
       .orderBy(sortBy, sortAscending)
       .paginate(paginateClause);
   }
@@ -513,19 +497,6 @@ export class ActivityService implements IActivityService {
       updatedAt: moment().utc().format(),
     } as IRemarks;
   }
-  sanitizeActivitiesColumnNames(fields: string): string | string[] {
-    if (!fields) return "*";
-    const columnNames = Object.keys(ActivityModel.jsonSchema.properties);
-    const returningFields = fields
-      .split(",")
-      .filter((x) => columnNames.includes(x));
-
-    if (returningFields.length === 0) {
-      return "*";
-    }
-    return returningFields;
-  }
-
   // @TODO re-write with help of jwt payload,
   // manager will be there and also role
   // if role is above manager, he can see,

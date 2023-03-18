@@ -21,6 +21,11 @@ export default class AuthTokenModel extends Model {
     return AUTH_TOKEN_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

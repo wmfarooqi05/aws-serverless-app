@@ -16,6 +16,10 @@ export default class GroupModel extends Model {
     return ACCESS_CONTROL_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
   static get jsonSchema() {
     return {
       type: "object",

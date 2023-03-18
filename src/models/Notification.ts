@@ -36,6 +36,11 @@ export default class NotificationModel extends Model {
     return NOTIFICATIONS_TABLE_NAME;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

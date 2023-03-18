@@ -33,6 +33,38 @@ const getCompanies = {
   ],
 };
 
+// const getMyCompanies = {
+//   handler: `${handlerPath(__dirname)}/handler.getMyCompanies`,
+//   events: [
+//     {
+//       http: {
+//         method: "get",
+//         path: "companies/me",
+//         cors: true,
+//         // authorizer: {
+//         //   type: "COGNITO_EMPLOYEE_POOLS",
+//         //   authorizerId: {
+//         //     Ref: "ApiGatewayAuthorizer"
+//         //   }
+//         // },
+//       },
+//     },
+//   ],
+// };
+
+const getCompaniesByEmployeeId = {
+  handler: `${handlerPath(__dirname)}/handler.getCompaniesByEmployeeId`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "companies/employee/{employeeId}",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const getCompanyById = {
   handler: `${handlerPath(__dirname)}/handler.getCompanyById`,
   events: [
@@ -180,8 +212,10 @@ const deleteNotes = {
 
 export {
   getCompanies,
+  getMyCompanies,
   createCompany,
   getCompanyById,
+  getCompaniesByEmployeeId,
   updateCompany,
   deleteCompany,
   updateCompanyAssignedEmployee,

@@ -9,6 +9,11 @@ export default class EmployeeModel extends Model {
     return EMPLOYEES_TABLE_NAME;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

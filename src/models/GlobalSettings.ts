@@ -15,6 +15,11 @@ export default class GlobalSettingsModel extends Model {
     return GLOBAL_SETTINGS_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

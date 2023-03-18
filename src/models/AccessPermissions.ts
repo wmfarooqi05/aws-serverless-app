@@ -17,6 +17,11 @@ export default class AccessPermissions extends Model {
     return ACCESS_PERMISSIONS_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

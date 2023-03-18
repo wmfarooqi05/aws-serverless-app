@@ -36,7 +36,7 @@ import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt, roleKey } from "@models/interfaces/Employees";
 import { RolesEnum } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
@@ -44,6 +44,13 @@ import {
   getGlobalPermission,
   ModuleTitles,
 } from "@models/commons";
+import {
+  getOrderByItems,
+  getPaginateClauseObject,
+  sanitizeColumnNames,
+} from "@common/query";
+import EmployeeModel from "@models/Employees";
+import { EmployeeService } from "@functions/employees/service";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -62,22 +69,51 @@ export class CompanyService implements ICompanyService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(PendingApprovalService)
-    private readonly pendingApprovalService: PendingApprovalService
+    private readonly pendingApprovalService: PendingApprovalService,
+    @inject(EmployeeService) private readonly employeeService: EmployeeService
   ) {}
 
   async getAllCompanies(body: any): Promise<ICompanyPaginated> {
-    if (body) {
-      await validateGetCompanies(body);
-    }
-    const { page, pageSize, returningFields } = body;
+    await validateGetCompanies(body);
+    const { returningFields } = body;
+
     return this.docClient
       .getKnexClient()(CompanyModel.tableName)
-      .select(this.sanitizeCompaniesColumnNames(returningFields))
-      .orderBy("createdAt")
-      .paginate({
-        perPage: pageSize ? parseInt(pageSize) : 12,
-        currentPage: page ? parseInt(page) : 1,
-      });
+      .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+      .orderBy(...getOrderByItems(body))
+      .paginate(getPaginateClauseObject(body));
+  }
+
+  // async getMyCompanies(
+  //   employee: IEmployeeJwt,
+  //   body: any
+  // ): Promise<ICompanyPaginated> {
+  //   await validateGetCompanies(body);
+  //   const { returningFields } = body;
+
+  //   return this.docClient
+  //     .getKnexClient()(CompanyModel.tableName)
+  //     .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+  //     .where({ assignedTo: employee.sub })
+  //     .orderBy(...getOrderByItems(body))
+  //     .paginate(getPaginateClauseObject(body));
+  // }
+
+  async getCompaniesByEmployeeId(
+    user: IEmployeeJwt,
+    employeeId: string,
+    body: any
+  ): Promise<ICompanyPaginated> {
+    await validateGetCompanies(body);
+    const { returningFields } = body;
+    await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
+
+    return this.docClient
+      .getKnexClient()(CompanyModel.tableName)
+      .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+      .where({ assignedTo: employeeId === "me" ? user.sub : employeeId })
+      .orderBy(...getOrderByItems(body))
+      .paginate(getPaginateClauseObject(body));
   }
 
   async getCompany(id: string): Promise<ICompanyModel> {
@@ -458,20 +494,6 @@ export class CompanyService implements ICompanyService {
     return CompanyModel.query().patchAndFetchById(companyId, {
       notes: ActivityModel.raw(`notes - ${index}`),
     });
-  }
-
-  // Helper
-  sanitizeCompaniesColumnNames(fields: string): string | string[] {
-    if (!fields) return "*";
-    const columnNames = Object.keys(CompanyModel.jsonSchema.properties);
-    const returningFields = fields
-      .split(",")
-      .filter((x) => columnNames.includes(x));
-
-    if (returningFields.length === 0) {
-      return "*";
-    }
-    return returningFields;
   }
 
   permissionResolver() {

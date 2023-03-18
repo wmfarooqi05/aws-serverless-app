@@ -13,6 +13,10 @@ export default class CompanyModel extends Model {
     return COMPANIES_TABLE_NAME;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
   static get jsonSchema() {
     return {
       type: "object",

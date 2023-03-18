@@ -20,7 +20,10 @@ export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const newCompany = await container
       .resolve(CompanyService)
-      .createCompany(event.employee?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", event.body);
+      .createCompany(
+        event.employee?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
+        event.body
+      );
     return formatJSONResponse(newCompany, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -34,6 +37,33 @@ const getCompaniesHandler: ValidatedEventAPIGatewayProxyEvent<
     const companies = await container
       .resolve(CompanyService)
       .getAllCompanies(event.queryStringParameters || {});
+    return formatJSONResponse(companies, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+// const getMyCompaniesHandler = async (event) => {
+//   try {
+//     const companies = await container
+//       .resolve(CompanyService)
+//       .getMyCompanies(event.employee, event.queryStringParameters || {});
+//     return formatJSONResponse(companies, 200);
+//   } catch (e) {
+//     return formatErrorResponse(e);
+//   }
+// };
+
+const getCompaniesByEmployeeIdHandler = async (event) => {
+  try {
+    const { employeeId } = event.pathParameters;
+    const companies = await container
+      .resolve(CompanyService)
+      .getCompaniesByEmployeeId(
+        event.employee,
+        employeeId,
+        event.queryStringParameters || {}
+      );
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -95,7 +125,11 @@ const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .updateCompanyAssignedEmployee(companyId, event?.employee?.sub, event.body);
+      .updateCompanyAssignedEmployee(
+        companyId,
+        event?.employee?.sub,
+        event.body
+      );
 
     return formatJSONResponse({ company }, 200);
   } catch (e) {
@@ -212,6 +246,10 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 
 export const getCompanies = allowRoleWrapper(getCompaniesHandler);
 // .use(permissionMiddleware2(["update"], "COMPANY"));
+// export const getMyCompanies = allowRoleWrapper(getMyCompaniesHandler);
+export const getCompaniesByEmployeeId = allowRoleWrapper(
+  getCompaniesByEmployeeIdHandler
+);
 export const updateCompany = allowRoleWrapper(updateCompanyHandler);
 export const createCompany = allowRoleWrapper(createCompanyHandler);
 export const deleteCompany = allowRoleWrapper(deleteCompanyHandler);

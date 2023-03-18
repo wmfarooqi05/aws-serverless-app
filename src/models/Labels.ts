@@ -18,6 +18,11 @@ export default class LabelModel extends Model {
     return LABELS_TABLE;
   }
 
+  static get columnNames(): string[] {
+    return Object.keys(this.jsonSchema.properties);
+  }
+
+
   static get jsonSchema() {
     return {
       type: "object",

@@ -24,7 +24,7 @@ export class ActivityWorkflowService implements IActivityWorkflowService {
 
   }
 
-  sanitizeActivitiesColumnNames(fields: string): string | string[] {
+  sanitizeColumnNames(fields: string): string | string[] {
     if (!fields) return "*";
     const columnNames = Object.keys(ActivityModel.jsonSchema.properties);
     const returningFields = fields
