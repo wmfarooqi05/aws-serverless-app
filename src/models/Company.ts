@@ -2,10 +2,18 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { COMPANIES_TABLE_NAME, EMPLOYEES_TABLE_NAME } from "./commons";
-import { COMPANY_STAGES, PRIORITY, TASK_STATUS } from "./interfaces/Company";
+import {
+  COMPANY_STAGES,
+  COMPANY_PRIORITY,
+  COMPANY_STATUS,
+} from "./interfaces/Company";
 import Employee from "./Employees";
 
 // @TODO export them somewhere else
+export const defaultCompanyDetails = {
+  priority: COMPANY_PRIORITY.NO_PRIORITY,
+  status: COMPANY_STATUS.NONE,
+};
 
 @singleton()
 export default class CompanyModel extends Model {
@@ -38,8 +46,10 @@ export default class CompanyModel extends Model {
           items: { type: "object" },
           default: [],
         },
-        priority: { type: "string", default: PRIORITY.NO_PRIORITY },
-        taskStatus: { type: "string", default: TASK_STATUS.ICEBOX },
+        details: {
+          type: "object",
+          default: defaultCompanyDetails,
+        },
         stage: { type: "string", default: COMPANY_STAGES.LEAD },
         tags: { type: "string" }, // comma separated strings
         // @TODO typecasting issues
@@ -75,7 +85,13 @@ export default class CompanyModel extends Model {
   });
 
   static get jsonAttributes() {
-    return ["concernedPersons", "activities", "assignmentHistory", "addresses", "notes"];
+    return [
+      "concernedPersons",
+      "activities",
+      "assignmentHistory",
+      "addresses",
+      "notes",
+    ];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();

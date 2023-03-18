@@ -1,8 +1,8 @@
 import * as Joi from "joi";
 import {
   COMPANY_STAGES,
-  PRIORITY,
-  TASK_STATUS,
+  COMPANY_PRIORITY,
+  COMPANY_STATUS,
 } from "@models/interfaces/Company";
 import { getPaginatedJoiKeys } from "src/common/schema";
 import CompanyModel from "@models/Company";
@@ -23,9 +23,29 @@ const AddressJoi = Joi.array().items(
 );
 
 export const validateGetCompanies = async (obj: any) => {
-  await getPaginatedJoiKeys(schemaKeys).validateAsync(obj, {
-    abortEarly: true,
-  });
+  await Joi.object({
+    priority: Joi.array().items(
+      Joi.string().valid(...Object.values(COMPANY_PRIORITY))
+    ),
+    status: Joi.array().items(
+      Joi.string().valid(...Object.values(COMPANY_STATUS))
+    ),
+    stage: Joi.array().items(
+      Joi.string().valid(...Object.values(COMPANY_STAGES))
+    ),
+  })
+    .concat(getPaginatedJoiKeys(schemaKeys))
+    .validateAsync(
+      {
+        ...obj,
+        priority: obj?.priority?.split(","),
+        status: obj?.status?.split(","),
+        stage: obj?.stage?.split(","),
+      },
+      {
+        abortEarly: true,
+      }
+    );
 };
 
 export const validateCreateCompany = async (obj: any) => {
@@ -43,8 +63,8 @@ export const validateCreateCompany = async (obj: any) => {
         })
         .or("emails", "phoneNumbers")
     ),
-    priority: Joi.string().valid(...Object.values(PRIORITY)),
-    taskStatus: Joi.string().valid(...Object.values(TASK_STATUS)),
+    priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
+    status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
     stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
   }).validateAsync(obj, {
     abortEarly: true,
@@ -57,8 +77,8 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
     id: Joi.string().guid(),
     companyName: Joi.string(),
     addresses: AddressJoi,
-    priority: Joi.string().valid(...Object.values(PRIORITY)),
-    taskStatus: Joi.string().valid(...Object.values(TASK_STATUS)),
+    priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
+    status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
     stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
   }).validateAsync(
     { ...obj, id },

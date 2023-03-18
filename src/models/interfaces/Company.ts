@@ -38,41 +38,39 @@ export interface IAddress {
 export interface ICompany {
   id?: string;
   companyName: string;
-  addresses?: IAddress[];
+  createdBy?: string;
   concernedPersons?: IConcernedPerson[];
+  addresses?: IAddress[];
   assignedTo?: string;
   assignedBy?: string;
   assignmentHistory?: JSON;
+  priority: COMPANY_PRIORITY;
+  taskStatus: COMPANY_STATUS;
+  stage: COMPANY_STAGES;
   updatedAt?: string;
   notes?: INotes[];
-  createdBy?: string;
 }
 
 export enum COMPANY_STAGES {
   LEAD = "LEAD",
-  PROSPECT = "PROSPECT",
-  OPPORTUNITY = "OPPORTUNITY", // maybe contact or client
+  CONTACT = "CONTACT", // maybe contact or client
 }
 
-export enum TASK_STATUS {
-  ICEBOX = "ICEBOX",
-  BACK_LOG = "BACK_LOG",
-  TO_DO = "TO_DO",
-  DELAYED_BY_CLIENT = "DELAYED_BY_CLIENT",
-  DELAYED_BY_MANAGER = "DELAYED_BY_MANAGER",
-  IN_PROGRESS = "IN_PROGRESS",
-  IN_REVIEW = "IN_REVIEW",
-  BLOCKED = "BLOCKED",
-  WONT_DO = "WONT_DO",
-  NOT_VALID = "NOT_VALID", // @TODO improve
-  DONE = "DONE",
+export enum COMPANY_STATUS {
+  NONE = "NONE",
+  ATTEMPTED_TO_CONTACT = "ATTEMPTED_TO_CONTACT",
+  CONTACT_IN_FUTURE = "CONTACT_IN_FUTURE",
+  CONTACTED = "CONTACTED",
+  JUNK_LEAD = "JUNK_LEAD",
+  LOST_LEAD = "LOST_LEAD",
+  NOT_CONTACTED = "NOT_CONTACTED",
 }
 
-// @TODO v2: Move this to a separate table
-export enum PRIORITY {
+export enum COMPANY_PRIORITY {
   NO_PRIORITY = "NO_PRIORITY",
+  LOWEST = "LOWEST",
   LOW = "LOW",
-  MEDIUM = "MEDIUM",
+  NORMAL = "NORMAL",
   HIGH = "HIGH",
-  CRUCIAL = "CRUCIAL",
+  HIGHEST = "HIGHEST",
 }

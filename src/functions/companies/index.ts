@@ -212,7 +212,7 @@ const deleteNotes = {
 
 export {
   getCompanies,
-  getMyCompanies,
+  // getMyCompanies,
   createCompany,
   getCompanyById,
   getCompaniesByEmployeeId,

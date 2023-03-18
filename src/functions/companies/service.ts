@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import CompanyModel, {
+  defaultCompanyDetails,
   ICompanyModel,
   ICompanyPaginated,
 } from "@models/Company";
@@ -7,6 +8,7 @@ import {
   IAssignmentHistory,
   IConcernedPerson,
   ICompany,
+  COMPANY_STAGES,
 } from "@models/interfaces/Company";
 import { DatabaseService } from "../../libs/database/database-service-objection";
 import moment from "moment-timezone";
@@ -75,11 +77,15 @@ export class CompanyService implements ICompanyService {
 
   async getAllCompanies(body: any): Promise<ICompanyPaginated> {
     await validateGetCompanies(body);
-    const { returningFields } = body;
+    const { priority, status, stage, returningFields } = body;
+
+    const whereClause: any = {};
+    if (stage) whereClause.stage = stage;
 
     return this.docClient
       .getKnexClient()(CompanyModel.tableName)
       .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+      .where(whereClause)
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
   }
@@ -104,14 +110,33 @@ export class CompanyService implements ICompanyService {
     employeeId: string,
     body: any
   ): Promise<ICompanyPaginated> {
-    await validateGetCompanies(body);
-    const { returningFields } = body;
-    await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
+    // await validateGetCompanies(body);
+    // await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
+    const { priority, status, stage, returningFields } = body;
+
+    const whereClause: any = {
+      assignedTo: employeeId === "me" ? user.sub : employeeId,
+    };
+    if (stage) whereClause.stage = stage;
+
+    const _status = status
+      ?.split(",")
+      .map((x) => `'${x}'`)
+      .join(",");
 
     return this.docClient
       .getKnexClient()(CompanyModel.tableName)
       .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
-      .where({ assignedTo: employeeId === "me" ? user.sub : employeeId })
+      .where(whereClause)
+      .where((builder) => {
+        if (status) {
+          builder.whereRaw(`details->>'status' IN (${_status})`);
+          // builder.whereRaw(`details->>'status' IN (\'ATTEMPTED_TO_CONTACT\',\'NONE\')`);
+        }
+        if (priority) {
+          builder.whereRaw(`details->>'priority' = ?`, priority);
+        }
+      })
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
   }
@@ -132,6 +157,14 @@ export class CompanyService implements ICompanyService {
     const payload = JSON.parse(body);
     payload.createdBy = employeeId;
     await validateCreateCompany(payload);
+    if (payload.stage === COMPANY_STAGES.LEAD) {
+      payload.details = JSON.stringify({
+        status: payload?.status ?? defaultCompanyDetails.status,
+        priority: payload?.priority ?? defaultCompanyDetails.priority,
+      });
+      delete payload.status;
+      delete payload.priority;
+    }
 
     const timeNow = moment().utc().format();
     payload.concernedPersons = payload.concernedPersons?.map((x: any) => {
