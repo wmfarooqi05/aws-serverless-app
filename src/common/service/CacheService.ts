@@ -25,7 +25,7 @@ export class CacheService implements ICacheService {
     @inject(ElasticCacheService)
     private readonly elasticCache: ElasticCacheService
   ) {
-    this.initiateConnection();
+    // this.initiateConnection();
   }
 
   async initiateConnection() {
@@ -77,6 +77,14 @@ export class CacheService implements ICacheService {
         this.partitionKeyName,
         employeeId
       );
+    }
+  }
+
+  async getAllItems() {
+    if (this.useElasticCache) {
+      return this.elasticCache.getAllValues();
+    } else {
+      return this.dynamoService.scanTable(this.tableName);
     }
   }
 }

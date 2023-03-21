@@ -1,12 +1,7 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import {
-  decodeJWTMiddleware,
-  decodeJWTMiddlewareWebsocket,
-} from "@common/middlewares/decode-jwt";
-import middy from "@middy/core";
-import jwtMWrapper from "@libs/middlewares/jwtMiddleware";
+import { jwtMRequiredWrapper } from "@libs/middlewares/jwtMiddleware";
 
 const colors = [
   "\x1b[36m%s\x1b[0m",
@@ -43,7 +38,6 @@ export const _webSocketHandler = async (event) => {
 };
 
 export const sendMessage = async (event) => {
-  console.log("EVENT: \n" + JSON.stringify(event, null, 2));
   const { body } = event;
 
   try {
@@ -66,9 +60,7 @@ export async function _getAllConnections() {
     return formatErrorResponse(e);
   }
 }
-export const webSocketHandler = middy(_webSocketHandler).use(
-  decodeJWTMiddlewareWebsocket()
-);
+export const webSocketHandler =  jwtMRequiredWrapper(_webSocketHandler);
 
 // export const webSocketHandler = jwtMWrapper(_webSocketHandler);
 export const broadcastMessage = sendMessage;

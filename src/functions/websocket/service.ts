@@ -55,10 +55,7 @@ export class WebSocketService implements IWebSocketService {
       switch (routeKey) {
         case "$connect":
           console.log("connected, $connect: ", connectionId);
-          await this.cacheService.storeKey(
-            employeeId,
-            JSON.stringify({ connectionId })
-          );
+          await this.cacheService.storeKey(employeeId, connectionId);
           item = await this.cacheService.getItem(employeeId);
           console.log("item", item);
           break;
@@ -117,24 +114,23 @@ export class WebSocketService implements IWebSocketService {
   }
 
   async getAllConnections() {
-    return { message: "not implemented" };
-    // try {
-    //   return this.dynamoService.scanTable(this.tableName);
-    // } catch (e) {
-    //   throw new CustomError(e.message, e.statusCode, e);
-    // }
+    try {
+      return this.cacheService.getAllItems();
+    } catch (e) {
+      throw new CustomError(e.message, e.statusCode, e);
+    }
   }
 
   async sendSimpleMessage(connectionId, payload) {
     console.log("[Websocket] sendSimpleMessage", connectionId, payload);
-    const resEncodedMessage = new TextEncoder().encode(
-      JSON.stringify({
-        ...payload,
-        connectionId,
-        message: "new message",
-        type: "inbox",
-      })
-    );
+    const encodingPayload = JSON.stringify({
+      ...payload,
+      connectionId,
+      message: "new message",
+      type: "inbox",
+    });
+
+    const resEncodedMessage = new TextEncoder().encode(encodingPayload);
 
     const requestParams: PostToConnectionCommandInput = {
       ConnectionId: connectionId,
@@ -144,7 +140,15 @@ export class WebSocketService implements IWebSocketService {
     const command = new PostToConnectionCommand(requestParams);
 
     try {
+      if (process.env.STAGE === "local") {
+        return {
+          messsage: "[websocket] local connection",
+          connectionId,
+          encodingPayload: JSON.parse(encodingPayload),
+        };
+      }
       console.log("command", command);
+      // @TODO move this client to global scope
       const apiGateway = new ApiGatewayManagementApiClient(config);
       console.log("config", apiGateway.config);
       const resp = await apiGateway.send(command);

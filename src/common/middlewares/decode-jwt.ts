@@ -99,6 +99,7 @@ export const jwtRequired = () => {
       const role = event?.employee?.[roleKey][0] || "";
       const roleFound = RolesArray.find((x) => x === role) ? true : false;
       if (!(roleFound && event?.employee?.sub)) {
+        console.log("Auth Token missing or invalid");
         return formatErrorResponse({
           message: "Auth Token missing or invalid",
           statusCode: 403,

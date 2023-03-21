@@ -12,6 +12,7 @@ export interface IElasticCacheService extends ICache {}
 @injectable()
 export class ElasticCacheService implements IElasticCacheService {
   client: redis.RedisClientType;
+  // connecting = false;
   // isReady: boolean;
   constructor() {}
 
@@ -66,16 +67,21 @@ export class ElasticCacheService implements IElasticCacheService {
   }
 
   async getValueFromRedis(key: string) {
-    console.log('[ElasticCacheService]: getValueFromRedis', key);
+    console.log("[ElasticCacheService]: getValueFromRedis", key);
     await this.initializeClient();
-    console.log('[ElasticCacheService]: getValueFromRedis, client initialized');
+    console.log("[ElasticCacheService]: getValueFromRedis, client initialized");
     return this.client.get(key);
   }
 
   /** @TODO @WARNING @DEV */
   async getAllValues() {
     await this.initializeClient();
-    return this.client.keys('*');
+    const keys = await this.client.keys("*");
+    const allVals = [];
+    for (let i = 0; i < keys.length; i++) {
+      const item = await this.client.get(keys[i]);
+      allVals.push({ [keys[i]]: JSON.parse(item) });
+    }
     // const values = await this.client.hGetAll(keys);
     // return values;
     // const keys = await this.client.keys(['*']);
@@ -85,6 +91,6 @@ export class ElasticCacheService implements IElasticCacheService {
     //     _x: values[index],
     //   };
     // });
-    // return vals;
+    return allVals;
   }
 }

@@ -146,13 +146,8 @@ const serverlessConfiguration: AWS = {
       platform: "node",
       concurrency: 10,
     },
-    "serverless-offline": {
-      resourceRoutes: true,
-      allowCache: true,
-      useChildProcesses: true,
-    },
     serverlessOffline: {
-      resourceRoutes: true,
+      resourceRoutes: false,
       allowCache: true,
       useChildProcesses: true,
     },
