@@ -43,7 +43,6 @@ const createMeetingHandler = async (event, _context) => {
       .createMeeting(event.employee?.sub, calendarId, event.body);
     return formatGoogleJSONResponse(meeting, 201);
   } catch (e) {
-    console.log("error", e);
     return formatGoogleErrorResponse(e);
   }
 };

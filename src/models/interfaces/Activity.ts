@@ -78,6 +78,7 @@ export interface IActivity {
   dueDate: string;
   createdAt: string;
   updatedAt: string;
+  jobData: JSON;
 }
 
 export interface IRemarks {
@@ -117,7 +118,7 @@ export interface IEMAIL_DETAILS {
   messageId: string;
   body: string;
   status?: string;
-  isScheduled: boolean;
+  isDraft: boolean;
   // attachment: string;
 }
 

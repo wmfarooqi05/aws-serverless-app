@@ -9,8 +9,8 @@ import AuthTokenModel, { IAuthToken } from "@models/AuthToken";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 const SCOPE_FOR_AUTH = [
-  "https://www.googleapis.com/auth/employeeinfo.email",
-  "https://www.googleapis.com/auth/employeeinfo.profile",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
@@ -122,11 +122,11 @@ export class GoogleOAuthService {
       throw new Error("EmployeeId not found");
     }
     const token = await this.getAccessTokenByCode(code);
+    console.log('[exchange] token', token);
     if (!token) {
       throw new Error("no token");
       // return;
     }
-    console.log("token", token);
     // now store this token using employeeId
     await this.storeTokenInDB(token, payload.employeeId);
     return token;
@@ -190,11 +190,13 @@ export class GoogleOAuthService {
 
   async getAccessTokenByCode(code: string) {
     try {
-      const { tokens: token } = await this.client.getToken(code);
+      const tokens = await this.client.getToken(code);
       // @TODO validate token using joi
-      await this.validateGoogleAccessTokens(token);
-      return token;
+      console.log('[getAccessTokenByCode] token', tokens);
+      await this.validateGoogleAccessTokens(tokens.tokens);
+      return tokens.tokens;
     } catch (e) {
+      console.log('[getAccessTokenByCode] error', e);
       if (e instanceof Error) {
         throw new CustomError(`[getAccessTokenByCode] ${e.message}`, 400);
       }

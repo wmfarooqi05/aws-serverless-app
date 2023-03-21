@@ -49,11 +49,11 @@ const serverlessConfiguration: AWS = {
       shouldStartNameWithService: true,
     },
     vpc: {
-      securityGroupIds: ["sg-0bcaf1e5086effdd5"],
+      securityGroupIds: ["${self:custom.VPC_SECURITY_GROUP}"],
       subnetIds: [
-        "subnet-0c87da38c707b23d3",
-        "subnet-08b4521bc0da095f4",
-        "subnet-0254663a738570f0c",
+        "${self:custom.PRIVATE_SUBNET_1}",
+        "${self:custom.PRIVATE_SUBNET_2}",
+        "${self:custom.PRIVATE_SUBNET_3}",
       ],
     },
     environment: {
@@ -89,12 +89,19 @@ const serverlessConfiguration: AWS = {
     STACK_NAME: "${opt:stage, self:provider.stage}",
     // TIMEOUT: process.env.TIMEOUT,
     DB_NAME: "ge-db-dev-1",
-    EMPLOYEENAME: "postgres",
+    USERNAME: "postgres",
     PASSWORD: "v16pwn1QyN8iCixbWfbL",
     // TIMEOUT: process.env.TIMEOUT,
     STAGE: process.env.NODE_ENV,
     CACHE_INSTANCE_SIZE: "cache.t2.micro",
     DEPLOYMENT_BUCKET: process.env.DEPLOYMENT_BUCKET,
+    VPC_ID: process.env.VPC_ID,
+    PRIVATE_SUBNET_1: process.env.PRIVATE_SUBNET_1,
+    PRIVATE_SUBNET_2: process.env.PRIVATE_SUBNET_2,
+    PRIVATE_SUBNET_3: process.env.PRIVATE_SUBNET_3,
+    PUBLIC_SUBNET_1: process.env.PUBLIC_SUBNET_1,
+    VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
+
     // move it to different file
     esbuild: {
       bundle: true,
@@ -155,39 +162,7 @@ const serverlessConfiguration: AWS = {
       compatibleRuntimes: ["nodejs16.x", "nodejs18.x"],
     },
   },
-  resources: {
-    Resources: {
-      ServerlessCacheSubnetGroup: {
-        Type: "AWS::ElastiCache::SubnetGroup",
-        Properties: {
-          Description: "Cache Subnet Group",
-          // @TODO: replace this with dynamic values
-          SubnetIds: [
-            "subnet-0c87da38c707b23d3",
-            "subnet-08b4521bc0da095f4",
-            "subnet-0254663a738570f0c",
-          ],
-        },
-      },
-      ElasticCacheCluster: {
-        // DependsOn: "ServerlessStorageSecurityGroup" // After integrating VPC and security
-        Type: "AWS::ElastiCache::CacheCluster",
-        Properties: {
-          AutoMinorVersionUpgrade: true,
-          Engine: "redis",
-          CacheNodeType: "${self:custom.CACHE_INSTANCE_SIZE}",
-          NumCacheNodes: 1,
-          // see resources tmp file
-          // CacheSubnetGroupName: [{ Ref: "ServerlessCacheSubnetGroup" }]
-          // @TODO: replace this with dynamic values
-          VpcSecurityGroupIds: ["sg-0bcaf1e5086effdd5"],
-          // VpcSecurityGroupIds:[{ "Fn::GetAtt": "ServerlessStorageSecurityGroup.GroupId" }]
-          // VpcSecurityGroupIds:
-          // - "Fn::GetAtt": ServerlessStorageSecurityGroup.GroupId
-        },
-      },
-    },
-  },
+  // include resources from resources.ts
 };
 
 module.exports = serverlessConfiguration;

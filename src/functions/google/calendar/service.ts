@@ -79,7 +79,7 @@ export class GoogleCalendarService {
     return client.events.insert(calendarItem);
   }
 
-  async createMeetingFromActivityPayload(activity: IActivity) {
+  async createGoogleMeetingFromActivity(activity: IActivity) {
     const {
       attendees,
       createVideoLink,

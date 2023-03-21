@@ -31,6 +31,7 @@ import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
 import {
   addJsonbObjectHelper,
+  convertToWhereInValue,
   deleteJsonbObjectHelper,
   updateJsonbObjectHelper,
 } from "src/common/json_helpers";
@@ -86,6 +87,18 @@ export class CompanyService implements ICompanyService {
       .getKnexClient()(CompanyModel.tableName)
       .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
       .where(whereClause)
+      .where((builder) => {
+        if (status) {
+          builder.whereRaw(
+            `details->>'status' IN (${convertToWhereInValue(status)})`
+          );
+        }
+        if (priority) {
+          builder.whereRaw(
+            `details->>'priority' = (${convertToWhereInValue(priority)})`
+          );
+        }
+      })
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
   }
@@ -110,8 +123,8 @@ export class CompanyService implements ICompanyService {
     employeeId: string,
     body: any
   ): Promise<ICompanyPaginated> {
-    // await validateGetCompanies(body);
-    // await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
+    await validateGetCompanies(body);
+    await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
     const { priority, status, stage, returningFields } = body;
 
     const whereClause: any = {
@@ -119,22 +132,20 @@ export class CompanyService implements ICompanyService {
     };
     if (stage) whereClause.stage = stage;
 
-    const _status = status
-      ?.split(",")
-      .map((x) => `'${x}'`)
-      .join(",");
-
     return this.docClient
       .getKnexClient()(CompanyModel.tableName)
       .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
       .where(whereClause)
       .where((builder) => {
         if (status) {
-          builder.whereRaw(`details->>'status' IN (${_status})`);
-          // builder.whereRaw(`details->>'status' IN (\'ATTEMPTED_TO_CONTACT\',\'NONE\')`);
+          builder.whereRaw(
+            `details->>'status' IN (${convertToWhereInValue(status)})`
+          );
         }
         if (priority) {
-          builder.whereRaw(`details->>'priority' = ?`, priority);
+          builder.whereRaw(
+            `details->>'priority' IN (${convertToWhereInValue(priority)})`
+          );
         }
       })
       .orderBy(...getOrderByItems(body))

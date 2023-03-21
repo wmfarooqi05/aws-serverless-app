@@ -277,7 +277,6 @@ export class ActivityService implements IActivityService {
       concernedPersonDetails: JSON.stringify([payload.concernedPersonDetails]),
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
-      status,
       statusHistory: JSON.stringify([
         { id: randomUUID(), status, updatedAt: moment().utc().format() },
       ]),
@@ -291,27 +290,31 @@ export class ActivityService implements IActivityService {
       dueDate: payload.dueDate,
     };
 
-    // if (
-    //   activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
-    //   activityObj.activityType === ACTIVITY_TYPE.MEETING
-    // ) {
-    //   try {
-    //     const resp = await this.runSideGoogleJob(activityObj);
-    //     activityObj.details.status = resp.status;
-    //   } catch (e) {
-    //     activityObj.details.status = 500;
-    //     if (e.config && e.headers) {
-    //       activityObj.details.errorStack = formatGoogleErrorBody(e);
-    //     } else {
-    //       activityObj.details.errorStack = {
-    //         message: e.message,
-    //         stack: e.stack,
-    //       };
-    //     }
-    //   }
-    // } else {
-    //   // AWS EB Scheduler Case
-    // }
+    if (
+      activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
+      activityObj.activityType === ACTIVITY_TYPE.MEETING
+    ) {
+      try {
+        const resp = await this.runSideGoogleJob(activityObj);
+        activityObj.details.jobData = {
+          status: resp?.status || 424,
+        };
+      } catch (e) {
+        activityObj.details.jobData = {
+          status: 500,
+        };
+        if (e.config && e.headers) {
+          activityObj.details.jobData.errorStack = formatGoogleErrorBody(e);
+        } else {
+          activityObj.details.jobData.errorStack = {
+            message: e.message,
+            stack: e.stack,
+          };
+        }
+      }
+    } else {
+      // AWS EB Scheduler Case
+    }
 
     try {
       const activity: IActivity[] = await this.docClient
@@ -526,7 +529,7 @@ export class ActivityService implements IActivityService {
     if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
       return this.emailService.createAndSendEmailFromActivityPayload(activity);
     } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
-      return this.calendarService.createMeetingFromActivityPayload(activity);
+      return this.calendarService.createGoogleMeetingFromActivity(activity);
     }
   }
 
@@ -548,14 +551,7 @@ export class ActivityService implements IActivityService {
   }
 
   createEmailPayload(employee: IEmployee, payload): IEMAIL_DETAILS {
-    const { body, isScheduled, subject, timezone, date } = payload;
-    const newDate = isScheduled
-      ? moment.tz(date, timezone).utc()
-      : moment.utc();
-
-    if (isScheduled && newDate.diff(moment.utc()) < 0) {
-      throw new Error("Scheduled date has already passed");
-    }
+    const { body, isDraft, subject, timezone, date } = payload;
 
     let toStr = "";
     payload.to.forEach((item) => {
@@ -566,14 +562,16 @@ export class ActivityService implements IActivityService {
       }
     });
 
+    let _isDraft: boolean = isDraft ?? false;
+
     return {
       to: toStr,
       from: `${employee.name} <${employee.email}>`,
       body: body,
-      date: newDate.format(),
+      date: moment.tz(date, timezone).utc().format(),
       messageId: randomUUID(),
       fromEmail: employee.email,
-      isScheduled: isScheduled || false,
+      isDraft: _isDraft,
       subject,
     };
   }

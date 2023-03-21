@@ -124,3 +124,16 @@ export const validateJSONItemAndGetIndex = async (
   }
   return index;
 };
+
+/**
+ * For Where IN queries on JSONB values, we need to
+ * convert the string array in a special form
+ * 'a,b,c' -> "'a','b','c'"
+ * @param value
+ */
+export const convertToWhereInValue = (value: string): string => {
+  return value
+    ?.split(",")
+    .map((x) => `'${x}'`)
+    .join(",");
+};
