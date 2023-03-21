@@ -12,8 +12,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
-import { DynamoService } from "@common/service/DynamoService";
-// import { ElasticCacheService } from "@common/service/ElasticCache";
+import { CacheService } from "@common/service/CacheService";
 
 export interface IWebSocketService {}
 
@@ -34,7 +33,8 @@ export class WebSocketService implements IWebSocketService {
   partitionKeyName: string = process.env.ConnectionTablePartitionKey;
 
   constructor(
-    @inject(DynamoService) private readonly dynamoService: DynamoService // @inject(ElasticCacheService) // private readonly elasticCache: ElasticCacheService
+    @inject(CacheService)
+    private readonly cacheService: CacheService
   ) {}
 
   async handle(
@@ -51,29 +51,21 @@ export class WebSocketService implements IWebSocketService {
         connectionId,
       };
       let item = null;
+      await this.cacheService.initiateConnection();
       switch (routeKey) {
         case "$connect":
           console.log("connected, $connect: ", connectionId);
-          await this.dynamoService.putKey(
-            this.tableName,
+          await this.cacheService.storeKey(
             employeeId,
             JSON.stringify({ connectionId })
           );
-          item = await this.dynamoService.getItem(
-            this.tableName,
-            this.partitionKeyName,
-            employeeId
-          );
+          item = await this.cacheService.getItem(employeeId);
           console.log("item", item);
           break;
 
         case "$disconnect":
           console.log("$disconnect: ", connectionId);
-          await this.dynamoService.deleteKey(
-            this.tableName,
-            this.partitionKeyName,
-            employeeId
-          );
+          await this.cacheService.deleteItem(employeeId);
           break;
 
         case "messageRoute":
@@ -125,11 +117,12 @@ export class WebSocketService implements IWebSocketService {
   }
 
   async getAllConnections() {
-    try {
-      return this.dynamoService.scanTable(this.tableName);
-    } catch (e) {
-      throw new CustomError(e.message, e.statusCode, e);
-    }
+    return { message: "not implemented" };
+    // try {
+    //   return this.dynamoService.scanTable(this.tableName);
+    // } catch (e) {
+    //   throw new CustomError(e.message, e.statusCode, e);
+    // }
   }
 
   async sendSimpleMessage(connectionId, payload) {
@@ -168,18 +161,20 @@ export class WebSocketService implements IWebSocketService {
 
   private async getConnectionId(employeeId: string) {
     try {
-      console.log("[Websocket], getConnectionId, calling getItem");
-      const connectionItem = await this.dynamoService.getItem(
-        this.tableName,
-        this.partitionKeyName,
-        employeeId
-      );
+      // console.log("[Websocket], getConnectionId, calling getItem");
+      // const connectionItem = await this.dynamoService.getItem(
+      //   this.tableName,
+      //   this.partitionKeyName,
+      //   employeeId
+      // );
 
-      console.log(
-        "[Websocket], getConnectionId, connectionItem",
-        connectionItem
-      );
-      const connectionPayload = JSON.parse(connectionItem.Item?.data?.S);
+      // console.log(
+      //   "[Websocket], getConnectionId, connectionItem",
+      //   connectionItem
+      // );
+      // const connectionPayload = JSON.parse(connectionItem.Item?.data?.S);
+      const payloadString = await this.cacheService.getItem(employeeId);
+      const connectionPayload = JSON.parse(payloadString);
       if (!connectionPayload?.connectionId) {
         throw new CustomError("Connection Id not found", 404);
       }

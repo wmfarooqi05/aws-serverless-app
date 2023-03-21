@@ -18,15 +18,16 @@ import {
   DeleteItemCommandOutput,
   ScanCommandOutput,
 } from "@aws-sdk/client-dynamodb";
+import { ICache } from "./CacheService";
 
-export interface IDynamoService {}
+export interface IDynamoService extends ICache {}
 
 @injectable()
 export class DynamoService implements IDynamoService {
   client: DynamoDBClient;
   // isReady: boolean;
   constructor() {
-    this.initializeClient();
+    // this.initializeClient();
   }
 
   async initializeClient() {
