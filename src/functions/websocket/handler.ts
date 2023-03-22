@@ -23,7 +23,7 @@ export const _webSocketHandler = async (event) => {
     body
   );
   try {
-    const newReminder = await container
+    const websocketResponse = await container
       .resolve(WebSocketService)
       .handle(
         event.employee?.sub,
@@ -31,7 +31,7 @@ export const _webSocketHandler = async (event) => {
         connectionId,
         routeKey
       );
-    return formatJSONResponse(newReminder, 201);
+    return formatJSONResponse(websocketResponse, 201);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -60,8 +60,8 @@ export async function _getAllConnections() {
     return formatErrorResponse(e);
   }
 }
-export const webSocketHandler =  jwtMRequiredWrapper(_webSocketHandler);
+export const webSocketHandler =  _webSocketHandler;
 
-// export const webSocketHandler = jwtMWrapper(_webSocketHandler);
+// export const webSocketHandler = jwtMRequiredWrapper(_webSocketHandler);
 export const broadcastMessage = sendMessage;
 export const getAllConnections = _getAllConnections;

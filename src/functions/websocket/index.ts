@@ -2,7 +2,6 @@ import { handlerPath } from "@libs/handler-resolver";
 
 const webSocketHandler = {
   handler: `${handlerPath(__dirname)}/handler.webSocketHandler`,
-  vpc: null,
   events: [
     {
       websocket: "$connect",

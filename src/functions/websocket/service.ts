@@ -13,6 +13,7 @@ import {
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
 import { CacheService } from "@common/service/CacheService";
+import axios from 'axios';
 
 export interface IWebSocketService {}
 
@@ -38,7 +39,7 @@ export class WebSocketService implements IWebSocketService {
   ) {}
 
   async handle(
-    employeeId: string,
+    employeeId: string = '28758dac-a6a2-4f90-96ed-0a42a37d3fb3',
     body: any,
     connectionId: string,
     routeKey: string
@@ -56,8 +57,9 @@ export class WebSocketService implements IWebSocketService {
         case "$connect":
           console.log("connected, $connect: ", connectionId);
           await this.cacheService.storeKey(employeeId, connectionId);
-          item = await this.cacheService.getItem(employeeId);
-          console.log("item", item);
+          await this.sendSimpleMessage(connectionId, {
+            message: `connected on ${connectionId}`,
+          });
           break;
 
         case "$disconnect":
@@ -94,6 +96,7 @@ export class WebSocketService implements IWebSocketService {
       console.log("websocket deployed 28 Feb 2:41AM");
       console.log("[Websocket] sendMessage, data", data);
       const payload = JSON.parse(data);
+      // const connectionId = payload.connectionId;
       const employeeId = payload.employeeId;
       delete payload.employeeId;
       // @TODO add joi validations on payload
@@ -149,6 +152,8 @@ export class WebSocketService implements IWebSocketService {
       }
       console.log("command", command);
       // @TODO move this client to global scope
+      const resp1 = await axios.get('https://www.google.com');
+      console.log('resp1', resp1.status);
       const apiGateway = new ApiGatewayManagementApiClient(config);
       console.log("config", apiGateway.config);
       const resp = await apiGateway.send(command);

@@ -38,6 +38,7 @@ export class CacheService implements ICacheService {
 
   async storeKey(employeeId: string, connectionId: string) {
     if (this.useElasticCache) {
+      console.log("storing in elastic cache", employeeId, connectionId)
       await this.elasticCache.setValueToRedis(
         employeeId,
         JSON.stringify({

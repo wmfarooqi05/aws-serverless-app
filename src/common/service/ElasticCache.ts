@@ -24,10 +24,14 @@ export class ElasticCacheService implements IElasticCacheService {
 
   async initializeClient() {
     try {
-      if (this.client?.isReady) return;
+      if (this.client?.isReady) {
+        console.log("already connected");
+        return;
+      }
       if (process.env.STAGE === "local") {
         this.client = redis.createClient();
       } else {
+        console.log("connecting redis", process.env.ELASTIC_CACHE_SERVER);
         this.client = redis.createClient({
           url: process.env.ELASTIC_CACHE_SERVER,
         });
@@ -41,7 +45,7 @@ export class ElasticCacheService implements IElasticCacheService {
       });
       await this.client.connect();
     } catch (e) {
-      console.log("error", e);
+      console.log("[REDIS][initializeClient]", e);
     }
   }
 
@@ -53,17 +57,22 @@ export class ElasticCacheService implements IElasticCacheService {
   async setValueToRedis(key: string, value: string) {
     try {
       await this.initializeClient();
+      console.log("setValueToRedis", this.client?.isReady, key, value);
       await this.client.set(key, value);
       console.log(`key: ${key} saved in redis, value: `, value);
     } catch (e) {
-      console.log("error redis", e);
+      console.log("[REDIS][setValueToRedis]", e);
     }
   }
 
   async removeValueFromRedis(key: string) {
-    await this.initializeClient();
-    await this.client.del(key);
-    console.log(`key: ${key} removed from redis`);
+    try {
+      await this.initializeClient();
+      await this.client.del(key);
+      console.log(`key: ${key} removed from redis`);
+    } catch (e) {
+      console.log("[REDIS][removeValueFromRedis]", e);
+    }
   }
 
   async getValueFromRedis(key: string) {
