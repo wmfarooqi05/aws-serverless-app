@@ -37,7 +37,7 @@ export const googleOauthCallbackHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event, _context) => {
   try {
     const { code, state } = event.queryStringParameters;
-    const returningUrl = JSON.parse(state)?.origin || "http://localhost:3000";
+    const returningUrl = JSON.parse(state)?.origin;
     const script: any = `<script type="text/javascript">
     window.opener.location.href='${returningUrl}/signin-successfull';
     window.close();

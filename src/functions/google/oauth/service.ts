@@ -67,8 +67,11 @@ export class GoogleOAuthService {
     return null;
   }
 
-  async getGoogleOauthRequestTokenByEmployee(origin: string, employeeId: string) {
-    const response: any = {};
+  async getGoogleOauthRequestTokenByEmployee(
+    origin: string,
+    employeeId: string
+  ) {
+    const response: any = { origin };
     const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
       employeeId
     );
@@ -80,6 +83,7 @@ export class GoogleOAuthService {
       response.authUrl = authUrl;
     } else {
       response.isSignedIn = true;
+      response.expiryDate = token.expiryDate;
     }
 
     return response;
@@ -92,7 +96,9 @@ export class GoogleOAuthService {
     if (!employeeId) {
       throw new Error("EmployeeId not provided");
     }
-    const token: IAuthToken = await AuthTokenModel.query().findOne({ employeeId });
+    const token: IAuthToken = await AuthTokenModel.query().findOne({
+      employeeId,
+    });
     if (checkExpired && !this.isTokenValid(token?.expiryDate)) {
       return null;
     }
@@ -122,7 +128,7 @@ export class GoogleOAuthService {
       throw new Error("EmployeeId not found");
     }
     const token = await this.getAccessTokenByCode(code);
-    console.log('[exchange] token', token);
+    console.log("[exchange] token", token);
     if (!token) {
       throw new Error("no token");
       // return;
@@ -192,11 +198,11 @@ export class GoogleOAuthService {
     try {
       const tokens = await this.client.getToken(code);
       // @TODO validate token using joi
-      console.log('[getAccessTokenByCode] token', tokens);
+      console.log("[getAccessTokenByCode] token", tokens);
       await this.validateGoogleAccessTokens(tokens.tokens);
       return tokens.tokens;
     } catch (e) {
-      console.log('[getAccessTokenByCode] error', e);
+      console.log("[getAccessTokenByCode] error", e);
       if (e instanceof Error) {
         throw new CustomError(`[getAccessTokenByCode] ${e.message}`, 400);
       }
