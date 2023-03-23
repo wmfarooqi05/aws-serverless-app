@@ -76,7 +76,7 @@ export class EmployeeService implements IEmployeeService {
     const knex = this.docClient.getKnexClient();
     return this.docClient
       .getKnexClient()
-      .select("E.*", knex.raw("COUNT(C.id) as leads_count"))
+      .select("E.*", knex.raw("COUNT(C.id) as assigned_companies_count"))
       .from(`${EmployeeModel.tableName} as E`)
       .where(whereClause)
       .leftJoin(`${CompanyModel.tableName} as C`, "E.id", "C.assigned_to")

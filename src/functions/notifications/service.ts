@@ -7,6 +7,7 @@ import NotificationModel, { INotification } from "@models/Notification";
 // import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
+import { WebSocketService } from "@functions/websocket/service";
 
 export interface INotificationService {}
 
@@ -20,14 +21,14 @@ export interface NotificationEBSchedulerPayload {
 @injectable()
 export class NotificationService implements INotificationService {
   constructor(
-    // @inject(WebSocketService)
-    // private readonly webSocketService: WebSocketService
-  ) {}
-  // constructor(private scheduler: AWS.Scheduler) {
-  //   this.scheduler = new AWS.Scheduler({
-  //     region: process.env.AWS_SCHEDULER_REGION,
-  //   });
-  // }
+    @inject(WebSocketService)
+    private readonly webSocketService: WebSocketService
+  ) // private scheduler: AWS.Scheduler
+  {
+    //   this.scheduler = new AWS.Scheduler({
+    //     region: process.env.AWS_SCHEDULER_REGION,
+    //   });
+  }
 
   /**
    * Here, employee will request for a creating a notification
@@ -114,7 +115,7 @@ export class NotificationService implements INotificationService {
   /**@TODO remove this */
   async sendWebSocketNotification(data: string) {
     // @TODO add Joi validation
-    // this.webSocketService.sendMessage(data);
+    this.webSocketService.sendMessage(data);
   }
 
   // async ScheduleNotification() {

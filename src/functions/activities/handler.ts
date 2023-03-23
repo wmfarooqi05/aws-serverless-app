@@ -77,21 +77,6 @@ export const getTopActivitiesHandler = async (event) => {
   }
 };
 
-export const getMyActivitiesByDayHandler = async (event) => {
-  try {
-    const activities = await container
-      .resolve(ActivityService)
-      .getMyActivitiesByDay(event?.employee?.sub);
-    // event?.employee?.sub,
-    // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
-    // activityId
-    // );
-    return formatJSONResponse(activities, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 export const getActivityById: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
@@ -140,7 +125,7 @@ export const updateActivityHandler = async (event) => {
 
     const updatedActivity = await container
       .resolve(ActivityService)
-      .updateActivity(event?.employee?.sub, activityId, event.body);
+      .updateActivity(event?.employee, activityId, event.body);
     return formatJSONResponse(updatedActivity, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -231,19 +216,18 @@ export const deleteRemarkFromActivity: ValidatedEventAPIGatewayProxyEvent<
 };
 
 // @TODO export these
-export const getActivities = jwtMWrapper(getActivitiesHandler);
-export const createActivity = jwtMWrapper(createActivityHandler);
-export const getMyActivities = jwtMWrapper(getMyActivitiesHandler);
-export const getTopActivities = jwtMWrapper(getTopActivitiesHandler);
-export const getAllActivitiesByCompany = jwtMWrapper(
+export const getActivities = allowRoleWrapper(getActivitiesHandler);
+export const createActivity = allowRoleWrapper(createActivityHandler);
+export const getMyActivities = allowRoleWrapper(getMyActivitiesHandler);
+export const getTopActivities = allowRoleWrapper(getTopActivitiesHandler);
+export const getAllActivitiesByCompany = allowRoleWrapper(
   getAllActivitiesByCompanyHandler
 );
-export const getMyStaleActivityByStatus = jwtMWrapper(
+export const getMyStaleActivityByStatus = allowRoleWrapper(
   getMyStaleActivityByStatusHandler
 );
 
-export const getMyActivitiesByDay = jwtMWrapper(getMyActivitiesByDayHandler);
-export const updateActivity = jwtMWrapper(updateActivityHandler);
+export const updateActivity = allowRoleWrapper(updateActivityHandler);
 export const updateStatusOfActivity = allowRoleWrapper(
   updateStatusOfActivityHandler,
   RolesEnum.SALES_REP_GROUP

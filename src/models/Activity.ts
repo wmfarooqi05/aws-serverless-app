@@ -80,6 +80,7 @@ export default class ActivityModel extends Model {
       "concernedPersonDetails",
       "reminders",
       "statusHistory",
+      "tags"
     ];
   }
   // $beforeInsert() {

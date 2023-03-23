@@ -33,6 +33,7 @@ export const ACTIVITY_STATUSES = [
 ];
 
 export enum ACTIVITY_PRIORITY {
+  NONE = "NONE",
   LOWEST = "LOWEST",
   LOW = "LOW",
   NORMAL = "NORMAL",

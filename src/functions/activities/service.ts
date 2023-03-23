@@ -10,6 +10,7 @@ import {
   validateRemarks,
   validateUpdateActivity,
   validateUpdateRemarks,
+  validateUpdateStatus,
 } from "./schema";
 
 import EmployeeModel from "src/models/Employees";
@@ -42,7 +43,11 @@ import { unionAllResults } from "./queries";
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployee, IEmployeeJwt, RolesEnum } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";
@@ -230,15 +235,6 @@ export class ActivityService implements IActivityService {
     return result2;
   }
 
-  async getMyActivitiesByDay(employeeId: string) {
-    const resp = await this.emailService.send(
-      "wmfarooqi05@gmail.com",
-      "Testing Email",
-      "<p>this is a test email</p>"
-    );
-    return resp;
-  }
-
   async getActivityById(
     employeeId: string,
     activityId: string
@@ -289,7 +285,7 @@ export class ActivityService implements IActivityService {
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
       statusHistory: JSON.stringify([
-        createStatusHistory(status, createdBy.sub),
+        this.createStatusHistory(status, createdBy.sub),
       ]),
       tags: payload.tags || JSON.stringify([]),
       reminders: payload.reminders || JSON.stringify([]),
@@ -348,9 +344,9 @@ export class ActivityService implements IActivityService {
    * We do not need this endpoint
    * We will handle its params in their own endpoints
    */
-  async updateActivity(createdBy: string, activityId: string, body: any) {
+  async updateActivity(employee: IEmployeeJwt, activityId: string, body: any) {
     const payload = JSON.parse(body);
-    await validateUpdateActivity(createdBy, activityId, payload);
+    await validateUpdateActivity(employee.sub, activityId, payload);
 
     // @TODO add validations for detail object
     const updatedActivity: IActivity =
@@ -372,6 +368,7 @@ export class ActivityService implements IActivityService {
     activityId: string,
     status: string
   ) {
+    await validateUpdateStatus(employee.sub, activityId, status);
     const activity = await ActivityModel.query().findById(activityId);
 
     if (!activity) throw new CustomError("Activity not found", 404);

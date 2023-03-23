@@ -120,30 +120,36 @@ export const validateCreateActivity = async (
 
 // @TODO update validations
 export const validateUpdateActivity = async (
-  createdBy: string,
+  employeeId: string,
   activityId: string,
   payload: any
 ) => {
   await Joi.object({
     summary: Joi.string(), // in case of email, it will be null
-    statusShort: Joi.string().guid(),
-    // tags
-    // 
+    tags: Joi.array().items(Joi.string()),
+    priority: Joi.string().valid(...Object.keys(ACTIVITY_PRIORITY)),
+    activityId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
   })
     .min(1)
-    .validateAsync(payload, {
-      abortEarly: true,
-    });
+    .validateAsync(
+      { ...payload, employeeId, activityId },
+      {
+        abortEarly: true,
+      }
+    );
+};
 
+export const validateUpdateStatus = async (
+  employeeId: string,
+  activityId: string,
+  status: string
+) => {
   await Joi.object({
+    employeeId: Joi.string().guid().required(),
     activityId: Joi.string().guid().required(),
-    createdBy: Joi.string().guid().required(),
-  }).validateAsync(
-    { createdBy, activityId },
-    {
-      abortEarly: true,
-    }
-  );
+    status: Joi.string().valid(...Object.keys(ACTIVITY_STATUS)),
+  }).validateAsync({ employeeId, activityId, status });
 };
 
 export const validateRemarks = async (

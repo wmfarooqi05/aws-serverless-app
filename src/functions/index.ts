@@ -10,7 +10,6 @@ import {
   getMyActivities,
   getTopActivities,
   getAllActivitiesByCompany,
-  getMyActivitiesByDay,
   getMyStaleActivityByStatus,
   updateStatusOfActivity,
 } from "@functions/activities";
@@ -103,7 +102,6 @@ export default {
   getMyActivities,
   getTopActivities,
   getAllActivitiesByCompany,
-  getMyActivitiesByDay,
   getMyStaleActivityByStatus,
   // ACTIVITY
   // createActivity,
