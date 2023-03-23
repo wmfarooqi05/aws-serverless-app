@@ -1,11 +1,6 @@
 import "reflect-metadata";
-// import { DatabaseService } from "../../libs/database/database-service-objection";
 import { inject, injectable } from "tsyringe";
-// import { randomUUID } from "crypto";
-// import momentTz from "moment-timezone";
 import NotificationModel, { INotification } from "@models/Notification";
-// import { WebSocketService } from "@functions/websocket/service";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 import { WebSocketService } from "@functions/websocket/service";
 

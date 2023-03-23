@@ -4,15 +4,18 @@ import {
   createActivity,
   updateActivity,
   deleteActivity,
-  addRemarksToActivity,
-  updateRemarksInActivity,
-  deleteRemarkFromActivity,
   getMyActivities,
   getTopActivities,
   getAllActivitiesByCompany,
   getMyStaleActivityByStatus,
   updateStatusOfActivity,
 } from "@functions/activities";
+
+import {
+  addRemarksToActivity,
+  updateRemarksInActivity,
+  deleteRemarkFromActivity,
+} from "@functions/activities/activity-remarks";
 
 import {
   createCompany,

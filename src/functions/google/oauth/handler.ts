@@ -17,7 +17,7 @@ import { GoogleOAuthService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
 
 export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel

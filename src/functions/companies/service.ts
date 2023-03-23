@@ -10,7 +10,7 @@ import {
   ICompany,
   COMPANY_STAGES,
 } from "@models/interfaces/Company";
-import { DatabaseService } from "../../libs/database/database-service-objection";
+import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 
 import {

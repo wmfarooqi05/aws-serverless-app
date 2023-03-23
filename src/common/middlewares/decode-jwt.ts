@@ -56,16 +56,23 @@ export function permissionMiddleware(): MiddlewareObject<
 export const jwtRequired = () => {
   return {
     before: ({ event }) => {
-      const role = event?.employee?.[roleKey][0] || "";
-      const roleFound = RolesArray.find((x) => x === role) ? true : false;
+      try {
+        const role = event?.employee?.[roleKey][0] || "";
+        const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
-      // @DEV
-      if (event.employee?.sub) {
-        event.employee.teamId = "team0"; // @TODO fix this with cognito auth
-      }
+        // @DEV
+        if (event.employee?.sub) {
+          event.employee.teamId = "team0"; // @TODO fix this with cognito auth
+        }
 
-      if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
-        console.log("Auth Token missing or invalid");
+        if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
+          console.log("Auth Token missing or invalid");
+          return formatErrorResponse({
+            message: "Auth Token missing or invalid",
+            statusCode: 403,
+          });
+        }
+      } catch (e) {
         return formatErrorResponse({
           message: "Auth Token missing or invalid",
           statusCode: 403,

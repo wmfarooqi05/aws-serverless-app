@@ -4,7 +4,7 @@ import {
   formatErrorResponse,
   formatJSONResponse,
   ValidatedEventAPIGatewayProxyEvent,
-} from "../../libs/api-gateway";
+} from "@libs/api-gateway";
 import { CompanyService } from "./service";
 import middy from "@middy/core";
 
@@ -12,7 +12,7 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import { allowRoleWrapper } from "@libs/middlewares/jwtMiddleware";
+import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
 
 export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel

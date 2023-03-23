@@ -6,7 +6,7 @@ import {
   formatErrorResponse,
   formatJSONResponse,
   ValidatedEventAPIGatewayProxyEvent,
-} from "../../libs/api-gateway";
+} from "@libs/api-gateway";
 import { ReminderService } from "./service";
 import middy from "@middy/core";
 import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { DatabaseService } from "../../libs/database/database-service-objection";
+import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 
 import {
@@ -7,15 +7,12 @@ import {
   validateGetActivities,
   validateGetActivitiesByCompany,
   validateGetMyActivities,
-  validateRemarks,
   validateUpdateActivity,
-  validateUpdateRemarks,
   validateUpdateStatus,
 } from "./schema";
 
 import EmployeeModel from "src/models/Employees";
 import CompanyModel from "src/models/Company";
-import { randomUUID } from "crypto";
 import ActivityModel, {
   IActivityModel,
   IActivityPaginated,
@@ -23,41 +20,21 @@ import ActivityModel, {
 import {
   ACTIVITY_PRIORITY,
   ACTIVITY_STATUS,
-  ACTIVITY_STATUSES,
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_TYPE,
   IActivity,
-  IACTIVITY_DETAILS,
-  IEMAIL_DETAILS,
-  IRemarks,
-  IStatusHistory,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
-import {
-  ACTIVITIES_TABLE,
-  EMPLOYEES_TABLE_NAME,
-  ModuleTitles,
-} from "src/models/commons";
+import { ACTIVITIES_TABLE, ModuleTitles } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import {
-  IEmployee,
-  IEmployeeJwt,
-  RolesEnum,
-} from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import { calendar_v3 } from "googleapis";
-import {
-  addJsonbObjectHelper,
-  deleteJsonbObjectHelper,
-  updateJsonbObjectHelper,
-  updateJsonbObjectWithObjectHelper,
-  validateJSONItemAndGetIndex,
-} from "@common/json_helpers";
+import { addJsonbObjectHelper } from "@common/json_helpers";
 import {
   getOrderByItems,
   getPaginateClauseObject,
@@ -65,8 +42,50 @@ import {
 } from "@common/query";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
+import { createDetailsPayload, createStatusHistory } from "./helpers";
 
 // @TODO fix this
+
+const sortedTags = (tags: string[]) => {
+  if (!(tags?.length > 0)) return JSON.stringify([]);
+  return tags?.sort((a, b) => a.localeCompare(b));
+};
+
+const addFiltersToQueryBuilder = (queryBuilder, body) => {
+  const { status, dateFrom, dateTo, type, returningFields, tags } = body;
+
+  queryBuilder.select(
+    sanitizeColumnNames(ActivityModel.columnNames, returningFields)
+  );
+
+  if (status) {
+    queryBuilder.whereIn("status", status?.split(","));
+  }
+
+  if (tags) {
+    queryBuilder.where(
+      "tags",
+      "@>",
+      JSON.stringify(tags?.split(",").map((x) => x.trim()))
+    );
+  }
+  if (type) {
+    queryBuilder.whereIn("activityType", type?.split(","));
+  }
+  if (dateFrom && dateTo) {
+    queryBuilder.whereBetween("dueDate", [dateFrom, dateTo]);
+  } else if (dateFrom) {
+    queryBuilder.where("dueDate", ">=", dateFrom);
+  } else if (dateTo) {
+    queryBuilder.where("dueDate", "<=", dateTo);
+  }
+
+  queryBuilder.orderBy(...getOrderByItems(body));
+  queryBuilder.paginate(getPaginateClauseObject(body));
+
+  return queryBuilder;
+};
+
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
   addConcernedPerson(): Promise<IActivityModel>;
@@ -113,63 +132,23 @@ export class ActivityService implements IActivityService {
      * My Overdue Tasks
      * My Today + Overdue Tasks
      */
+    await validateGetActivitiesByCompany(createdBy, body);
 
-    await validateGetMyActivities(createdBy, body);
-    const { page, pageSize, returningFields, type, status, dateFrom, dateTo } =
-      body;
-    const whereClause: any = { createdBy };
-    const sortBy = body.sortBy || "updatedAt";
-    const sortAscending = body.sortAscending || "desc";
-
-    return (
-      this.docClient
-        .get(this.TableName)
-        .where(whereClause)
-        .modify(function (queryBuilder) {
-          if (status) {
-            queryBuilder.whereIn("status", status?.split(","));
-          }
-          if (type) {
-            queryBuilder.whereIn("activityType", type?.split(","));
-          }
-          if (dateFrom && dateTo) {
-            queryBuilder.whereBetween("dueDate", [dateFrom, dateTo]);
-          } else if (dateFrom) {
-            queryBuilder.where("dueDate", ">=", dateFrom);
-          } else if (dateTo) {
-            queryBuilder.where("dueDate", "<=", dateTo);
-          }
-        })
-        // .whereIn("employee_id", employeeIds)
-        .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
-        .orderBy(sortBy, sortAscending ? "asc" : "desc")
-        .paginate({
-          perPage: pageSize ? parseInt(pageSize) : 12,
-          currentPage: page ? parseInt(page) : 1,
-        })
-    );
-  }
-
-  async getAllActivities(user: IEmployeeJwt, body: any) {
-    await validateGetActivities(body);
-
-    const { returningFields, type } = body;
-
-    const paginateClause = getPaginateClauseObject(body);
-    const orderByItems = getOrderByItems(body);
-    const whereClause: any = {};
-
-    if (type) {
-      whereClause.activityType = type;
-    }
-
-    // if manager, get employees else return everything in case of above employee
     return this.docClient
       .get(this.TableName)
-      .where(whereClause)
-      .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
-      .orderBy(...orderByItems)
-      .paginate(paginateClause);
+      .modify(function (queryBuilder) {
+        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+      })
+      .where({ createdBy });
+  }
+
+  // Limit this only for admin
+  async getAllActivities(user: IEmployeeJwt, body: any) {
+    await validateGetActivities(body);
+    // if manager, get employees else return everything in case of above employee
+    return this.docClient.get(this.TableName).modify(function (queryBuilder) {
+      queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+    });
   }
 
   // @TODO fix this
@@ -180,27 +159,12 @@ export class ActivityService implements IActivityService {
   ) {
     await validateGetActivitiesByCompany(companyId, body);
 
-    const { page, pageSize, returningFields, type } = body;
-    const whereClause: any = { companyId };
-    const sortBy = body.sortBy || "updatedAt";
-    const sortAscending = body.sortAscending || "desc";
-
-    const paginateClause: any = {
-      perPage: pageSize ? parseInt(pageSize) : 12,
-      currentPage: page ? parseInt(page) : 1,
-    };
-
-    if (type) {
-      whereClause.activityType = type;
-    }
-
-    // if manager, get employees else return everything in case of above employee
     return this.docClient
       .get(this.TableName)
-      .where(whereClause)
-      .select(sanitizeColumnNames(ActivityModel.columnNames, returningFields))
-      .orderBy(sortBy, sortAscending)
-      .paginate(paginateClause);
+      .modify(function (queryBuilder) {
+        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+      })
+      .where({ companyId });
   }
 
   async getTopActivities(employeeId: string, companyId: string) {
@@ -266,7 +230,7 @@ export class ActivityService implements IActivityService {
     if (!company) {
       throw new CustomError("Company not found", 400);
     }
-    const details = this.createDetailsPayload(
+    const details = createDetailsPayload(
       employee,
       payload.activityType,
       payload.details
@@ -285,9 +249,9 @@ export class ActivityService implements IActivityService {
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
       statusHistory: JSON.stringify([
-        this.createStatusHistory(status, createdBy.sub),
+        createStatusHistory(status, createdBy.sub),
       ]),
-      tags: payload.tags || JSON.stringify([]),
+      tags: sortedTags(payload.tags),
       reminders: payload.reminders || JSON.stringify([]),
       repeatReminders: payload.repeatReminders || JSON.stringify([]),
       // createdAt: payload.createdAt,
@@ -393,7 +357,7 @@ export class ActivityService implements IActivityService {
     const addQuery = addJsonbObjectHelper(
       "statusHistory",
       this.docClient.knexClient,
-      this.createStatusHistory(status, employee.sub)
+      createStatusHistory(status, employee.sub)
     );
     return ActivityModel.query().patchAndFetchById(activityId, {
       ...addQuery,
@@ -427,86 +391,6 @@ export class ActivityService implements IActivityService {
     );
   }
 
-  async addRemarksToActivity(
-    employeeId: string,
-    activityId: string,
-    body: any
-  ): Promise<ActivityModel> {
-    const payload = JSON.parse(body);
-    await validateRemarks(employeeId, activityId, payload);
-
-    delete payload.activityId;
-
-    const remarks = await this.createRemarksHelper(
-      employeeId,
-      activityId,
-      payload
-    );
-
-    const activity = await ActivityModel.query()
-      .patch(
-        addJsonbObjectHelper("remarks", this.docClient.getKnexClient(), remarks)
-      )
-      .where({ id: activityId })
-      .returning("*")
-      .first();
-
-    if (!activity) {
-      throw new CustomError("Activity not found", 404);
-    }
-    // @TODO: check if activity doens't exist
-    return activity;
-  }
-
-  async updateRemarksInActivity(
-    employeeId: string,
-    activityId: string,
-    remarksId: string,
-    body: any
-  ) {
-    const payload = JSON.parse(body);
-    await validateUpdateRemarks(employeeId, activityId, remarksId, payload);
-
-    const index = await validateJSONItemAndGetIndex(
-      this.docClient.getKnexClient(),
-      ActivityModel.tableName,
-      activityId,
-      `remarks`,
-      remarksId
-    );
-
-    return ActivityModel.query().patchAndFetchById(activityId, {
-      remarks: ActivityModel.raw(
-        `
-          jsonb_set(remarks, 
-            '{
-              ${index},
-              remarksText
-            }', '"${payload.remarksText}"', 
-            true
-          )
-        `
-      ),
-    });
-  }
-
-  async deleteRemarkFromActivity(activityId: string, remarksId: string) {
-    const index = await validateJSONItemAndGetIndex(
-      this.docClient.getKnexClient(),
-      ActivityModel.tableName,
-      activityId,
-      `remarks`,
-      remarksId
-    );
-
-    await ActivityModel.query().patchAndFetchById(
-      activityId,
-      deleteJsonbObjectHelper("remarks", this.docClient.getKnexClient(), index)
-    );
-
-    return index;
-  }
-
   async getMyStaleActivityByStatus(employee: IEmployeeJwt, body: any) {
     const { status, daysAgo } = body;
 
@@ -534,38 +418,6 @@ export class ActivityService implements IActivityService {
     return result;
   }
 
-  // from here, move code to helper function
-  private async createRemarksHelper(
-    employeeId: string,
-    activityId: string,
-    payload: any
-  ): Promise<IRemarks> {
-    // @TODO there is not check here if person's manager doesn't exists
-    const employees: IEmployee[] = await this.docClient
-      .knexClient(EMPLOYEES_TABLE_NAME)
-      .table(`${EMPLOYEES_TABLE_NAME} as u`)
-      .leftJoin(`${EMPLOYEES_TABLE_NAME} as m`, "u.reporting_manager", "m.id")
-      .select("u.*", "m.id as managerId", "m.name as managerName")
-      .where({ "u.id": employeeId });
-
-    return {
-      id: randomUUID(),
-      activityId,
-      remarksText: payload.remarksText,
-      employeeDetails: {
-        name: employees[0].name,
-        id: employees[0].id,
-      },
-      reportingManager: employees[0]?.managerId!
-        ? {
-            id: employees[0]?.managerId!,
-            name: employees[0]?.managerName!,
-          }
-        : null,
-      createdAt: moment().utc().format(),
-      updatedAt: moment().utc().format(),
-    } as IRemarks;
-  }
   // @TODO re-write with help of jwt payload,
   // manager will be there and also role
   // if role is above manager, he can see,
@@ -597,103 +449,5 @@ export class ActivityService implements IActivityService {
     } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
       return this.calendarService.createGoogleMeetingFromActivity(activity);
     }
-  }
-
-  private createDetailsPayload(
-    employee: IEmployee,
-    activityType: ACTIVITY_TYPE,
-    details: IACTIVITY_DETAILS
-  ) {
-    switch (activityType) {
-      case ACTIVITY_TYPE.EMAIL:
-        return this.createEmailPayload(employee, details);
-      case ACTIVITY_TYPE.CALL:
-        return this.createCallPayload(details);
-      case ACTIVITY_TYPE.MEETING:
-        return this.createMeetingPayload(details);
-      case ACTIVITY_TYPE.TASK:
-        return this.createTaskPayload(details);
-    }
-  }
-
-  createEmailPayload(employee: IEmployee, payload): IEMAIL_DETAILS {
-    const { body, isDraft, subject, timezone, date } = payload;
-
-    let toStr = "";
-    payload.to.forEach((item) => {
-      if (item.name) {
-        toStr += `${item.name} <${item.email}>, `;
-      } else {
-        toStr += item.email;
-      }
-    });
-
-    let _isDraft: boolean = isDraft ?? false;
-
-    return {
-      to: toStr,
-      from: `${employee.name} <${employee.email}>`,
-      body: body,
-      date: moment.tz(date, timezone).utc().format(),
-      messageId: randomUUID(),
-      fromEmail: employee.email,
-      isDraft: _isDraft,
-      subject,
-    };
-  }
-
-  createCallPayload(payload) {
-    return payload ? payload : {};
-  }
-
-  createMeetingPayload(payload) {
-    const {
-      summary,
-      attendees,
-      description,
-      location,
-      createVideoLink,
-      startDateTime,
-      endDateTime,
-      timezone,
-      reminders,
-      calendarId,
-      sendUpdates,
-    } = payload;
-
-    const event: calendar_v3.Schema$Event = {
-      summary: summary,
-      attendees: attendees,
-      description: description,
-      location: createVideoLink ? "Online" : location,
-      start: {
-        dateTime: startDateTime,
-        timeZone: timezone,
-      },
-      end: {
-        dateTime: endDateTime,
-        timeZone: timezone,
-      },
-      reminders: reminders,
-      id: randomUUID(),
-    };
-
-    event["createVideoLink"] = createVideoLink;
-    event["calendarId"] = calendarId;
-    event["sendUpdates"] = sendUpdates;
-    return event;
-  }
-
-  createTaskPayload(payload) {
-    return payload ? payload : {};
-  }
-
-  createStatusHistory(status: string, employeeId: string): IStatusHistory {
-    return {
-      id: randomUUID(),
-      status,
-      updatedAt: moment().utc().format(),
-      updatedBy: employeeId,
-    };
   }
 }

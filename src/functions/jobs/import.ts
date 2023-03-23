@@ -8,7 +8,7 @@ import {
 import { canadaData, cities, ICityData } from "./canadaData";
 import { randomUUID } from "crypto";
 import moment from "moment-timezone";
-import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
 import CompanyModel from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { uploadToS3 } from "./upload";

@@ -6,10 +6,10 @@ import {
   formatErrorResponse,
   formatJSONResponse,
   ValidatedEventAPIGatewayProxyEvent,
-} from "../../libs/api-gateway";
+} from "@libs/api-gateway";
 import { EmployeeService } from "./service";
 
-import { allowRoleWrapper } from "@libs/middlewares/jwtMiddleware";
+import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
 
 // Initialize Container

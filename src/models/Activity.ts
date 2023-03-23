@@ -33,6 +33,7 @@ export default class ActivityModel extends Model {
         details: { type: "object" },
         companyId: { type: "string" },
         createdBy: { type: "string" },
+        dueDate: { type: "string" },
         remarks: { type: "array", default: JSON.stringify([]) },
         concernedPersonDetails: { type: "array", default: JSON.stringify([]) },
         activityType: { type: "string", default: ACTIVITY_TYPE.EMAIL },

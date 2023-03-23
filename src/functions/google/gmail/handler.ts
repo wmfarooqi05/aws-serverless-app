@@ -12,7 +12,7 @@ import { GoogleGmailService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import jwtMiddlewareWrapper from "@libs/middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
 
 // @TODO All the handler functions must be DEV only
 // We will control them from Activity Service -> GoogleService

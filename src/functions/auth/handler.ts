@@ -3,7 +3,7 @@ import "reflect-metadata";
 import {
   formatJSONResponse,
   ValidatedEventAPIGatewayProxyEvent,
-} from "../../libs/api-gateway";
+} from "@libs/api-gateway";
 
 export const callback: ValidatedEventAPIGatewayProxyEvent<any> =
   async (event) => {

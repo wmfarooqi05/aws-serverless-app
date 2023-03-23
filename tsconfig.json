@@ -18,7 +18,8 @@
       "@models/*": ["src/models/*"],
       "@helpers/*": ["src/helpers/*"],
       "@types/*": ["src/types/*"],
-      "@libs/*": ["src/libs/*"]
+      "@libs/*": ["src/libs/*"],
+      "@middlewares/*": ["src/libs/middlewares/*"]
       // "/opt/nodejs/*": ["layers/nodejs/node_modules/*"]
     }
   },

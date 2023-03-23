@@ -1,7 +1,6 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import { jwtMRequiredWrapper } from "@libs/middlewares/jwtMiddleware";
 
 const colors = [
   "\x1b[36m%s\x1b[0m",

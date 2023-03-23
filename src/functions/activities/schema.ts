@@ -1,5 +1,4 @@
 import Joi from "joi";
-import JoiDate from "@joi/date";
 import {
   ACTIVITY_TYPE,
   ACTIVITY_STATUS,
@@ -13,7 +12,6 @@ import {
 } from "src/models/interfaces/Activity";
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
 import moment from "moment-timezone";
 
 const schemaKeys = Object.keys(ActivityModel?.jsonSchema?.properties || {});
@@ -24,43 +22,19 @@ export const validateGetActivitiesByCompany = async (
 ) => {
   await Joi.object({
     companyId: Joi.string().guid().required(),
-    type: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_TYPE))
-    ),
-    // This is get all api, so we will not filter unless status is passed
-    status: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
-    ),
   })
+    .concat(getActivitiesJoiKey())
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(
-      { ...obj, companyId },
+      { ...getActivityJoiObject(obj), companyId },
       {
         abortEarly: true,
       }
     );
 };
 
-export const validateGetActivities = async (obj: any) => {
-  await Joi.object({
-    type: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_TYPE))
-    ),
-    // This is get all api, so we will not filter unless status is passed
-    status: Joi.array().items(
-      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
-    ),
-  })
-    .concat(getPaginatedJoiKeys(schemaKeys))
-    .validateAsync(obj, {
-      abortEarly: true,
-    });
-};
-
-export const validateGetMyActivities = async (createdBy: string, obj: any) => {
-  // const _Joi = Joi.extend(JoiDate);
-  await Joi.object({
-    createdBy: Joi.string().guid().required(),
+const getActivitiesJoiKey = (): Joi.ObjectSchema<any> => {
+  return Joi.object({
     type: Joi.array().items(
       Joi.string().valid(...Object.values(ACTIVITY_TYPE))
     ),
@@ -70,15 +44,44 @@ export const validateGetMyActivities = async (createdBy: string, obj: any) => {
     ),
     dateFrom: Joi.string().isoDate(),
     dateTo: Joi.string().isoDate(),
-    // dateTo: _Joi.date().format("YYYY-DD-MM"),
+    tags: Joi.array().items(Joi.string()),
+  });
+};
+
+const getActivityJoiObject = (obj: any) => {
+  const a = {
+    ...obj,
+    status: obj?.status?.split(","),
+    type: obj?.type?.split(","),
+    returningFields: obj?.returningFields?.split(","),
+    tags: obj?.tags?.split(","),
+  };
+  return a;
+};
+
+export const validateGetActivities = async (obj: any) => {
+  await getActivitiesJoiKey()
+    .concat(getPaginatedJoiKeys(schemaKeys))
+    .validateAsync(getActivityJoiObject(obj), {
+      abortEarly: true,
+    });
+};
+
+export const validateGetMyActivities = async (createdBy: string, obj: any) => {
+  await Joi.object({
+    createdBy: Joi.string().guid().required(),
   })
+    .concat(getActivitiesJoiKey())
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(
       {
+        ...getActivityJoiObject(obj),
         ...obj,
         createdBy,
         status: obj?.status?.split(","),
         type: obj?.type?.split(","),
+        returningFields: obj?.type?.split(","),
+        tags: obj?.tags?.split(","),
       },
       {
         abortEarly: true,
@@ -150,47 +153,6 @@ export const validateUpdateStatus = async (
     activityId: Joi.string().guid().required(),
     status: Joi.string().valid(...Object.keys(ACTIVITY_STATUS)),
   }).validateAsync({ employeeId, activityId, status });
-};
-
-export const validateRemarks = async (
-  employeeId: string,
-  activityId: string,
-  payload: any
-) => {
-  await Joi.object({
-    companyId: Joi.string().guid(), // @TODO remove in future
-    activityId: Joi.string().guid().required(),
-    remarksText: Joi.string().required().min(10).max(1500),
-    employeeId: Joi.string().guid().required(),
-    createdAt: Joi.string().isoDate(),
-    updatedAt: Joi.string().isoDate(),
-  }).validateAsync(
-    { ...payload, employeeId, activityId },
-    {
-      abortEarly: true,
-    }
-  );
-};
-
-export const validateUpdateRemarks = async (
-  employeeId: string,
-  activityId: string,
-  remarksId: string,
-  payload: any
-) => {
-  await Joi.object({
-    companyId: Joi.string().guid(),
-    activityId: Joi.string().guid().required(),
-    remarksId: Joi.string().guid().required(),
-    remarksText: Joi.string().required().min(10).max(1500),
-    employeeId: Joi.string().guid().required(),
-    dueDate: Joi.string(),
-  }).validateAsync(
-    { ...payload, employeeId, activityId, remarksId },
-    {
-      abortEarly: true,
-    }
-  );
 };
 
 const validateDetailPayload = async (
