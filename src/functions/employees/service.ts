@@ -4,7 +4,6 @@ import { inject, injectable } from "tsyringe";
 // import { randomUUID } from "crypto";
 // import momentTz from "moment-timezone";
 import EmployeeModel from "@models/Employees";
-import { WebSocketService } from "@functions/websocket/service";
 import {
   IEmployee,
   IEmployeeJwt,
@@ -12,9 +11,10 @@ import {
   RolesEnum,
 } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
-import { validateGetEmployees } from "./schema";
+import { validateGetEmployees, validateGetEmployeesSummary } from "./schema";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
+import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 
 export interface IEmployeeService {}
 
@@ -48,6 +48,8 @@ export class EmployeeService implements IEmployeeService {
         reportingManager: employeeId,
       });
 
+      // This is code for employees who are not assigned to any company, place it in correct function
+      /**
       this.docClient
         .get(EmployeeModel.tableName)
         .leftJoin(
@@ -57,11 +59,30 @@ export class EmployeeService implements IEmployeeService {
         )
         .whereNull(`${CompanyModel.tableName}.id`)
         .select(`${EmployeeModel}.*`);
-
+       */
       return employees;
     } catch (e) {
       console.log("e", e);
     }
+  }
+
+  /** Start from Manager and above */
+  async getEmployeesWorkSummary(employee: IEmployeeJwt, body: any) {
+    // now we will determine what should be the filter for
+    // filtering users
+    await validateGetEmployeesSummary(body);
+    const whereClause = this.getEmployeeFilter(employee);
+
+    const knex = this.docClient.getKnexClient();
+    return this.docClient
+      .getKnexClient()
+      .select("E.*", knex.raw("COUNT(C.id) as leads_count"))
+      .from(`${EmployeeModel.tableName} as E`)
+      .where(whereClause)
+      .leftJoin(`${CompanyModel.tableName} as C`, "E.id", "C.assigned_to")
+      .groupBy("E.id")
+      .orderBy(...getOrderByItems(body))
+      .paginate(getPaginateClauseObject(body));
   }
 
   async validateRequestByEmployeeRole(
@@ -87,4 +108,22 @@ export class EmployeeService implements IEmployeeService {
     }
   }
   // async;
+
+  getEmployeeFilter(employee: IEmployeeJwt): Object {
+    // This role will never reach here, but in case it gets custom permission from manager
+    // Then we also have to check custom permissions in this case
+    switch (RolesEnum[employee[roleKey][0]]) {
+      case RolesEnum.SALES_REP_GROUP:
+        throw new CustomError(
+          "This role is not authorized to see this data",
+          403
+        );
+      case RolesEnum.REGIONAL_MANAGER_GROUP:
+        return { reportingManager: employee.sub };
+      case RolesEnum.REGIONAL_MANAGER_GROUP:
+        return { teamId: employee.teamId };
+      default:
+        return {};
+    }
+  }
 }

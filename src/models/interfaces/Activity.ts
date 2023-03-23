@@ -56,6 +56,7 @@ export interface IStatusHistory {
   id: string;
   status: string;
   updatedAt: string;
+  updatedBy: string;
 }
 
 export interface IActivity {

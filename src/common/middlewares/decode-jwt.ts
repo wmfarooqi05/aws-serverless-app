@@ -2,7 +2,6 @@ import { APIGatewayEvent, APIGatewayProxyResult } from "aws-lambda";
 import { HandlerLambda, MiddlewareObject } from "middy";
 // import createHttpError from "http-errors";
 import { decode } from "jsonwebtoken";
-import { ICompany } from "@models/interfaces/Company";
 import {
   Actions,
   getPermissionsForEmployeeRole2,
@@ -13,17 +12,8 @@ import { ForbiddenError } from "@casl/ability";
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
-import { container } from "@common/container";
-import { DatabaseService } from "@libs/database/database-service-objection";
-import { COMPANIES_TABLE_NAME } from "@models/commons";
 import { formatErrorResponse } from "@libs/api-gateway";
-import { CustomError } from "@helpers/custom-error";
-import {
-  IRoles,
-  roleKey,
-  RolesArray,
-  RolesEnum,
-} from "@models/interfaces/Employees";
+import { roleKey, RolesArray, RolesEnum } from "@models/interfaces/Employees";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -31,6 +21,8 @@ export const decodeJWTMiddleware = () => {
       // @TODO dont send extra things in event.employee
       const token = event.headers?.Authorization?.split(" ")[1];
       event.employee = decode(token);
+      // we need to handle cognito auth custom way to gain more control
+      // V2 will cover this
     },
   };
 };
@@ -42,6 +34,7 @@ export const decodeJWTMiddlewareWebsocket = () => {
       if (event.queryStringParameters?.Authorization) {
         const token = event.queryStringParameters?.Authorization?.split(" ")[1];
         event.employee = decode(token);
+        event.employee.teamId = "team0"; // @TODO fix this with cognito auth
       }
     },
   };
@@ -60,6 +53,44 @@ export function permissionMiddleware(): MiddlewareObject<
   };
 }
 
+export const jwtRequired = () => {
+  return {
+    before: ({ event }) => {
+      const role = event?.employee?.[roleKey][0] || "";
+      const roleFound = RolesArray.find((x) => x === role) ? true : false;
+
+      // @DEV
+      if (event.employee?.sub) {
+        event.employee.teamId = "team0"; // @TODO fix this with cognito auth
+      }
+
+      if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
+        console.log("Auth Token missing or invalid");
+        return formatErrorResponse({
+          message: "Auth Token missing or invalid",
+          statusCode: 403,
+        });
+      }
+    },
+  };
+};
+
+export const allowRoleAndAbove = (permittedRole: number) => {
+  return {
+    before: ({ event }) => {
+      if (RolesEnum[event.employee[roleKey]] < permittedRole) {
+        return formatErrorResponse({
+          message: "Current role is not authorized to access this data",
+          statusCode: 403,
+        });
+      }
+    },
+  };
+};
+
+/**
+ @deprecated do not use this
+*/
 export const permissionMiddleware2 = (
   actions: Actions[],
   subject: ModuleTypeForCasl
@@ -88,35 +119,6 @@ export const permissionMiddleware2 = (
         );
       } catch (e) {
         return formatErrorResponse(e);
-      }
-    },
-  };
-};
-
-export const jwtRequired = () => {
-  return {
-    before: ({ event }) => {
-      const role = event?.employee?.[roleKey][0] || "";
-      const roleFound = RolesArray.find((x) => x === role) ? true : false;
-      if (!(roleFound && event?.employee?.sub)) {
-        console.log("Auth Token missing or invalid");
-        return formatErrorResponse({
-          message: "Auth Token missing or invalid",
-          statusCode: 403,
-        });
-      }
-    },
-  };
-};
-
-export const allowRoleAndAbove = (permittedRole: number) => {
-  return {
-    before: ({ event }) => {
-      if (RolesEnum[event.employee[roleKey]] < permittedRole) {
-        return formatErrorResponse({
-          message: "Current role is not authorized to access this data",
-          statusCode: 403,
-        });
       }
     },
   };

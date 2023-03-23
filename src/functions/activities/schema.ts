@@ -127,6 +127,8 @@ export const validateUpdateActivity = async (
   await Joi.object({
     summary: Joi.string(), // in case of email, it will be null
     statusShort: Joi.string().guid(),
+    // tags
+    // 
   })
     .min(1)
     .validateAsync(payload, {

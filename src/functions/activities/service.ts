@@ -29,21 +29,28 @@ import {
   IACTIVITY_DETAILS,
   IEMAIL_DETAILS,
   IRemarks,
+  IStatusHistory,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
-import { ACTIVITIES_TABLE, EMPLOYEES_TABLE_NAME } from "src/models/commons";
+import {
+  ACTIVITIES_TABLE,
+  EMPLOYEES_TABLE_NAME,
+  ModuleTitles,
+} from "src/models/commons";
 import { unionAllResults } from "./queries";
 
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt, RolesEnum } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { calendar_v3 } from "googleapis";
 import {
   addJsonbObjectHelper,
   deleteJsonbObjectHelper,
+  updateJsonbObjectHelper,
+  updateJsonbObjectWithObjectHelper,
   validateJSONItemAndGetIndex,
 } from "@common/json_helpers";
 import {
@@ -51,6 +58,8 @@ import {
   getPaginateClauseObject,
   sanitizeColumnNames,
 } from "@common/query";
+import { PendingApprovalService } from "@functions/pending_approvals/service";
+import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 
 // @TODO fix this
 export interface IActivityService {
@@ -76,6 +85,8 @@ export class ActivityService implements IActivityService {
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
+    @inject(PendingApprovalService)
+    private readonly pendingApprovalService: PendingApprovalService,
     // @TODO replace this with generic service (in case of adding multiple calendar service)
     @inject(GoogleCalendarService)
     private readonly calendarService: GoogleCalendarService,
@@ -278,7 +289,7 @@ export class ActivityService implements IActivityService {
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
       statusHistory: JSON.stringify([
-        { id: randomUUID(), status, updatedAt: moment().utc().format() },
+        createStatusHistory(status, createdBy.sub),
       ]),
       tags: payload.tags || JSON.stringify([]),
       reminders: payload.reminders || JSON.stringify([]),
@@ -333,6 +344,10 @@ export class ActivityService implements IActivityService {
     }
   }
 
+  /**
+   * We do not need this endpoint
+   * We will handle its params in their own endpoints
+   */
   async updateActivity(createdBy: string, activityId: string, body: any) {
     const payload = JSON.parse(body);
     await validateUpdateActivity(createdBy, activityId, payload);
@@ -352,6 +367,44 @@ export class ActivityService implements IActivityService {
     return updatedActivity;
   }
 
+  async updateStatusOfActivity(
+    employee: IEmployeeJwt,
+    activityId: string,
+    status: string
+  ) {
+    const activity = await ActivityModel.query().findById(activityId);
+
+    if (!activity) throw new CustomError("Activity not found", 404);
+
+    if (activity?.status === status) {
+      throw new CustomError("Activity has already same status", 400);
+    }
+
+    //@TODO add checks like if this employee can change, or his manager etc
+    // @TODO validate status type
+
+    // Before making it pending item, we need to write helper for mix normal and json key
+    // const isPermitted = true;
+    // if (!isPermitted) {
+    //   return this.createPendingActivity(
+    //     employee,
+    //     activityId,
+    //     PendingApprovalType.UPDATE,
+    //     payload
+    //   );
+    // } else {
+    const addQuery = addJsonbObjectHelper(
+      "statusHistory",
+      this.docClient.knexClient,
+      this.createStatusHistory(status, employee.sub)
+    );
+    return ActivityModel.query().patchAndFetchById(activityId, {
+      ...addQuery,
+      status,
+    });
+    // }
+  }
+
   async deleteActivity(id: string): Promise<any> {
     // @ADD some query to find index of id directly
     const deleted = await ActivityModel.query().deleteById(id);
@@ -359,6 +412,22 @@ export class ActivityService implements IActivityService {
     if (!deleted) {
       throw new CustomError("Activity not found", 404);
     }
+  }
+
+  async createPendingActivity(
+    employee: IEmployeeJwt,
+    activityId: string,
+    type: PendingApprovalType,
+    payload: any
+  ) {
+    return this.pendingApprovalService.createPendingApproval(
+      employee.sub,
+      activityId,
+      ModuleTitles.ACTIVITY,
+      ActivityModel.tableName,
+      type,
+      payload
+    );
   }
 
   async addRemarksToActivity(
@@ -620,5 +689,14 @@ export class ActivityService implements IActivityService {
 
   createTaskPayload(payload) {
     return payload ? payload : {};
+  }
+
+  createStatusHistory(status: string, employeeId: string): IStatusHistory {
+    return {
+      id: randomUUID(),
+      status,
+      updatedAt: moment().utc().format(),
+      updatedBy: employeeId,
+    };
   }
 }

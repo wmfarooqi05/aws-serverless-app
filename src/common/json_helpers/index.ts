@@ -50,6 +50,43 @@ export const updateJsonbObjectHelper = (
   };
 };
 
+export const updateJsonbObjectWithObjectHelper = async (
+  tableName: string,
+  rowId: string,
+  jsonKey: string,
+  knex: Knex<any, any[]>,
+  jsonObjId: any
+) => {
+  const item = await knex(tableName).where({ id: rowId });
+
+  if (!item) {
+    throw new CustomError(`${tableName} item doesn't exists.`, 404);
+  }
+
+  // @TODO check if concernedPersons is null
+  const index = item?.[jsonKey]?.findIndex((x) => x.id === jsonObjId);
+
+  if (index === -1) {
+    throw new CustomError("Concerned Person doesn't exist", 404);
+  }
+
+  const keySnakeCase = jsonKey
+    .split(/(?=[A-Z])/)
+    .join("_")
+    .toLowerCase();
+  return {
+    [jsonKey]: knex.raw(
+      `
+        jsonb_set(${keySnakeCase}, 
+          '{
+            ${index}
+          }', '${JSON.stringify(item)}', 
+          true
+        )
+      `
+    ),
+  };
+};
 export const deleteJsonbObjectHelper = (
   key: string,
   knex: any,

@@ -1,6 +1,7 @@
 export interface IEmployeeJwt {
   sub: string;
   "cognito:groups": string;
+  teamId: string;
 }
 
 export const roleKey = "cognito:groups";

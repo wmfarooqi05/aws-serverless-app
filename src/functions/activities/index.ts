@@ -118,6 +118,19 @@ const updateActivity = {
   ],
 };
 
+const updateStatusOfActivity = {
+  handler: `${handlerPath(__dirname)}/handler.updateStatusOfActivity`,
+  events: [
+    {
+      http: {
+        method: "put",
+        path: "activity/{activityId}/status/{status}",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const deleteActivity = {
   handler: `${handlerPath(__dirname)}/handler.deleteActivity`,
   events: [
@@ -185,4 +198,5 @@ export {
   getMyActivitiesByDay,
 
   getMyStaleActivityByStatus,
+  updateStatusOfActivity,
 };

@@ -12,6 +12,7 @@ import {
   getAllActivitiesByCompany,
   getMyActivitiesByDay,
   getMyStaleActivityByStatus,
+  updateStatusOfActivity,
 } from "@functions/activities";
 
 import {
@@ -69,7 +70,7 @@ import {
 
 import { importData } from "@functions/jobs";
 
-import { getEmployees } from "@functions/employees";
+import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
 
 export default {
   createCompany,
@@ -108,6 +109,7 @@ export default {
   // createActivity,
   approvePendingApproval,
   sendWebSocketNotification,
+  updateStatusOfActivity,
 
   // Reminders
   createReminder,
@@ -136,4 +138,5 @@ export default {
 
   // employees
   getEmployees,
+  getEmployeesWorkSummary,
 };

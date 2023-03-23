@@ -13,7 +13,8 @@ import { ActivityService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import jwtMWrapper from "@libs/middlewares/jwtMiddleware";
+import jwtMWrapper, { allowRoleWrapper } from "@libs/middlewares/jwtMiddleware";
+import { RolesEnum } from "@models/interfaces/Employees";
 
 const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
@@ -111,10 +112,7 @@ const getMyStaleActivityByStatusHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getMyStaleActivityByStatus(
-        event?.employee,
-        event.queryStringParameters
-      );
+      .getMyStaleActivityByStatus(event?.employee, event.queryStringParameters);
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -144,6 +142,18 @@ export const updateActivityHandler = async (event) => {
       .resolve(ActivityService)
       .updateActivity(event?.employee?.sub, activityId, event.body);
     return formatJSONResponse(updatedActivity, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const updateStatusOfActivityHandler = async (event) => {
+  try {
+    const { activityId, status } = event.pathParameters;
+    const updatedStatus = await container
+      .resolve(ActivityService)
+      .updateStatusOfActivity(event?.employee, activityId, status);
+    return formatJSONResponse(updatedStatus, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -234,3 +244,7 @@ export const getMyStaleActivityByStatus = jwtMWrapper(
 
 export const getMyActivitiesByDay = jwtMWrapper(getMyActivitiesByDayHandler);
 export const updateActivity = jwtMWrapper(updateActivityHandler);
+export const updateStatusOfActivity = allowRoleWrapper(
+  updateStatusOfActivityHandler,
+  RolesEnum.SALES_REP_GROUP
+);
