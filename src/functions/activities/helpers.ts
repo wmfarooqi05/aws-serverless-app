@@ -1,3 +1,5 @@
+import { getOrderByItems, getPaginateClauseObject, sanitizeColumnNames } from "@common/query";
+import ActivityModel from "@models/Activity";
 import {
   ACTIVITY_TYPE,
   IACTIVITY_DETAILS,
@@ -111,4 +113,44 @@ export const createStatusHistory = (
     updatedAt: moment().utc().format(),
     updatedBy: employeeId,
   };
+};
+
+export const sortedTags = (tags: string[]) => {
+  if (!(tags?.length > 0)) return JSON.stringify([]);
+  return tags?.sort((a, b) => a.localeCompare(b));
+};
+
+export const addFiltersToQueryBuilder = (queryBuilder, body) => {
+  const { status, dateFrom, dateTo, type, returningFields, tags } = body;
+
+  queryBuilder.select(
+    sanitizeColumnNames(ActivityModel.columnNames, returningFields)
+  );
+
+  if (status) {
+    queryBuilder.whereIn("status", status?.split(","));
+  }
+
+  if (tags) {
+    queryBuilder.where(
+      "tags",
+      "@>",
+      JSON.stringify(tags?.split(",").map((x) => x.trim()))
+    );
+  }
+  if (type) {
+    queryBuilder.whereIn("activityType", type?.split(","));
+  }
+  if (dateFrom && dateTo) {
+    queryBuilder.whereBetween("dueDate", [dateFrom, dateTo]);
+  } else if (dateFrom) {
+    queryBuilder.where("dueDate", ">=", dateFrom);
+  } else if (dateTo) {
+    queryBuilder.where("dueDate", "<=", dateTo);
+  }
+
+  queryBuilder.orderBy(...getOrderByItems(body));
+  queryBuilder.paginate(getPaginateClauseObject(body));
+
+  return queryBuilder;
 };

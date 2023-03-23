@@ -35,56 +35,9 @@ import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { addJsonbObjectHelper } from "@common/json_helpers";
-import {
-  getOrderByItems,
-  getPaginateClauseObject,
-  sanitizeColumnNames,
-} from "@common/query";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
-import { createDetailsPayload, createStatusHistory } from "./helpers";
-
-// @TODO fix this
-
-const sortedTags = (tags: string[]) => {
-  if (!(tags?.length > 0)) return JSON.stringify([]);
-  return tags?.sort((a, b) => a.localeCompare(b));
-};
-
-const addFiltersToQueryBuilder = (queryBuilder, body) => {
-  const { status, dateFrom, dateTo, type, returningFields, tags } = body;
-
-  queryBuilder.select(
-    sanitizeColumnNames(ActivityModel.columnNames, returningFields)
-  );
-
-  if (status) {
-    queryBuilder.whereIn("status", status?.split(","));
-  }
-
-  if (tags) {
-    queryBuilder.where(
-      "tags",
-      "@>",
-      JSON.stringify(tags?.split(",").map((x) => x.trim()))
-    );
-  }
-  if (type) {
-    queryBuilder.whereIn("activityType", type?.split(","));
-  }
-  if (dateFrom && dateTo) {
-    queryBuilder.whereBetween("dueDate", [dateFrom, dateTo]);
-  } else if (dateFrom) {
-    queryBuilder.where("dueDate", ">=", dateFrom);
-  } else if (dateTo) {
-    queryBuilder.where("dueDate", "<=", dateTo);
-  }
-
-  queryBuilder.orderBy(...getOrderByItems(body));
-  queryBuilder.paginate(getPaginateClauseObject(body));
-
-  return queryBuilder;
-};
+import { addFiltersToQueryBuilder, createDetailsPayload, createStatusHistory } from "./helpers";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
