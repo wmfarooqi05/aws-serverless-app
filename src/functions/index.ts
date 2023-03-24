@@ -9,6 +9,7 @@ import {
   getAllActivitiesByCompany,
   getMyStaleActivityByStatus,
   updateStatusOfActivity,
+  getEmployeeStaleActivityByStatus,
 } from "@functions/activities";
 
 import {
@@ -106,6 +107,7 @@ export default {
   getTopActivities,
   getAllActivitiesByCompany,
   getMyStaleActivityByStatus,
+  getEmployeeStaleActivityByStatus,
   // ACTIVITY
   // createActivity,
   approvePendingApproval,

@@ -1,4 +1,8 @@
-import { getOrderByItems, getPaginateClauseObject, sanitizeColumnNames } from "@common/query";
+import {
+  getOrderByItems,
+  getPaginateClauseObject,
+  sanitizeColumnNames,
+} from "@common/query";
 import ActivityModel from "@models/Activity";
 import {
   ACTIVITY_TYPE,
@@ -9,6 +13,7 @@ import {
 import { IEmployee } from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
 import { calendar_v3 } from "googleapis";
+import { Knex } from "knex";
 import moment from "moment";
 
 export const createDetailsPayload = (
@@ -153,4 +158,36 @@ export const addFiltersToQueryBuilder = (queryBuilder, body) => {
   queryBuilder.paginate(getPaginateClauseObject(body));
 
   return queryBuilder;
+};
+
+export const addStaleActivityFilters = (
+  qb: Knex.QueryBuilder<any, any>,
+  body
+): Knex.QueryBuilder<any, any> => {
+  const { statuses, daysAgo, priorities, activityTypes } = body;
+  const days = daysAgo ? parseInt(daysAgo) : 7;
+  const daysAgoCount = moment()
+    .subtract(days, "days")
+    .startOf("day")
+    .utc()
+    .format();
+
+  if (statuses) {
+    qb.whereIn("status", statuses?.split(","));
+  }
+  if (priorities) {
+    qb.whereIn("priority", priorities?.split(","));
+  }
+  if (activityTypes) {
+    qb.whereIn("activity_type", activityTypes?.split(","));
+  }
+  qb.whereRaw(
+    `(((status_history->>-1)::jsonb)->>'updatedAt')::timestamp < ?`,
+    daysAgoCount
+  );
+  qb.orderByRaw(
+    "(((status_history->> -1)::jsonb)->>'updatedAt')::timestamp DESC"
+  );
+  qb.paginate(getPaginateClauseObject(body));
+  return qb;
 };

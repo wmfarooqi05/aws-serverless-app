@@ -228,3 +228,43 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
 const validateTaskDetails = async (details: ITASK_DETAILS) => {
   console.log(details);
 };
+
+const getStaleActivities = (): Joi.ObjectSchema => {
+  return Joi.object({
+    daysAgo: Joi.number(),
+    statuses: Joi.array().items(
+      Joi.string().valid(...Object.values(ACTIVITY_STATUS))
+    ),
+    priorities: Joi.array().items(
+      Joi.string().valid(...Object.values(ACTIVITY_PRIORITY))
+    ),
+    activityTypes: Joi.array().items(
+      Joi.string().valid(...Object.values(ACTIVITY_TYPE))
+    ),
+  }).concat(getPaginatedJoiKeys(schemaKeys));
+};
+
+export const validateGetMyStaleActivities = (payload) => {
+  return Joi.object()
+    .concat(getStaleActivities())
+    .validateAsync({
+      ...payload,
+      statuses: payload?.statuses?.split(","),
+      priorities: payload?.priorities?.split(","),
+      activityTypes: payload?.activityTypes?.split(","),
+    });
+};
+
+export const validateGetEmployeeStaleActivities = (payload) => {
+  return Joi.object({
+    createdByIds: Joi.array().items(Joi.string().guid()),
+  })
+    .concat(getStaleActivities())
+    .validateAsync({
+      ...payload,
+      statuses: payload?.statuses?.split(","),
+      priorities: payload?.priorities?.split(","),
+      activityTypes: payload?.activityTypes?.split(","),
+      createdByIds: payload?.createdByIds?.split(","),
+    });
+};

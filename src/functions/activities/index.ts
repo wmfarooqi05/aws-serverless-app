@@ -66,6 +66,20 @@ const getMyStaleActivityByStatus = {
   ],
 };
 
+const getEmployeeStaleActivityByStatus = {
+  handler: `${handlerPath(__dirname)}/handler.getEmployeeStaleActivityByStatus`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "activities/stale",
+        cors: true,
+      },
+    },
+  ],
+};
+
+
 const getActivityById = {
   handler: `${handlerPath(__dirname)}/handler.getActivityById`,
   events: [
@@ -143,4 +157,5 @@ export {
 
   getMyStaleActivityByStatus,
   updateStatusOfActivity,
+  getEmployeeStaleActivityByStatus,
 };

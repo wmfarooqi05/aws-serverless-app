@@ -12,6 +12,7 @@ import { validateGetEmployees, validateGetEmployeesSummary } from "./schema";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
+import { getEmployeeFilter } from "./helpers";
 
 export interface IEmployeeService {}
 
@@ -68,7 +69,7 @@ export class EmployeeService implements IEmployeeService {
     // now we will determine what should be the filter for
     // filtering users
     await validateGetEmployeesSummary(body);
-    const whereClause = this.getEmployeeFilter(employee);
+    const whereClause = getEmployeeFilter(employee);
     const { minCompanyCount, maxCompanyCount } = body;
 
     if (
@@ -128,22 +129,4 @@ export class EmployeeService implements IEmployeeService {
     }
   }
   // async;
-
-  getEmployeeFilter(employee: IEmployeeJwt): Object {
-    // This role will never reach here, but in case it gets custom permission from manager
-    // Then we also have to check custom permissions in this case
-    switch (RolesEnum[employee[roleKey][0]]) {
-      case RolesEnum.SALES_REP_GROUP:
-        throw new CustomError(
-          "This role is not authorized to see this data",
-          403
-        );
-      case RolesEnum.REGIONAL_MANAGER_GROUP:
-        return { reportingManager: employee.sub };
-      case RolesEnum.REGIONAL_MANAGER_GROUP:
-        return { teamId: employee.teamId };
-      default:
-        return {};
-    }
-  }
 }

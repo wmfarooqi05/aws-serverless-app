@@ -6,7 +6,8 @@ import {
   validateCreateActivity,
   validateGetActivities,
   validateGetActivitiesByCompany,
-  validateGetMyActivities,
+  validateGetEmployeeStaleActivities,
+  validateGetMyStaleActivities,
   validateUpdateActivity,
   validateUpdateStatus,
 } from "./schema";
@@ -40,12 +41,16 @@ import { PendingApprovalService } from "@functions/pending_approvals/service";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import {
   addFiltersToQueryBuilder,
+  addStaleActivityFilters,
+  // addStaleActivityFilters,
   createDetailsPayload,
   createStatusHistory,
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
 import { IReminder, ReminderTimeType } from "@models/Reminders";
+import { getEmployeeFilter } from "@functions/employees/helpers";
+import { getPaginateClauseObject } from "@common/query";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -97,12 +102,10 @@ export class ActivityService implements IActivityService {
      */
     await validateGetActivitiesByCompany(createdBy, body);
 
-    return this.docClient
-      .get(this.TableName)
-      .modify(function (queryBuilder) {
-        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
-      })
-      .where({ createdBy });
+    return this.docClient.get(this.TableName).modify(function (queryBuilder) {
+      queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+      queryBuilder.where({ createdBy });
+    });
   }
 
   // Limit this only for admin
@@ -289,11 +292,6 @@ export class ActivityService implements IActivityService {
     }
   }
 
-  getReminderPayload(activityObj: IActivity) {
-    const { id, summary, activityType, companyId, dueDate, desc } = activityObj;
-    return {};
-  }
-
   async scheduleEb(
     reminder: IReminderInterface,
     dueDate: string,
@@ -404,33 +402,28 @@ export class ActivityService implements IActivityService {
     );
   }
 
-  async getMyStaleActivityByStatus(employee: IEmployeeJwt, body: any) {
-    const { status, daysAgo } = body;
-
-    const sevenDaysAgo = moment()
-      .subtract(parseInt(daysAgo), "days")
-      .startOf("day")
-      .utc()
-      .format();
-
-    const result = await ActivityModel.query()
-      .whereNotNull("status_history")
-      .where("createdBy", employee.sub)
-      .where((builder) => {
-        builder
-          .whereRaw(`jsonb_array_length(status_history) > 0`)
-          .whereRaw(`((status_history->>-1)::jsonb)->>'status' = ?`, status)
-          .whereRaw(
-            `(((status_history->>-1)::jsonb)->>'updatedAt')::timestamp < ?`,
-            sevenDaysAgo
-          );
-      })
-      .orderByRaw(
-        "(((status_history->> -1)::jsonb)->>'updatedAt')::timestamp DESC"
-      );
-    return result;
+  async getMyStaleActivities(employee: IEmployeeJwt, body: any) {
+    await validateGetMyStaleActivities(body);
+    return this.docClient.get(this.TableName).modify(function (qb) {
+      qb = addStaleActivityFilters(qb, body);
+      qb.where({ createdBy: employee.sub });
+    });
   }
 
+  async getEmployeeStaleActivityByStatus(manager: IEmployeeJwt, body: any) {
+    await validateGetEmployeeStaleActivities(body);
+    const { createdByIds } = body;
+
+    // const employee: IEmployee = EmployeeModel.query().findById(employeeId);
+
+    // @TODO add validation for manager permissions
+    // getEmployeeFilter(manager);
+
+    return this.docClient.get(this.TableName).modify(function (qb) {
+      qb = addStaleActivityFilters(qb, body);
+      if (createdByIds) qb.whereIn("createdBy", createdByIds?.split(","));
+    });
+  }
   // @TODO re-write with help of jwt payload,
   // manager will be there and also role
   // if role is above manager, he can see,

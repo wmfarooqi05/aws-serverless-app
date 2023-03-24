@@ -97,7 +97,21 @@ const getMyStaleActivityByStatusHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getMyStaleActivityByStatus(event?.employee, event.queryStringParameters);
+      .getMyStaleActivities(event?.employee, event.queryStringParameters);
+    return formatJSONResponse(activities, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const getEmployeeStaleActivityByStatusHandler = async (event) => {
+  try {
+    const activities = await container
+      .resolve(ActivityService)
+      .getEmployeeStaleActivityByStatus(
+        event?.employee,
+        event.queryStringParameters
+      );
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -170,6 +184,9 @@ export const getAllActivitiesByCompany = allowRoleWrapper(
 );
 export const getMyStaleActivityByStatus = allowRoleWrapper(
   getMyStaleActivityByStatusHandler
+);
+export const getEmployeeStaleActivityByStatus = allowRoleWrapper(
+  getEmployeeStaleActivityByStatusHandler
 );
 
 export const updateActivity = allowRoleWrapper(updateActivityHandler);
