@@ -41,17 +41,18 @@ export enum ACTIVITY_PRIORITY {
   HIGHEST = "HIGHEST",
 }
 
-// rename this to Activity
-// link this with task, not company
-
-export interface IReminder {
-  id: string;
-  title: string;
-  repeat: string;
-  // add whole reminder logic here
+export interface IReminderInterface {
+  useDefault?: boolean;
+  overrides?: [
+    {
+      method: "email" | "popup";
+      minutes: number;
+    }
+  ];
 }
 
-export interface IRepeatReminder {}
+// rename this to Activity
+// link this with task, not company
 
 export interface IStatusHistory {
   id: string;
@@ -67,7 +68,7 @@ export interface IActivity {
   companyId: string;
   createdBy: string;
   remarks?: IRemarks[];
-  concernedPersonDetails: Pick<IConcernedPerson, "id" | "name">[];
+  concernedPersonDetails: IConcernedPerson[];
   activityType: ACTIVITY_TYPE;
   priority: ACTIVITY_PRIORITY;
   scheduled: boolean;
@@ -75,8 +76,7 @@ export interface IActivity {
   status: ACTIVITY_STATUS; // @TODO replace with status
   statusHistory: IStatusHistory[];
   tags: string[];
-  reminders?: IReminder[];
-  repeatReminders: IRepeatReminder[];
+  reminders?: IReminderInterface;
   dueDate: string;
   createdAt: string;
   updatedAt: string;
@@ -99,18 +99,6 @@ export enum CALL_TYPE {
   MISSED = "MISSED",
 }
 
-export interface IPHONE_DETAILS {
-  callType: CALL_TYPE;
-  callDuration: number;
-  phoneNumber: string;
-  date: string;
-  callAgenda: string;
-  callResult: string;
-  description: string;
-  callStartTime: string;
-  callEndTime: string;
-  isScheduled: boolean;
-}
 export interface IEMAIL_DETAILS {
   fromEmail: string;
   from: string;
@@ -140,6 +128,7 @@ export interface IMEETING_DETAILS {
   };
   sendUpdates: "all" | "externalOnly" | "none";
   createVideoLink: boolean;
+  // @TODO verify and make this IReminderInterface
   reminders?: {
     useDefault?: boolean;
     overrides?: [
@@ -167,6 +156,19 @@ export interface ITASK_DETAILS {
   title: string;
   summary: string;
   description: string;
+  isScheduled: boolean;
+}
+
+export interface IPHONE_DETAILS {
+  callType: CALL_TYPE;
+  callDuration: number;
+  phoneNumber: string;
+  date: string;
+  callAgenda: string;
+  callResult: string;
+  description: string;
+  callStartTime: string;
+  callEndTime: string;
   isScheduled: boolean;
 }
 

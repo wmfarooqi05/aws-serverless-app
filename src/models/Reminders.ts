@@ -16,7 +16,10 @@ export enum ReminderStatus {
   DONE = "DONE",
 }
 
+// export type ReminderType = "JOB" | "REMINDER"
+
 export enum ReminderTimeType {
+  CUSTOM = "CUSTOM",
   Reminder_5M_Before = "Reminder_5M_Before",
   Reminder_15M_Before = "Reminder_15M_Before",
   Reminder_1H_Before = "Reminder_1H_Before",
@@ -31,13 +34,15 @@ export enum ReminderType {
   TASK = "TASK",
 }
 
+export type SCHEDULED_STATUS = "SCHEDULED" | "ERROR";
+
 export interface IReminder {
   id: string;
   executionArn: string;
   reminderAwsId: string;
   reminderTimeType: string;
   type: string;
-  status: string;
+  status: SCHEDULED_STATUS;
   reminderTime: string;
   data: JSON;
   activityId: string;
@@ -54,7 +59,6 @@ export default class ReminderModel extends Model {
   static get columnNames(): string[] {
     return Object.keys(this.jsonSchema.properties);
   }
-
 
   static get jsonSchema() {
     return {
@@ -75,7 +79,7 @@ export default class ReminderModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["reminderAwsId", "type"],
+      required: ["activityId", "type", "reminderTime"],
       additionalProperties: false,
     };
   }

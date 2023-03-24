@@ -1,24 +1,27 @@
 import "reflect-metadata";
-import {
-  inject,
-  injectable,
-} from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import {
   SchedulerClient,
   CreateScheduleCommand,
   CreateScheduleCommandInput,
   DeleteScheduleCommand,
   DeleteScheduleCommandInput,
+  Target,
+  CreateScheduleCommandOutput,
 } from "@aws-sdk/client-scheduler";
-import {
-  S3Client,
-  PutObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import http from "http";
 
 import { randomUUID } from "crypto";
-import ReminderModel, { IReminder, ReminderStatus } from "src/models/Reminders";
+import ReminderModel, {
+  IReminder,
+  ReminderStatus,
+  ReminderTimeType,
+  ReminderType,
+} from "src/models/Reminders";
 import moment from "moment-timezone";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { IReminderInterface } from "@models/interfaces/Activity";
 
 export interface IReminderService {}
 
@@ -44,6 +47,81 @@ export class ReminderService implements IReminderService {
     });
   }
 
+  // for internal service
+  async scheduleReminders(
+    remindersPayload: IReminderInterface["overrides"],
+    dueDate: string,
+    activityId: string,
+    type: ReminderTimeType
+  ) {
+    const reminderResp = [];
+    try {
+      for (let i = 0; i < remindersPayload.length; i++) {
+        const { minutes, method } = remindersPayload[0];
+        const reminderTime = moment(dueDate)
+          .utc()
+          .subtract(minutes, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
+        // 2022-11-01T11:00:00
+        // .format("YYYY-MM-DDTHH:mm:ssZ");
+        console.log("reminderTime", reminderTime);
+        const reminderObj: IReminder = await ReminderModel.query().insert({
+          activityId,
+          reminderTime,
+          type,
+        });
+        const data = {
+          activityId,
+          method,
+          dueDate,
+          type,
+          reminderId: reminderObj.id,
+        };
+        const awsEBSItem = await this.createEBSchedulerHelper(
+          reminderTime,
+          data
+        );
+        reminderResp.push(awsEBSItem);
+
+        await ReminderModel.query().patchAndFetchById(reminderObj.id, {
+          executionArn: awsEBSItem.output.ScheduleArn,
+          reminderAwsId: awsEBSItem.awsEBSItemId,
+          reminderTime,
+          type,
+          data: { ...data, jobData: awsEBSItem },
+          status: awsEBSItem.output.$metadata.httpStatusCode.toString(),
+        });
+      }
+    } catch (e) {
+      reminderResp.push(e);
+    } finally {
+      return reminderResp;
+    }
+  }
+
+  async createReminderObjects(
+    reminderItem: [
+      {
+        reminderId: string;
+        output: CreateScheduleCommandOutput;
+      }
+    ]
+  ) {
+    remindersItems.push({
+      activityId,
+      executionArn: reminderItem.output.ScheduleArn,
+      reminderAwsId: reminderItem.reminderId,
+      reminderTime: time,
+      reminderTimeType: ReminderTimeType.CUSTOM,
+      data,
+      status:
+        reminderItem.output.$metadata.httpStatusCode === 200
+          ? "SCHEDULED"
+          : "ERROR",
+      type: ReminderType.GENERAL,
+    });
+  }
+  // check if this is required?
   async ScheduleReminder(body) {
     const payload = JSON.parse(body);
     const params: ReminderEBSchedulerPayload = {
@@ -69,7 +147,7 @@ export class ReminderService implements IReminderService {
         Mode: "OFF",
       },
       Target: target,
-      ScheduleExpression: `at(${params.reminderTime})`,
+      ScheduleExpression: `at("${params.reminderTime}")`,
       GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
       ClientToken: randomUUID(),
     };
@@ -174,10 +252,19 @@ export class ReminderService implements IReminderService {
       };
     }
   }
-  // no need for this
-  /** @deprecated */
-  private async createSchedulerHelper(params: ReminderEBSchedulerPayload) {
-    const target: AWS.Scheduler.Target = {
+
+  private async createEBSchedulerHelper(
+    reminderTime: string,
+    data: any
+  ): Promise<{ awsEBSItemId: string; output: CreateScheduleCommandOutput }> {
+    const awsEBSItemId = randomUUID();
+    const params = {
+      reminderTime,
+      name: `Reminder-${awsEBSItemId}`,
+      eventType: "REMINDER",
+      data,
+    };
+    const target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
       Arn: process.env.REMINDER_TARGET_LAMBDA!,
       Input: JSON.stringify(params),
@@ -189,19 +276,15 @@ export class ReminderService implements IReminderService {
         Mode: "OFF",
       },
       Target: target,
-      ScheduleExpression: `at(${params.reminderTime})`,
+      ScheduleExpression: `at(${reminderTime})`,
       GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
-      ClientToken: randomUUID(),
+      ClientToken: awsEBSItemId,
     };
 
     const command: CreateScheduleCommand = new CreateScheduleCommand(input);
-    const result = await this.schedulerClient.send(command);
+    const output = await this.schedulerClient.send(command);
 
-    // const result = await this.schedulerClient
-    //   .createSchedule(schedulerInput)
-    //   .promise();
-
-    // return result;
+    return { awsEBSItemId, output };
   }
 
   private async stopExecution(

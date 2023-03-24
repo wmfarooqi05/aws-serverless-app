@@ -55,6 +55,7 @@ import {
 import EmployeeModel from "@models/Employees";
 import { EmployeeService } from "@functions/employees/service";
 
+
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
   createCompany(company: ICompanyModel): Promise<ICompanyModel>;
@@ -102,21 +103,6 @@ export class CompanyService implements ICompanyService {
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
   }
-
-  // async getMyCompanies(
-  //   employee: IEmployeeJwt,
-  //   body: any
-  // ): Promise<ICompanyPaginated> {
-  //   await validateGetCompanies(body);
-  //   const { returningFields } = body;
-
-  //   return this.docClient
-  //     .getKnexClient()(CompanyModel.tableName)
-  //     .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
-  //     .where({ assignedTo: employee.sub })
-  //     .orderBy(...getOrderByItems(body))
-  //     .paginate(getPaginateClauseObject(body));
-  // }
 
   async getCompaniesByEmployeeId(
     user: IEmployeeJwt,

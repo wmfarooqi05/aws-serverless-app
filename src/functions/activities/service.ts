@@ -23,6 +23,7 @@ import {
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_TYPE,
   IActivity,
+  IReminderInterface,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE, ModuleTitles } from "src/models/commons";
@@ -37,7 +38,14 @@ import { GaxiosResponse } from "gaxios";
 import { addJsonbObjectHelper } from "@common/json_helpers";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
-import { addFiltersToQueryBuilder, createDetailsPayload, createStatusHistory } from "./helpers";
+import {
+  addFiltersToQueryBuilder,
+  createDetailsPayload,
+  createStatusHistory,
+  sortedTags,
+} from "./helpers";
+import { ReminderService } from "@functions/reminders/service";
+import { IReminder, ReminderTimeType } from "@models/Reminders";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -69,7 +77,9 @@ export class ActivityService implements IActivityService {
     private readonly calendarService: GoogleCalendarService,
     // @TODO replace this with generic service (in case of adding multiple email service)
     @inject(GoogleGmailService)
-    private readonly emailService: GoogleGmailService
+    private readonly emailService: GoogleGmailService,
+    @inject(ReminderService)
+    private readonly reminderService: ReminderService
   ) {}
 
   async getMyActivities(
@@ -193,7 +203,7 @@ export class ActivityService implements IActivityService {
       ? payload.status
       : ACTIVITY_STATUS.NOT_STARTED;
     // @TODO add validations for detail object
-    const activityObj = {
+    const activityObj: IActivity = {
       summary: payload.summary,
       details,
       companyId: payload.companyId,
@@ -205,8 +215,9 @@ export class ActivityService implements IActivityService {
         createStatusHistory(status, createdBy.sub),
       ]),
       tags: sortedTags(payload.tags),
-      reminders: payload.reminders || JSON.stringify([]),
-      repeatReminders: payload.repeatReminders || JSON.stringify([]),
+      reminders: payload.reminders || {
+        overrides: [{ method: "popup", minutes: 15 }],
+      },
       // createdAt: payload.createdAt,
       // updatedAt: payload.createdAt,
 
@@ -214,38 +225,59 @@ export class ActivityService implements IActivityService {
       dueDate: payload.dueDate,
     };
 
-    if (
-      activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
-      activityObj.activityType === ACTIVITY_TYPE.MEETING
-    ) {
-      try {
-        const resp = await this.runSideGoogleJob(activityObj);
-        activityObj.details.jobData = {
-          status: resp?.status || 424,
-        };
-      } catch (e) {
-        activityObj.details.jobData = {
-          status: 500,
-        };
-        if (e.config && e.headers) {
-          activityObj.details.jobData.errorStack = formatGoogleErrorBody(e);
-        } else {
-          activityObj.details.jobData.errorStack = {
-            message: e.message,
-            stack: e.stack,
-          };
-        }
-      }
-    } else {
-      // AWS EB Scheduler Case
-    }
-
     try {
       const activity: IActivity[] = await this.docClient
         .get(this.TableName)
         .insert(activityObj)
         .returning("*");
-
+      if (
+        activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
+        activityObj.activityType === ACTIVITY_TYPE.MEETING
+      ) {
+        try {
+          const resp = await this.runSideGoogleJob(activityObj);
+          activity[0].details.jobData = {
+            status: resp?.status || 424,
+          };
+        } catch (e) {
+          activity[0].details.jobData = {
+            status: 500,
+          };
+          if (e.config && e.headers) {
+            activity[0].details.jobData.errorStack = formatGoogleErrorBody(e);
+          } else {
+            activity[0].details.jobData.errorStack = {
+              message: e.message,
+              stack: e.stack,
+            };
+          }
+        }
+      } else if (
+        (activity[0].activityType === ACTIVITY_TYPE.TASK ||
+          activity[0].activityType === ACTIVITY_TYPE.CALL) &&
+        activity[0].details?.isScheduled
+      ) {
+        try {
+          // AWS EB Scheduler Case
+          const response = await this.scheduleEb(
+            activityObj.reminders,
+            activityObj.dueDate,
+            activity[0].id,
+            ReminderTimeType.CUSTOM
+          );
+          activity[0].details.jobData = response;
+        } catch (e) {
+          activity[0].details.jobData = {
+            stack: e.stack,
+            message: e.message,
+            status: 500,
+          };
+        }
+      }
+      ActivityModel.query().patchAndFetchById(activityObj.id, {
+        details: activity[0].details,
+      });
+      // write a query to update activity after creating scheduled tasks
       return activity[0];
     } catch (e) {
       if (e.name === "ForeignKeyViolationError") {
@@ -254,6 +286,30 @@ export class ActivityService implements IActivityService {
       } else {
         throw new CustomError(e.message, 502);
       }
+    }
+  }
+
+  getReminderPayload(activityObj: IActivity) {
+    const { id, summary, activityType, companyId, dueDate, desc } = activityObj;
+    return {};
+  }
+
+  async scheduleEb(
+    reminder: IReminderInterface,
+    dueDate: string,
+    originalRowId: any,
+    reminderTimeType: ReminderTimeType
+  ) {
+    // if (reminder.useDefault) {
+    //   // Get From user's settings
+    // } else
+    if (reminder.overrides) {
+      return this.reminderService.scheduleReminders(
+        reminder.overrides,
+        dueDate,
+        originalRowId,
+        reminderTimeType
+      );
     }
   }
 

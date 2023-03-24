@@ -9,7 +9,6 @@ import { IWithPagination } from "knex-paginate";
 import {
   ACTIVITY_STATUS,
   ACTIVITY_TYPE,
-  ACTIVITY_STATUS_DETAILED,
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_PRIORITY,
 } from "./interfaces/Activity";
@@ -42,7 +41,7 @@ export default class ActivityModel extends Model {
         statusShort: { type: "string", default: ACTIVITY_STATUS_SHORT.OPEN },
         statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
-        reminders: { type: "array", default: JSON.stringify([]) }, // @TODO move to reminders table
+        reminders: { type: "object", default: JSON.stringify({}) }, // @TODO move to reminders table
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
