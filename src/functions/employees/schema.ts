@@ -16,7 +16,10 @@ export const validateGetEmployees = async (obj: any) => {
 };
 
 export const validateGetEmployeesSummary = async (obj: any) => {
-  await Joi.object()
+  await Joi.object({
+    minCompanyCount: Joi.number().min(0),
+    maxCompanyCount: Joi.number().min(0),
+  })
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(obj, {
       abortEarly: true,

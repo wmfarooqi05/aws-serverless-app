@@ -69,6 +69,18 @@ export class EmployeeService implements IEmployeeService {
     // filtering users
     await validateGetEmployeesSummary(body);
     const whereClause = this.getEmployeeFilter(employee);
+    const { minCompanyCount, maxCompanyCount } = body;
+
+    if (
+      minCompanyCount &&
+      maxCompanyCount &&
+      !(minCompanyCount <= maxCompanyCount)
+    ) {
+      throw new CustomError(
+        "minCompanyCount must be lesser or equal than maxCompanyCount",
+        400
+      );
+    }
 
     const knex = this.docClient.getKnexClient();
     return this.docClient
@@ -78,6 +90,17 @@ export class EmployeeService implements IEmployeeService {
       .where(whereClause)
       .leftJoin(`${CompanyModel.tableName} as C`, "E.id", "C.assigned_to")
       .groupBy("E.id")
+      .modify((qb) => {
+        if (minCompanyCount && maxCompanyCount) {
+          qb.havingRaw(
+            `COUNT(C.id) >= ${minCompanyCount} AND COUNT(C.id) <= ${maxCompanyCount} `
+          );
+        } else if (minCompanyCount) {
+          qb.havingRaw(`COUNT(C.id) >= ${minCompanyCount}`);
+        } else if (maxCompanyCount) {
+          qb.havingRaw(`COUNT(C.id) <= ${maxCompanyCount} `);
+        }
+      })
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
   }

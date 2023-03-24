@@ -321,6 +321,10 @@ export class ActivityService implements IActivityService {
     const payload = JSON.parse(body);
     await validateUpdateActivity(employee.sub, activityId, payload);
 
+    if (payload.dueDate && moment.utc(payload.dueDate).isBefore(moment.utc())) {
+      throw new CustomError("Due date has already passed", 400);
+    }
+
     // @TODO add validations for detail object
     const updatedActivity: IActivity =
       await ActivityModel.query().patchAndFetchById(activityId, payload);

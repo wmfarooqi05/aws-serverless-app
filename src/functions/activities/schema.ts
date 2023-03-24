@@ -133,6 +133,7 @@ export const validateUpdateActivity = async (
     priority: Joi.string().valid(...Object.keys(ACTIVITY_PRIORITY)),
     activityId: Joi.string().guid().required(),
     employeeId: Joi.string().guid().required(),
+    dueDate: Joi.string().isoDate(),
   })
     .min(1)
     .validateAsync(
