@@ -1,5 +1,10 @@
 import { CustomError } from "@helpers/custom-error";
-import { IEmployeeJwt, roleKey, RolesEnum } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  roleKey,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 
 export const getEmployeeFilter = (employee: IEmployeeJwt): Object => {
   // This role will never reach here, but in case it gets custom permission from manager
@@ -19,30 +24,36 @@ export const getEmployeeFilter = (employee: IEmployeeJwt): Object => {
   }
 };
 
-export const checkManagerPermissions = async (
+export const checkManagerPermissions = (
   manager: IEmployeeJwt,
-  requestedUserId
+  employee: IEmployee
 ) => {
-
-  
-
-  /**
-  if (employeeJwt.sub === requestedUserId || requestedUserId === "me") return;
-
-  const employeeRole: IEmployee = await EmployeeModel.query()
-    .findById(requestedUserId)
-    .returning(["role"]);
-
-  if (
-    !(
-      RolesEnum[employeeJwt[roleKey][0]] >= RolesEnum.ADMIN_GROUP ||
-      RolesEnum[employeeJwt[roleKey][0]] > RolesEnum[employeeRole.role]
-    )
-  ) {
-    throw new CustomError(
-      "You are not authorized to see this role's data",
-      400
-    );
+  if (!RolesEnum[manager["cognito:groups"][0]]) {
+    throw new CustomError("No valid role present", 403);
   }
-   */
+  switch (RolesEnum[manager["cognito:groups"][0]]) {
+    case RolesEnum.SALES_REP_GROUP:
+      throwUnAuthorizedError();
+    case RolesEnum.SALES_MANAGER_GROUP:
+      if (manager.sub !== employee.reportingManager) {
+        throwUnAuthorizedError();
+      }
+      return;
+    case RolesEnum.REGIONAL_MANAGER_GROUP:
+      if (
+        !(
+          RolesEnum.REGIONAL_MANAGER_GROUP >= RolesEnum[employee.role] &&
+          manager.teamId === employee.teamId
+        )
+      ) {
+        throwUnAuthorizedError();
+      }
+      return;
+    default:
+      return;
+  }
+};
+
+export const throwUnAuthorizedError = () => {
+  throw new CustomError("You are not permitted to access this data", 403);
 };

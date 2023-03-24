@@ -186,7 +186,8 @@ export const getMyStaleActivityByStatus = allowRoleWrapper(
   getMyStaleActivityByStatusHandler
 );
 export const getEmployeeStaleActivityByStatus = allowRoleWrapper(
-  getEmployeeStaleActivityByStatusHandler
+  getEmployeeStaleActivityByStatusHandler,
+  RolesEnum.SALES_MANAGER_GROUP
 );
 
 export const updateActivity = allowRoleWrapper(updateActivityHandler);

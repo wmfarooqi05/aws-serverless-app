@@ -49,7 +49,10 @@ import {
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
 import { IReminder, ReminderTimeType } from "@models/Reminders";
-import { getEmployeeFilter } from "@functions/employees/helpers";
+import {
+  checkManagerPermissions,
+  getEmployeeFilter,
+} from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 
 export interface IActivityService {
@@ -413,11 +416,11 @@ export class ActivityService implements IActivityService {
   async getEmployeeStaleActivityByStatus(manager: IEmployeeJwt, body: any) {
     await validateGetEmployeeStaleActivities(body);
     const { createdByIds } = body;
-
-    // const employee: IEmployee = EmployeeModel.query().findById(employeeId);
+    const _a = createdByIds?.split(",");
+    const employees: IEmployee[] = await EmployeeModel.query().findByIds(_a);
 
     // @TODO add validation for manager permissions
-    // getEmployeeFilter(manager);
+    employees.map((employee) => checkManagerPermissions(manager, employee));
 
     return this.docClient.get(this.TableName).modify(function (qb) {
       qb = addStaleActivityFilters(qb, body);

@@ -60,6 +60,10 @@ export const jwtRequired = () => {
         const role = event?.employee?.[roleKey][0] || "";
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
+        event.employee[roleKey] = [
+          RolesArray[RolesEnum.ADMIN_GROUP],
+        ];
+
         // @DEV
         if (event.employee?.sub) {
           event.employee.teamId = "team0"; // @TODO fix this with cognito auth

@@ -51,6 +51,7 @@ export interface IEmployee {
   phoneNumberVerified: boolean;
   phoneNumber: string;
   reportingManager: string;
+  teamId: string;
 
   settings: JSON;
   socialProfiles: JSON;

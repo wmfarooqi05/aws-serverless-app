@@ -13,7 +13,6 @@ export default class EmployeeModel extends Model {
     return Object.keys(this.jsonSchema.properties);
   }
 
-
   static get jsonSchema() {
     return {
       type: "object",
@@ -53,6 +52,7 @@ export default class EmployeeModel extends Model {
         settings: { type: "jsonb" },
         socialProfiles: { type: "jsonb" },
         EmployeeStatus: { type: "string" },
+        teamId: { type: "string" },
 
         timezone: { type: "string" },
         dateFormat: { type: "string" },
