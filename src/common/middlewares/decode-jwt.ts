@@ -14,6 +14,7 @@ import { ForbiddenError } from "@casl/ability";
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { formatErrorResponse } from "@libs/api-gateway";
 import { roleKey, RolesArray, RolesEnum } from "@models/interfaces/Employees";
+import { throwUnAuthorizedError } from "@common/errors";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -60,9 +61,7 @@ export const jwtRequired = () => {
         const role = event?.employee?.[roleKey][0] || "";
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
-        event.employee[roleKey] = [
-          RolesArray[RolesEnum.ADMIN_GROUP],
-        ];
+        event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
 
         // @DEV
         if (event.employee?.sub) {
@@ -94,6 +93,45 @@ export const allowRoleAndAbove = (permittedRole: number) => {
           message: "Current role is not authorized to access this data",
           statusCode: 403,
         });
+      }
+    },
+  };
+};
+
+export const allowOnlyMe = (key: string) => {
+  return {
+    before: ({ event }) => {
+      // @TODO remove me
+      if (event.employee.sub !== event[key] || event[key] !== "me") {
+        throwUnAuthorizedError();
+      }
+      if (event[key] === "me") {
+        event[key] = event.employee.sub;
+      }
+    },
+  };
+};
+
+export const allowMeOrRole = (
+  permittedRole: number = RolesEnum.SALES_REP_GROUP,
+  key: string
+) => {
+  return {
+    before: ({ event }) => {
+      let isAllowed = false;
+      if (event.employee.sub === event[key] || event[key] === "me") {
+        isAllowed = true;
+        if (event[key] === "me") {
+          event[key] = event.employee.sub;
+        }
+      }
+
+      if (RolesEnum[event.employee[roleKey]] >= permittedRole) {
+        isAllowed = true;
+      }
+
+      if (!isAllowed) {
+        throwUnAuthorizedError();
       }
     },
   };

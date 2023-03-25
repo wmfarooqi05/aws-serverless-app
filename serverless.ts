@@ -158,6 +158,29 @@ const serverlessConfiguration: AWS = {
     },
   },
   // include resources from resources.ts
+  resources: {
+    Resources: {
+      MyBucketPolicy: {
+        Type: "AWS::S3::BucketPolicy",
+        Properties: {
+          Bucket: process.env.DEPLOYMENT_BUCKET,
+          PolicyDocument: {
+            Statement: [
+              {
+                Sid: "AllowLambdaToPutObjects",
+                Effect: "Allow",
+                Principal: {
+                  Service: "lambda.amazonaws.com",
+                },
+                Action: "s3:PutObject",
+                Resource: "arn:aws:s3:::my-s3-bucket/my-folder/*",
+              },
+            ],
+          },
+        },
+      },
+    },
+  },
 };
 
 module.exports = serverlessConfiguration;

@@ -30,6 +30,25 @@ const resources = {
           // - "Fn::GetAtt": ServerlessStorageSecurityGroup.GroupId
         },
       },
+      MyBucketPolicy: {
+        Type: "AWS::S3::BucketPolicy",
+        Properties: {
+          Bucket: "my-s3-bucket",
+          PolicyDocument: {
+            Statement: [
+              {
+                Sid: "AllowLambdaToPutObjects",
+                Effect: "Allow",
+                Principal: {
+                  Service: "lambda.amazonaws.com",
+                },
+                Action: "s3:PutObject",
+                Resource: "arn:aws:s3:::my-s3-bucket/my-folder/*",
+              },
+            ],
+          },
+        },
+      },
     },
   },
 };

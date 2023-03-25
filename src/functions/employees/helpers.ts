@@ -1,3 +1,4 @@
+import { throwUnAuthorizedError } from "@common/errors";
 import { CustomError } from "@helpers/custom-error";
 import {
   IEmployee,
@@ -52,8 +53,4 @@ export const checkManagerPermissions = (
     default:
       return;
   }
-};
-
-export const throwUnAuthorizedError = () => {
-  throw new CustomError("You are not permitted to access this data", 403);
 };

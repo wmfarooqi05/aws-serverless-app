@@ -60,7 +60,10 @@ const getActivityJoiObject = (obj: any) => {
 };
 
 export const validateGetActivities = async (obj: any) => {
-  await getActivitiesJoiKey()
+  await Joi.object({
+    createdByIds: Joi.array().items(Joi.string().guid()),
+  })
+    .concat(getActivitiesJoiKey())
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(getActivityJoiObject(obj), {
       abortEarly: true,

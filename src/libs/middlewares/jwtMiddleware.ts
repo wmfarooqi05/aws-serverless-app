@@ -1,4 +1,6 @@
 import {
+  allowMeOrRole,
+  allowOnlyMe,
   allowRoleAndAbove,
   decodeJWTMiddleware,
   decodeJWTMiddlewareWebsocket,
@@ -17,7 +19,26 @@ export const jwtRequiredWrapper = (func) => {
 
 export const jwtMRequiredWrapper = (func) => {
   return middy(func).use(decodeJWTMiddlewareWebsocket()).use(jwtRequired());
-}
+};
+
+export const allowMeWrapper = (func: any, key: string) => {
+  // get employeeId from event[key]
+  return middy(func)
+    .use(decodeJWTMiddleware())
+    .use(jwtRequired())
+    .use(allowOnlyMe(key));
+};
+
+export const allowMeOrRoleWrapper = (
+  func: any,
+  permittedRole: number = RolesEnum.SALES_REP_GROUP,
+  key: string
+) => {
+  return middy(func)
+    .use(decodeJWTMiddleware())
+    .use(jwtRequired())
+    .use(allowMeOrRole(permittedRole, key));
+};
 
 export const allowRoleWrapper = (
   func: any,

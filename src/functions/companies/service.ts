@@ -113,6 +113,7 @@ export class CompanyService implements ICompanyService {
     await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
     const { priority, status, stage, returningFields } = body;
 
+    // @TODO remove me
     const whereClause: any = {
       assignedTo: employeeId === "me" ? user.sub : employeeId,
     };

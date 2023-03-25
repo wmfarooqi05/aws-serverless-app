@@ -13,7 +13,7 @@ import { ActivityService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
+import { allowMeOrRoleWrapper, allowRoleWrapper, jwtRequiredWrapper } from "@middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
 
 const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
@@ -182,12 +182,12 @@ export const getTopActivities = allowRoleWrapper(getTopActivitiesHandler);
 export const getAllActivitiesByCompany = allowRoleWrapper(
   getAllActivitiesByCompanyHandler
 );
-export const getMyStaleActivityByStatus = allowRoleWrapper(
+export const getMyStaleActivityByStatus = jwtRequiredWrapper(
   getMyStaleActivityByStatusHandler
 );
 export const getEmployeeStaleActivityByStatus = allowRoleWrapper(
   getEmployeeStaleActivityByStatusHandler,
-  RolesEnum.SALES_MANAGER_GROUP
+  RolesEnum.SALES_MANAGER_GROUP,
 );
 
 export const updateActivity = allowRoleWrapper(updateActivityHandler);

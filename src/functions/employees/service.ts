@@ -110,6 +110,7 @@ export class EmployeeService implements IEmployeeService {
     employeeJwt: IEmployeeJwt,
     requestedUserId
   ) {
+    // @TODO remove me clause
     if (employeeJwt.sub === requestedUserId || requestedUserId === "me") return;
 
     const employeeRole: IEmployee = await EmployeeModel.query()

@@ -107,7 +107,8 @@ export class ActivityService implements IActivityService {
 
     return this.docClient.get(this.TableName).modify(function (queryBuilder) {
       queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
-      queryBuilder.where({ createdBy });
+      if (body.createdByIds)
+        queryBuilder.whereIn("createdBy", body?.createdByIds?.split(","));
     });
   }
 
@@ -117,6 +118,7 @@ export class ActivityService implements IActivityService {
     // if manager, get employees else return everything in case of above employee
     return this.docClient.get(this.TableName).modify(function (queryBuilder) {
       queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+      queryBuilder.whereIn(createdBy);
     });
   }
 

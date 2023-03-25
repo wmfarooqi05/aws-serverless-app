@@ -14,16 +14,39 @@ const importData = {
   ],
 };
 
-// const uploadCompanyData = {
-//   handler: `${handlerPath(__dirname)}/import.uploadCompanyData`,
+// const uploadCompanySheetToS3 = {
+//   handler: `${handlerPath(__dirname)}/import.uploadCompanySheetToS3`,
 //   events: [
 //     {
 //       http: {
-//         method: "get",
-//         path: "/upload-company-data",
+//         method: "post",
+//         path: "/jobs/uploadCompanySheetToS3",
 //         cors: true,
 //       },
 //     },
 //   ],
 // };
-export { importData };
+
+// const importCompanySheetFromS3 = {
+//   handler: `${handlerPath(__dirname)}/import.uploadCompanySheetToS3`,
+//   events: [
+//     {
+//       eventBridge: {
+//         pattern: {
+//           source: ["aws.s3"],
+//           "detail-type": ["AWS API Call via CloudTrail"],
+//           detail: {
+//             eventSource: ["s3.amazonaws.com"],
+//             eventName: ["PutObject"],
+//             requestParameters: {
+//               bucketName: [process.env.DEPLOYMENT_BUCKET],
+//             },
+//             resources: ["arn:aws:s3:::my-s3-bucket/my-folder/*"],
+//           },
+//         },
+//       },
+//     },
+//   ],
+// };
+
+export { importData, uploadCompanySheetToS3 };
