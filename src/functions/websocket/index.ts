@@ -5,12 +5,21 @@ const webSocketHandler = {
   events: [
     {
       websocket: "$connect",
+      // authorizer: {
+      //   arn: "${self:custom.cognitoAuthorizerArn}",
+      // },
     },
     {
       websocket: "$disconnect",
+      // authorizer: {
+      //   arn: "${self:custom.cognitoAuthorizerArn}",
+      // },
     },
     {
       websocket: "$default",
+      // authorizer: {
+      //   arn: "${self:custom.cognitoAuthorizerArn}",
+      // },
     },
   ],
 };

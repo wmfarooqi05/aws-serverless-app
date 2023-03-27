@@ -2,6 +2,7 @@ import type { AWS } from "@serverless/typescript";
 import * as dotenv from "dotenv";
 // import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
+import { ensureEnvConfigs } from "./helper";
 
 var fs = require("fs");
 var contents = fs.readFileSync("package.json");
@@ -12,6 +13,8 @@ const dependencies: string[] = Object.keys(
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
 const serviceName = "gel-api";
+
+ensureEnvConfigs();
 
 const serverlessConfiguration: AWS = {
   service: serviceName,
@@ -102,6 +105,9 @@ const serverlessConfiguration: AWS = {
     PUBLIC_SUBNET_1: process.env.PUBLIC_SUBNET_1,
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
     JOBS_FOLDER: process.env.JOBS_FOLDER,
+    userPoolId: process.env.USER_POOL_ID,
+    cognitoAuthorizerArn:
+      "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
 
     // move it to different file
     esbuild: {
@@ -174,7 +180,8 @@ const serverlessConfiguration: AWS = {
                   Service: "lambda.amazonaws.com",
                 },
                 Action: "s3:PutObject",
-                Resource: "arn:aws:s3:::${self:custom.DEPLOYMENT_BUCKET}/${self:custom.JOBS_FOLDER}/*",
+                Resource:
+                  "arn:aws:s3:::${self:custom.DEPLOYMENT_BUCKET}/${self:custom.JOBS_FOLDER}/*",
               },
             ],
           },
@@ -186,6 +193,19 @@ const serverlessConfiguration: AWS = {
           QueueName: "${self:custom.JOB_QUEUE}",
         },
       },
+      // Websocket endpoint authorization with cognito
+      // WebsocketAuthorizer: {
+      //   Type: "AWS::ApiGateway::Authorizer",
+      //   Properties: {
+      //     AuthorizerUri:
+      //       "arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/${self:service}-${self:provider.stage}-authorizer.${self:provider.region}.amazonaws.com/${self:provider.stage}/authorizer",
+      //     IdentitySource: "route.request.querystring.Authorization",
+      //     Name: "websocket-authorizer",
+      //     RestApiId: { Ref: "ApiGatewayRestApi" },
+      //     Type: "COGNITO_USER_POOLS",
+      //     ProviderARNs: ["${self:custom.cognitoAuthorizerArn}"],
+      //   },
+      // },
     },
   },
 };
