@@ -10,7 +10,7 @@
     "start": "rm -Rf .esbuild && PGSSLMODE=disable NODE_ENV=local sls offline --reloadHandler",
     "start:dev": "rm -Rf .esbuild && NODE_ENV=dev nodemon --exec sls offline start",
     "start:stage": "rm -Rf .esbuild && NODE_ENV=stage nodemon --exec sls offline start",
-    "package:dev": "NODE_ENV=dev sls package",
+    "package:dev": "npm install && NODE_ENV=dev sls package",
     "deploy:dev": "NODE_ENV=dev sls deploy",
     "deploy:stage": "NODE_ENV=stage sls deploy",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -22,12 +22,6 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.267.0",
-    "@aws-sdk/client-dynamodb": "^3.279.0",
-    "@aws-sdk/client-elasticache": "^3.272.0",
-    "@aws-sdk/client-lambda": "^3.267.0",
-    "@aws-sdk/client-s3": "^3.267.0",
-    "@aws-sdk/client-scheduler": "^3.267.0",
     "@casl/ability": "^6.3.3",
     "@joi/date": "^2.1.0",
     "@middy/core": "^4.2.3",
@@ -52,6 +46,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.267.0",
+    "@aws-sdk/client-dynamodb": "^3.279.0",
+    "@aws-sdk/client-elasticache": "^3.272.0",
+    "@aws-sdk/client-lambda": "^3.267.0",
+    "@aws-sdk/client-s3": "^3.267.0",
+    "@aws-sdk/client-scheduler": "^3.267.0",
+    "@aws-sdk/client-sqs": "^3.299.0",
     "@serverless/typescript": "^3.27.0",
     "@types/aws-lambda": "^8.10.110",
     "@types/jsonwebtoken": "^9.0.1",

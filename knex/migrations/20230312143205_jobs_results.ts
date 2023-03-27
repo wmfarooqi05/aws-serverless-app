@@ -14,9 +14,10 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(Tables.employees)
         .notNullable()
       table.string("job_type").notNullable();
-      table.string("job_result_url").notNullable();
+      table.string("job_result_url");
       table.string("summary");
       table.string("result_type");
+      table.jsonb("details");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

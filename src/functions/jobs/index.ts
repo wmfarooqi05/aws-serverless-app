@@ -49,4 +49,30 @@ const importData = {
 //   ],
 // };
 
-export { importData, uploadCompanySheetToS3 };
+const bulkCognitoSignup = {
+  handler: `${handlerPath(__dirname)}/bulkSignupUpload.handler`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "/jobs/bulk-signup",
+        cors: true,
+      },
+    },
+  ],
+};
+// dev only
+const bulkImportUsersProcessHandler = {
+  handler: `${handlerPath(__dirname)}/bulkSignupProcess.bulkImportUsersProcessHandler`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "/jobs/bulk-signup-process",
+        cors: true,
+      },
+    },
+  ],
+};
+
+export { importData, bulkCognitoSignup, bulkImportUsersProcessHandler };

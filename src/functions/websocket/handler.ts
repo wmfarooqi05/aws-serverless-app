@@ -1,6 +1,7 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
+import { jwtMRequiredWrapper } from "@libs/middlewares/jwtMiddleware";
 
 const colors = [
   "\x1b[36m%s\x1b[0m",
@@ -59,8 +60,8 @@ export async function _getAllConnections() {
     return formatErrorResponse(e);
   }
 }
-export const webSocketHandler =  _webSocketHandler;
+// export const webSocketHandler =  _webSocketHandler;
 
-// export const webSocketHandler = jwtMRequiredWrapper(_webSocketHandler);
+export const webSocketHandler = _webSocketHandler;
 export const broadcastMessage = sendMessage;
 export const getAllConnections = _getAllConnections;

@@ -11,6 +11,7 @@ export interface IJobsResults {
   createdAt?: string;
   summary?: string;
   resultType?: string;
+  details: Object;
 }
 
 @singleton()
@@ -35,8 +36,9 @@ export default class JobsResultsModel extends Model {
         summary: { type: "string" },
         resultType: { type: "string" },
         createdAt: { type: "string" },
+        details: { type: "object" },
       },
-      required: ["uploadedBy", "jobType", "jobResultUrl"],
+      required: ["uploadedBy", "jobType"],
       additionalProperties: false,
     };
   }
@@ -50,6 +52,12 @@ export default class JobsResultsModel extends Model {
       },
     },
   });
+
+  static get jsonAttributes() {
+    return [
+      "details",
+    ];
+  }
 }
 
 export type IJobsResultsModel = ModelObject<JobsResultsModel>;

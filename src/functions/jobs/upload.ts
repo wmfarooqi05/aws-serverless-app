@@ -1,5 +1,11 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import { Readable } from "stream";
+import fs from "fs";
 
 const s3 = new S3Client({
   region: process.env.REGION,
@@ -20,6 +26,19 @@ export const uploadToS3 = async (path, body) => {
   } catch (e) {
     console.error("Error uploading file:", e);
   }
+};
+
+// make a download function and write file to some folder
+
+export const downloadFromS3Readable = async (keyName): Promise<Readable> => {
+  const params = {
+    Bucket: process.env.DEPLOYMENT_BUCKET,
+    Key: keyName,
+  };
+  const getObjectCommand = new GetObjectCommand(params);
+  const response = await s3.send(getObjectCommand);
+
+  return Readable.from(response.Body as Readable);
 };
 
 // const dir = path.resolve(path.join(__dirname, "errors"));

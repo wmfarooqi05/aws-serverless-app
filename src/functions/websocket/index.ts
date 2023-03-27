@@ -13,23 +13,19 @@ const webSocketHandler = {
       websocket: "$default",
     },
   ],
-  // vpc: "~",
 };
 
 const broadcastMessage = {
   handler: `${handlerPath(__dirname)}/handler.broadcastMessage`,
-  // vpc: "~",
   events: [
     {
       http: {
         method: "post",
         path: "websocket/broadcast",
         cors: true,
-        // vpc: "~"
       },
     },
   ],
-  // vpc: "~",
 };
 
 const getAllWebSocketConnections = {

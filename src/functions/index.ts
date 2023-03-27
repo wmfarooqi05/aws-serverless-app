@@ -71,9 +71,15 @@ import {
   // deleteMeetingById,
 } from "@functions/google/calendar";
 
-import { importData } from "@functions/jobs";
+import {
+  importData,
+  bulkCognitoSignup,
+  bulkImportUsersProcessHandler,
+} from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
+
+import { sqsJobQueueInvokeHandler } from "@functions/sqs";
 
 export default {
   createCompany,
@@ -94,6 +100,7 @@ export default {
 
   // Jobs
   importData,
+  bulkCognitoSignup,
   // Activity
   getActivities,
   getActivityById,
@@ -142,4 +149,8 @@ export default {
   // employees
   getEmployees,
   getEmployeesWorkSummary,
+
+  //
+  sqsJobQueueInvokeHandler,
+  bulkImportUsersProcessHandler,
 };

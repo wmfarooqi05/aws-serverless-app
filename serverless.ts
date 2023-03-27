@@ -61,8 +61,7 @@ const serverlessConfiguration: AWS = {
       NODE_OPTIONS: "--enable-source-maps --stack-trace-limit=1000",
       REGION: "${self:custom.region}",
       STACK_NAME: "${self:custom.STACK_NAME}",
-      VPC_NAT_GATEWAY_ID: process.env.NAT_GATEWAY_ID,
-
+      JOB_QUEUE: "${self:custom.JOB_QUEUE}",
       // STAGE: "${opt:stage, 'dev'}",
 
       // ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com
@@ -85,7 +84,8 @@ const serverlessConfiguration: AWS = {
   },
   custom: {
     region: "${opt:region, self:provider.region}",
-    SCHEDULING_QUEUE: "scheduling-queue-${opt:stage, self:provider.stage}",
+    // SCHEDULING_QUEUE: "scheduling-queue-${opt:stage, self:provider.stage}",
+    JOB_QUEUE: "job-queue-${opt:stage, self:provider.stage}",
     STACK_NAME: "${opt:stage, self:provider.stage}",
     // TIMEOUT: process.env.TIMEOUT,
     DB_NAME: "ge-db-dev-1",
@@ -101,6 +101,7 @@ const serverlessConfiguration: AWS = {
     PRIVATE_SUBNET_3: process.env.PRIVATE_SUBNET_3,
     PUBLIC_SUBNET_1: process.env.PUBLIC_SUBNET_1,
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
+    JOBS_FOLDER: process.env.JOBS_FOLDER,
 
     // move it to different file
     esbuild: {
@@ -173,10 +174,16 @@ const serverlessConfiguration: AWS = {
                   Service: "lambda.amazonaws.com",
                 },
                 Action: "s3:PutObject",
-                Resource: "arn:aws:s3:::my-s3-bucket/my-folder/*",
+                Resource: "arn:aws:s3:::${self:custom.DEPLOYMENT_BUCKET}/${self:custom.JOBS_FOLDER}/*",
               },
             ],
           },
+        },
+      },
+      JobQueue: {
+        Type: "AWS::SQS::Queue",
+        Properties: {
+          QueueName: "${self:custom.JOB_QUEUE}",
         },
       },
     },

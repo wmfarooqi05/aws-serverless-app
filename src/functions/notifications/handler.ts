@@ -94,17 +94,3 @@ export const deleteNotification: ValidatedEventAPIGatewayProxyEvent<
 export const getNotifications = middy(getNotificationsHandler).use(
   decodeJWTMiddleware()
 );
-export const updateNotificationAssignedEmployee = middy(
-  updateNotificationAssignedEmployeeHandler
-).use(decodeJWTMiddleware());
-
-export const createConcernedPersons = middy(createConcernedPersonsHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const updateConcernedPerson = middy(updateConcernedPersonHandler).use(
-  decodeJWTMiddleware()
-);
-export const deleteConcernedPerson = middy(deleteConcernedPersonHandler).use(
-  decodeJWTMiddleware()
-);
