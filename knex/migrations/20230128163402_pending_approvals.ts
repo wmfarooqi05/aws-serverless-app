@@ -4,8 +4,8 @@ import { onUpdateTrigger } from "../triggers";
 
 const tableName = Tables.pendingApprovals;
 enum PendingApprovalsStatus {
-  CANCELLED = "CANCELLED",
-  ESCALATED = "",
+  REJECTED = "REJECTED",
+  ESCALATED = "ESCALATED",
   FAILED = "FAILED",
   PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED",
   PENDING = "PENDING",

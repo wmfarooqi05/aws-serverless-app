@@ -25,7 +25,7 @@ export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
   try {
     const response = await container
       .resolve(GoogleOAuthService)
-      .getGoogleOauthRequestTokenByEmployee(event.headers.Origin, event.employee?.sub);
+      .getGoogleOauthRequestTokenByEmployee(event.headers.origin, event.employee?.sub);
     return formatJSONResponse(response, 200);
   } catch (e) {
     return formatErrorResponse(e);

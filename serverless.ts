@@ -106,8 +106,8 @@ const serverlessConfiguration: AWS = {
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
     JOBS_FOLDER: process.env.JOBS_FOLDER,
     userPoolId: process.env.USER_POOL_ID,
-    cognitoAuthorizerArn:
-      "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
+    // cognitoAuthorizerArn:
+    //   "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
 
     // move it to different file
     esbuild: {

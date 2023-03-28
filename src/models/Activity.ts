@@ -33,7 +33,7 @@ export default class ActivityModel extends Model {
         companyId: { type: "string" },
         createdBy: { type: "string" },
         dueDate: { type: "string" },
-        remarks: { type: "array", default: JSON.stringify([]) },
+        remarks: { type: "array", default: [] },
         concernedPersonDetails: { type: "array", default: JSON.stringify([]) },
         activityType: { type: "string", default: ACTIVITY_TYPE.EMAIL },
         priority: { type: "string", default: ACTIVITY_PRIORITY.NORMAL },
@@ -42,6 +42,7 @@ export default class ActivityModel extends Model {
         statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
         reminders: { type: "object", default: JSON.stringify({}) }, // @TODO move to reminders table
+        scheduled: { type:"boolean" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },

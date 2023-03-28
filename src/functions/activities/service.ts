@@ -24,6 +24,7 @@ import {
   ACTIVITY_STATUS_SHORT,
   ACTIVITY_TYPE,
   IActivity,
+  IACTIVITY_DETAILS,
   IReminderInterface,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
@@ -105,21 +106,28 @@ export class ActivityService implements IActivityService {
      */
     await validateGetActivitiesByCompany(createdBy, body);
 
-    return this.docClient.get(this.TableName).modify(function (queryBuilder) {
-      queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
-      if (body.createdByIds)
-        queryBuilder.whereIn("createdBy", body?.createdByIds?.split(","));
-    });
+    return this.docClient
+      .get(this.TableName)
+      .modify(function (queryBuilder) {
+        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+        if (body.createdByIds)
+          queryBuilder.whereIn("createdBy", body?.createdByIds?.split(","));
+      })
+      .paginate(getPaginateClauseObject(body));
   }
 
   // Limit this only for admin
   async getAllActivities(user: IEmployeeJwt, body: any) {
     await validateGetActivities(body);
     // if manager, get employees else return everything in case of above employee
-    return this.docClient.get(this.TableName).modify(function (queryBuilder) {
-      queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
-      queryBuilder.whereIn(createdBy);
-    });
+    return this.docClient
+      .get(this.TableName)
+      .modify(function (queryBuilder) {
+        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+        // @TODO complete this incomplete line
+        // queryBuilder.whereIn(createdBy);
+      })
+      .paginate(getPaginateClauseObject(body));
   }
 
   // @TODO fix this
@@ -135,6 +143,7 @@ export class ActivityService implements IActivityService {
       .modify(function (queryBuilder) {
         queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
       })
+      .paginate(getPaginateClauseObject(body))
       .where({ companyId });
   }
 
@@ -207,86 +216,39 @@ export class ActivityService implements IActivityService {
       payload.details
     );
 
-    const status = payload.status
-      ? payload.status
-      : ACTIVITY_STATUS.NOT_STARTED;
+    const status = payload.status ?? ACTIVITY_STATUS.NOT_STARTED;
     // @TODO add validations for detail object
     const activityObj: IActivity = {
       summary: payload.summary,
       details,
       companyId: payload.companyId,
       createdBy: createdBy.sub,
-      concernedPersonDetails: JSON.stringify([payload.concernedPersonDetails]),
+      concernedPersonDetails: [payload.concernedPersonDetails],
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
-      statusHistory: JSON.stringify([
-        createStatusHistory(status, createdBy.sub),
-      ]),
+      // @TODO remove this
+      statusHistory: [createStatusHistory(status, createdBy.sub)],
       tags: sortedTags(payload.tags),
       reminders: payload.reminders || {
         overrides: [{ method: "popup", minutes: 15 }],
       },
-      // createdAt: payload.createdAt,
-      // updatedAt: payload.createdAt,
-
       scheduled: details.isScheduled ? true : false,
       dueDate: payload.dueDate,
     };
 
     try {
-      const activity: IActivity[] = await this.docClient
-        .get(this.TableName)
-        .insert(activityObj)
-        .returning("*");
-      if (
-        activityObj.activityType === ACTIVITY_TYPE.EMAIL ||
-        activityObj.activityType === ACTIVITY_TYPE.MEETING
-      ) {
-        try {
-          const resp = await this.runSideGoogleJob(activityObj);
-          activity[0].details.jobData = {
-            status: resp?.status || 424,
-          };
-        } catch (e) {
-          activity[0].details.jobData = {
-            status: 500,
-          };
-          if (e.config && e.headers) {
-            activity[0].details.jobData.errorStack = formatGoogleErrorBody(e);
-          } else {
-            activity[0].details.jobData.errorStack = {
-              message: e.message,
-              stack: e.stack,
-            };
-          }
-        }
-      } else if (
-        (activity[0].activityType === ACTIVITY_TYPE.TASK ||
-          activity[0].activityType === ACTIVITY_TYPE.CALL) &&
-        activity[0].details?.isScheduled
-      ) {
-        try {
-          // AWS EB Scheduler Case
-          const response = await this.scheduleEb(
-            activityObj.reminders,
-            activityObj.dueDate,
-            activity[0].id,
-            ReminderTimeType.CUSTOM
-          );
-          activity[0].details.jobData = response;
-        } catch (e) {
-          activity[0].details.jobData = {
-            stack: e.stack,
-            message: e.message,
-            status: 500,
-          };
-        }
-      }
-      ActivityModel.query().patchAndFetchById(activityObj.id, {
-        details: activity[0].details,
+      const activity: IActivity = await ActivityModel.query().insert(
+        activityObj
+      );
+      // const activity: IActivity[] = await this.docClient
+      //   .get(this.TableName)
+      //   .insert(activityObj);
+      const updatedDetailObject: IACTIVITY_DETAILS = await this.runSideJobs(
+        activity
+      );
+      return await ActivityModel.query().patchAndFetchById(activity.id, {
+        details: updatedDetailObject,
       });
-      // write a query to update activity after creating scheduled tasks
-      return activity[0];
     } catch (e) {
       if (e.name === "ForeignKeyViolationError") {
         // @TODO: check maybe employee doesn't exists
@@ -453,6 +415,55 @@ export class ActivityService implements IActivityService {
   //     throw new CustomError("Employee not allowed to access this data", 403);
   //   }
   // }
+
+  async runSideJobs(activity: IActivity): Promise<IACTIVITY_DETAILS> {
+    if (
+      activity.activityType === ACTIVITY_TYPE.EMAIL ||
+      activity.activityType === ACTIVITY_TYPE.MEETING
+    ) {
+      try {
+        const resp = await this.runSideGoogleJob(activity);
+        activity[0].details.jobData = {
+          status: resp?.status || 424,
+        };
+      } catch (e) {
+        activity[0].details.jobData = {
+          status: 500,
+        };
+        if (e.config && e.headers) {
+          activity[0].details.jobData.errorStack = formatGoogleErrorBody(e);
+        } else {
+          activity[0].details.jobData.errorStack = {
+            message: e.message,
+            stack: e.stack,
+          };
+        }
+      }
+    } else if (
+      (activity[0].activityType === ACTIVITY_TYPE.TASK ||
+        activity[0].activityType === ACTIVITY_TYPE.CALL) &&
+      activity[0].details?.isScheduled
+    ) {
+      try {
+        // AWS EB Scheduler Case
+        const response = await this.scheduleEb(
+          activity.reminders,
+          activity.dueDate,
+          activity[0].id,
+          ReminderTimeType.CUSTOM
+        );
+        activity[0].details.jobData = response;
+      } catch (e) {
+        activity[0].details.jobData = {
+          stack: e.stack,
+          message: e.message,
+          status: 500,
+        };
+      }
+    }
+
+    return activity.details;
+  }
 
   async runSideGoogleJob(activity: IActivity): Promise<GaxiosResponse> {
     if (activity.activityType === ACTIVITY_TYPE.EMAIL) {

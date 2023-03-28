@@ -26,7 +26,7 @@ export default class PendingApprovalsModel extends Model {
         approvers: { type: "array" },
         createdBy: { type: "string" },
         onApprovalActionRequired: {
-          type: "object",
+          type: "array",
           default: {},
         },
         escalationTime: { type: "string" },

@@ -120,8 +120,8 @@ export const createStatusHistory = (
   };
 };
 
-export const sortedTags = (tags: string[]) => {
-  if (!(tags?.length > 0)) return JSON.stringify([]);
+export const sortedTags = (tags: string[]): string[] => {
+  if (!(tags?.length > 0)) return [];
   return tags?.sort((a, b) => a.localeCompare(b));
 };
 

@@ -1,70 +1,85 @@
-import { DatabaseService } from "@libs/database/database-service-objection";
-import {
-  addJsonbObjectHelper,
-  deleteJsonbObjectHelper,
-  findIndexFromJsonbArray,
-  transformJSONKeys,
-  updateJsonbObjectHelper,
-} from "src/common/json_helpers";
+import { transformJSONKeys } from "src/common/json_helpers";
 // import { CustomError } from "src/helpers/custom-error";
 import {
-  APPROVAL_ACTION_JSONB_PAYLOAD,
   IPendingApprovals,
+  PendingApprovalsStatus,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
+import { CustomError } from "@helpers/custom-error";
+import { Knex } from "knex";
+
+export const validatePendingApprovalObject = (entry: IPendingApprovals) => {
+  if (!entry) {
+    // Case 3
+    throw new CustomError(
+      `Pending Approval entry doesn\'t exists. ${entry.id}`,
+      404
+    );
+  } else if (entry.status === PendingApprovalsStatus.SUCCESS) {
+    return;
+    // throw new CustomError("Pending Approval already completed", 400);
+  }
+
+  if (!(entry.onApprovalActionRequired?.actionsRequired?.length > 0)) {
+    throw new CustomError("No post approval action items exists", 404);
+  }
+
+  const { actionType, actionsRequired } = entry.onApprovalActionRequired;
+
+  if (
+    actionType === PendingApprovalType.CREATE ||
+    actionType === PendingApprovalType.DELETE
+  ) {
+    if (actionsRequired.length > 1) {
+      throw new CustomError(
+        "Create or Delete can have only one pending action",
+        400
+      );
+    }
+    if (actionsRequired[0].objectType === "JSONB") {
+      throw new CustomError("Create or Delete cannot have JSONB type", 400);
+    }
+  }
+};
 
 export const pendingApprovalKnexHelper = async (
   entry: IPendingApprovals,
-  docClient: DatabaseService
+  // @TODO replace this with knexClient
+  knexClient: Knex
 ) => {
-  const { actionType, payload, rowId, tableName, query } =
+  const { actionType, actionsRequired, rowId, tableName, query } =
     entry.onApprovalActionRequired;
 
-  const knexClient = docClient.knexClient;
+  // @TODO replace this with getKnexClient
+  // const knexClient = docClient.knexClient;
+  const originalObject = await knexClient(tableName)
+    .where({ id: rowId })
+    .first();
   if (query) {
     // Case 1:
     return knexClient.raw(query);
   }
 
-  const payloadWithJson = transformJSONKeys(payload);
+  const knexWTable = knexClient(tableName);
+  const whereObj = { id: rowId };
+  if (actionType === PendingApprovalType.DELETE) {
+    return knexWTable.where(whereObj).del();
+  }
+
+  const finalKeys = transformJSONKeys(
+    actionsRequired,
+    knexClient,
+    originalObject
+  );
 
   // Case 2:
-  const knexWTable = docClient.get(tableName);
-  const whereObj = { id: rowId };
+
   if (actionType === PendingApprovalType.CREATE) {
-    return knexWTable.insert(payloadWithJson).returning(Object.keys(payloadWithJson));
-  } else if (actionType === PendingApprovalType.UPDATE) {
-    return knexWTable.update(payloadWithJson).where(whereObj).returning(Object.keys(payloadWithJson));
-  } else if (actionType === PendingApprovalType.DELETE) {
-    return knexWTable.where(whereObj).del();
-  } else if (actionType === PendingApprovalType.JSON_PUSH) {
-    // use helper function to push item to array or add [item]
-    const { jsonbItem, key }: APPROVAL_ACTION_JSONB_PAYLOAD = payloadWithJson;
-    const createQuery = addJsonbObjectHelper(
-      key,
-      knexClient,
-      JSON.parse(jsonbItem as string)
-    );
-    return knexWTable.update(createQuery).where(whereObj).returning(key);
-  } else if (
-    actionType === PendingApprovalType.JSON_UPDATE ||
-    actionType === PendingApprovalType.JSON_DELETE
-  ) {
-    // add second id in onApprovalActionRequired
-    // get index
-    const { id, jsonbItem, key }: APPROVAL_ACTION_JSONB_PAYLOAD = payload;
-    const index = await findIndexFromJsonbArray(rowId, key, id, knexWTable);
-    let finalQuery = {};
-    if (actionType === PendingApprovalType.JSON_UPDATE) {
-      finalQuery = updateJsonbObjectHelper(
-        key,
-        knexClient,
-        JSON.parse(jsonbItem as string),
-        index
-      );
-    } else {
-      finalQuery = deleteJsonbObjectHelper(key, knexClient, index);
-    }
-    return knexWTable.update(finalQuery).where(whereObj).returning(key);
+    return knexWTable.insert(finalKeys).returning(Object.keys(finalKeys));
+  } else {
+    return knexWTable
+      .update(finalKeys)
+      .where(whereObj)
+      .returning(Object.keys(finalKeys));
   }
 };

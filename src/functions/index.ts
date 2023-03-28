@@ -39,6 +39,8 @@ import {
 import {
   approvePendingApproval,
   sendWebSocketNotification,
+  getMyPendingApprovals,
+  approveOrRejectRequest,
 } from "@functions/pending_approvals";
 
 import {
@@ -120,12 +122,14 @@ export default {
   approvePendingApproval,
   sendWebSocketNotification,
   updateStatusOfActivity,
+  getMyPendingApprovals,
+  approveOrRejectRequest,
 
   // Reminders
   createReminder,
   deleteReminder,
   dailyReminderCleanup,
-  // WebSocket
+  // WebSocketapproveOrRejectRequest
   webSocketHandler,
   broadcastMessage,
   getAllWebSocketConnections,

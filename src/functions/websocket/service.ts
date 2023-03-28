@@ -38,7 +38,6 @@ export class WebSocketService implements IWebSocketService {
     private readonly cacheService: CacheService
   ) {
     this.apiGateway = new ApiGatewayManagementApiClient(config);
-    console.log("config", this.apiGateway.config);
   }
 
   async handle(

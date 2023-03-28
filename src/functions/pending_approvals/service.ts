@@ -10,7 +10,10 @@ import {
 } from "@models/interfaces/PendingApprovals";
 import { injectable, inject } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
-import { pendingApprovalKnexHelper } from "./helper";
+import {
+  pendingApprovalKnexHelper,
+  validatePendingApprovalObject,
+} from "./helper";
 import { validateCreatePendingApproval } from "./schema";
 // import { WebSocketService } from "@functions/websocket/service";
 import { NotificationService } from "@functions/notifications/service";
@@ -18,7 +21,8 @@ import { INotification } from "@models/Notification";
 import { message } from "./strings";
 import { randomUUID } from "crypto";
 import Employee from "@models/Employees";
-import { IEmployee } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
+import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 
 export interface IPendingApprovalService {}
 
@@ -40,6 +44,43 @@ export class PendingApprovalService implements IPendingApprovalService {
   /**@TODO remove this */
   async sendWebSocketNotification(body: string) {
     this.notificationService.sendWebSocketNotification(body);
+  }
+
+  async getMyPendingApprovals(employee: IEmployeeJwt, body) {
+    // return PendingApprovalModel.query().whereRaw(
+    //   "approvers @> ?",
+    //   JSON.stringify([employee.sub])
+    // );
+    return this.docClient
+      .getKnexClient()(PendingApprovalModel.tableName)
+      .modify((qb) => {
+        qb.whereRaw("approvers @> ?", JSON.stringify([employee.sub]));
+        qb.orderBy(...getOrderByItems(body));
+      })
+      .paginate(getPaginateClauseObject(body));
+  }
+
+  async approveOrRejectRequest(employee: IEmployeeJwt, body) {
+    // const updatedObjects: IPendingApprovals = await PendingApprovalModel.query()
+    //   .patchAndFetchById(body.pendingApprovalId, {
+    //     status: body.approved
+    //       ? PendingApprovalsStatus.SUBMITTED
+    //       : PendingApprovalsStatus.REJECTED,
+    //   })
+    //   .where({ id: body.pendingApprovalId });
+
+    const response = await this.postApproval(JSON.parse(body));
+    return response;
+    // @TODO do we need this?
+    // const pendingRequests: IPendingApprovals =
+    //   await PendingApprovalModel.query().findByIds(body.pendingApprovalIds);
+
+    // return PendingApprovalModel.query()
+    //   .patch(body.approve)
+    //   .whereIn(body.requestIds);
+    // return this.docClient
+    //   .getKnexClient(PendingApprovalModel.tableName)
+    //   .update({});
   }
 
   async createPendingApproval(
@@ -67,6 +108,76 @@ export class PendingApprovalService implements IPendingApprovalService {
     return pendingApprovalItem;
   }
 
+  /**
+   *
+   * Cases
+   * Case 1: Entry has query, and will call raw to execute, update status
+   * Case 2: Entry is without query, so call knex, update status
+   * Case 3: Entry doesn't exists, so push to SQS
+   * Case 4: Push to DB, push error record, increment entry count, and update status
+   * Case 5: Not decided, if resultPayload is empty after success, maybe due to some error
+   * @param id
+   */
+  async postApproval(entry: IPendingApprovals) {
+    const error = {};
+    let errorCount = 0;
+    let resultPayload = {};
+    let taskDone = false; // in case task is done, but something crashes after that,
+    // in that case, either we will do something like rollback(in future) or make pending_approval as done
+    try {
+      console.log("entry", entry);
+
+      // write joi validator, loop through each payload and check that key must be one of schema keys
+      validatePendingApprovalObject(entry);
+
+      resultPayload = await pendingApprovalKnexHelper(
+        entry,
+        this.docClient.getKnexClient()
+      );
+
+      taskDone = true;
+      if (resultPayload === 0) {
+        throw new CustomError("Item doesn't exists", 404);
+      } // update and delete original row doesnt exist }
+      if (!resultPayload) {
+        // Case 5
+        throw new CustomError("Query failed", 502);
+      } else if (resultPayload === 1) {
+        resultPayload = [{ result: "1" }];
+      } else if (typeof resultPayload === "object") {
+        resultPayload = [resultPayload];
+      }
+
+      // await PendingApprovalModel.query().patchAndFetchById(entry.id, {
+      //   resultPayload: resultPayload,
+      //   status: PendingApprovalsStatus.SUCCESS,
+      // });
+      // Add history object
+    } catch (e) {
+      error[errorCount] = e;
+      error[errorCount]._stack = e.stack;
+      error[errorCount]._message = e.message;
+      errorCount++;
+
+      return error;
+      if (!entry) {
+        // Push to SQS because no data entry exists;
+        // Case 3
+        // SQS.push({ entryId: id, payload: error, type: 'PENDING_APPROVAL_ERROR' });
+      } else {
+        // Case 4
+        // await PendingApprovalModel.query().patchAndFetchById(entry.id, {
+        //   retryCount: entry.retryCount + 1,
+        //   resultPayload: [error],
+        //   status: taskDone
+        //     ? PendingApprovalsStatus.SUCCESS // make it success with partially error
+        //     : PendingApprovalsStatus.FAILED,
+        // });
+      }
+    } finally {
+      // Do if something is required
+    }
+  }
   /**
    *
    * Cases
@@ -181,7 +292,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       activityName: `${actionType}_${title.toUpperCase()}`,
       approvers: [employeeItem.reportingManager],
       createdBy: employeeId,
-      onApprovalActionRequired: onApprovalActionRequired,
+      onApprovalActionRequired: [onApprovalActionRequired],
       status: PendingApprovalsStatus.PENDING,
     };
 

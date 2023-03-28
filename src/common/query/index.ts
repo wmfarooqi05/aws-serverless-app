@@ -1,5 +1,10 @@
 export const getPaginateClauseObject = (body: any) => {
-  if (!body) return;
+  if (!body) {
+    return {
+      perPage: 12,
+      currentPage: 1,
+    };
+  }
   const { page, pageSize } = body;
 
   return {

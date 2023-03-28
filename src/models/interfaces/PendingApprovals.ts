@@ -1,5 +1,5 @@
 export enum PendingApprovalsStatus {
-  CANCELLED = "CANCELLED", //A pending request is canceled and any action items associated with the request are canceled.
+  // CANCELLED = "CANCELLED", //A pending request is canceled and any action items associated with the request are canceled.
   ESCALATED = "", //	Because the original approver did not complete the RFI in the allotted amount of time, the RFI was sent to another approver.
   FAILED = "FAILED", //	The activity could not be completed. No further activity occurs.
   PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED", // 	The activity could not be completed because the approver was deleted from the system.
@@ -9,6 +9,7 @@ export enum PendingApprovalsStatus {
   TERMINATED = "TERMINATED", //	The process run fails with an unknown exception.
   TIMEOUT = "TIMEOUT", //	The specified amount of time to complete an activity passed. The activity is completed and a new activity is created and sent to the escalation participant.
   WARNING = "WARNING", //	The activity was partially completed. A problem occurred, preventing the work order from being successfully completed.
+  REJECTED = "REJECTED",
 }
 
 export interface IPendingApprovals {
@@ -37,15 +38,35 @@ export enum PendingApprovalType {
 }
 
 export interface APPROVAL_ACTION_JSONB_PAYLOAD {
-  id?: string; // Not present in case of Create
-  jsonbItem: object | string;
-  key: string;
+  objectType: "JSONB";
+  jsonActionType:
+    | PendingApprovalType.JSON_PUSH
+    | PendingApprovalType.JSON_UPDATE
+    | PendingApprovalType.JSON_DELETE;
+  payload: {
+    jsonbItemId?: string; // Not present in case of Create
+    jsonbItemValue: string;
+    jsonbItemKey: string;
+  };
+}
+
+export interface APPROVAL_ACTION_SIMPLE_KEY {
+  objectType: "SIMPLE_KEY";
+  payload: {
+    [k: string]: string;
+  };
 }
 
 export interface IOnApprovalActionRequired {
   rowId: string;
   actionType: PendingApprovalType;
-  payload?: object | APPROVAL_ACTION_JSONB_PAYLOAD;
+  actionsRequired:
+    | APPROVAL_ACTION_SIMPLE_KEY[]
+    | APPROVAL_ACTION_JSONB_PAYLOAD[];
+  /**
+   * @deprecated The method should not be used
+   */
+  payload?: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD;
   tableName: string;
   query?: string;
 }
