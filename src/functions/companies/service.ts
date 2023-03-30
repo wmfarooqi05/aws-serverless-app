@@ -55,7 +55,6 @@ import {
 import EmployeeModel from "@models/Employees";
 import { EmployeeService } from "@functions/employees/service";
 
-
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
   createCompany(company: ICompanyModel): Promise<ICompanyModel>;
@@ -373,14 +372,14 @@ export class CompanyService implements ICompanyService {
 
     const updateQuery = updateJsonbObjectHelper(
       "concernedPersons",
-      this.docClient.knexClient,
       {
         ...company.concernedPersons[index],
         ...payload,
         updatedBy: employeeId,
         updatedAt: moment().utc().format(),
       },
-      index
+      index,
+      this.docClient.getKnexClient()
     );
 
     return CompanyModel.query().patchAndFetchById(companyId, updateQuery);
@@ -406,8 +405,8 @@ export class CompanyService implements ICompanyService {
 
     const deleteQuery = deleteJsonbObjectHelper(
       "concernedPersons",
-      this.docClient.knexClient,
-      index
+      index,
+      this.docClient.getKnexClient()
     );
 
     return CompanyModel.query().patchAndFetchById(companyId, deleteQuery);

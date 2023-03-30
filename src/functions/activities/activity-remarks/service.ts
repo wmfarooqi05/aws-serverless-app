@@ -101,7 +101,7 @@ export class ActivityRemarksService implements IActivityRemarksServiceService {
 
     await ActivityModel.query().patchAndFetchById(
       activityId,
-      deleteJsonbObjectHelper("remarks", this.docClient.getKnexClient(), index)
+      deleteJsonbObjectHelper("remarks", index, this.docClient.getKnexClient())
     );
 
     return index;

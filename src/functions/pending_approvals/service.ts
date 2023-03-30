@@ -151,7 +151,6 @@ export class PendingApprovalService implements IPendingApprovalService {
     let taskDone = false; // in case task is done, but something crashes after that,
     // in that case, either we will do something like rollback(in future) or make pending_approval as done
     try {
-      console.log("entryPayload", entry);
       // write joi validator, loop through each payload and check that key must be one of schema keys
       validatePendingApprovalObject(entry);
 

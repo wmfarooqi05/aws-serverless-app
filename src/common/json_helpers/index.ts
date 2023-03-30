@@ -41,24 +41,11 @@ export const addJsonbObjectHelper = (
 };
 
 export const updateJsonbObjectHelper = (
-  originalItem: object[],
   jsonbItemKey: string,
-  jsonbItemId: string,
-  newJsonbItem: any,
+  newJsonbItem: Object,
+  index: number,
   knexClient: Knex
 ) => {
-  const index = findIndexFromJSONBArray(
-    originalItem[jsonbItemKey],
-    jsonbItemId
-  );
-
-  if (index === -1) {
-    throw new CustomError(
-      `Item doesn't exists for update in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
-      404
-    );
-  }
-
   const keySnakeCase = jsonbItemKey
     .split(/(?=[A-Z])/)
     .join("_")
@@ -120,22 +107,10 @@ export const findIndexFromJSONBArray = (item: any[], id: string) => {
 };
 
 export const deleteJsonbObjectHelper = (
-  originalItem: object[],
   jsonbItemKey: string,
-  jsonbItemId: any,
+  index: number,
   knexClient: Knex
 ) => {
-  const index = findIndexFromJSONBArray(
-    originalItem[jsonbItemKey],
-    jsonbItemId
-  );
-
-  if (index === -1) {
-    throw new CustomError(
-      `Item doesn't exists for delete in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
-      404
-    );
-  }
   const keySnakeCase = jsonbItemKey
     .split(/(?=[A-Z])/)
     .join("_")
@@ -197,6 +172,17 @@ export const transformJSONKeys = (
           },
         } = actionItem;
 
+        const index = findIndexFromJSONBArray(
+          originalObject[jsonbItemKey],
+          jsonbItemId
+        );
+        if (index === -1) {
+          throw new CustomError(
+            `Item doesn't exists for ${jsonActionType} in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
+            404
+          );
+        }
+
         switch (jsonActionType) {
           case PendingApprovalType.JSON_UPDATE:
             finalQueries.push(
@@ -204,10 +190,9 @@ export const transformJSONKeys = (
                 .where({ id: rowId })
                 .update(
                   updateJsonbObjectHelper(
-                    originalObject,
                     jsonbItemKey,
-                    jsonbItemId,
                     jsonbItemValue,
+                    index,
                     knexClient
                   )
                 )
@@ -227,12 +212,7 @@ export const transformJSONKeys = (
               knexClient(tableName)
                 .where({ id: rowId })
                 .update(
-                  deleteJsonbObjectHelper(
-                    originalObject,
-                    jsonbItemKey,
-                    jsonbItemId,
-                    knexClient
-                  )
+                  deleteJsonbObjectHelper(jsonbItemKey, index, knexClient)
                 )
             );
             break;
