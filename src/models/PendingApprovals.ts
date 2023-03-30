@@ -21,8 +21,8 @@ export default class PendingApprovalsModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        activityId: { type: "string" },
-        activityName: { type: "string" },
+        tableRowId: { type: "string" },
+        tableName: { type: "string" },
         approvers: { type: "array" },
         createdBy: { type: "string" },
         onApprovalActionRequired: {

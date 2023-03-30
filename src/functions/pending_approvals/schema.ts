@@ -1,5 +1,9 @@
 import * as Joi from "joi";
-import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
+import {
+  IPendingApprovals,
+  PendingApprovalsStatus,
+  PendingApprovalType,
+} from "@models/interfaces/PendingApprovals";
 
 export const validateGetPendingApprovals = async (obj: any) => {
   await Joi.object({
@@ -8,7 +12,6 @@ export const validateGetPendingApprovals = async (obj: any) => {
     returningFields: Joi.string(),
   }).validateAsync(obj, {
     abortEarly: true,
-    
   });
 };
 
@@ -32,7 +35,7 @@ export const validateCreatePendingApproval = async (obj: any) => {
     skipEscalation: Joi.boolean(),
   }).validateAsync(obj, {
     abortEarly: true,
-     // @TODO cleanup api update
+    // @TODO cleanup api update
   });
 };
 
@@ -46,7 +49,6 @@ export const validateUpdatePendingApprovals = async (id: string, obj: any) => {
     { ...obj, id },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -65,7 +67,6 @@ export const validateUpdatePendingApprovalAssignedEmployee = async (
     { ...payload, assignedBy, pendingApprovalId },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -88,7 +89,6 @@ export const validateCreateConcernedPerson = async (
       { ...payload, pendingApprovalId, employeeId },
       {
         abortEarly: true,
-        
       }
     );
 };
@@ -111,7 +111,65 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, pendingApprovalId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      
     }
   );
 };
+
+export const validatePendingApprovalBeforeJob = async (
+  obj: IPendingApprovals
+) => {
+  await Joi.object({
+    status: Joi.string().valid(...Object.keys(PendingApprovalsStatus)),
+    id: Joi.string().uuid().required(),
+    retryCount: Joi.number().integer().min(0).required(),
+    tableRowId: Joi.string().uuid().required(),
+    tableName: Joi.string().required(),
+    onApprovalActionRequired: onApprovalActionRequiredSchema.required(),
+  }).validateAsync(obj, {
+    allowUnknown: true,
+    abortEarly: true,
+  });
+};
+
+// Pending Approval Approve / Reject Joi Schema
+
+const jsonbSchema = Joi.object({
+  jsonActionType: Joi.when("objectType", {
+    is: "JSONB",
+    then: Joi.string()
+      .valid("JSON_UPDATE", "JSON_DELETE", "JSON_PUSH")
+      .required(),
+  }),
+  jsonbItemId: Joi.when("jsonActionType", {
+    is: "JSON_PUSH",
+    then: Joi.string().uuid().allow(null),
+    otherwise: Joi.string().uuid().required(),
+  }),
+  jsonbItemKey: Joi.string().required(),
+  jsonbItemValue: Joi.when("jsonActionType", {
+    is: "JSON_DELETE",
+    then: Joi.object().allow(null),
+    otherwise: Joi.object().required(),
+  }),
+});
+
+const simpleKeySchema = Joi.object({
+  companyName: Joi.string(),
+  assignedTo: Joi.string().uuid(),
+})
+  .xor("companyName", "assignedTo")
+  .required();
+
+const actionSchema = Joi.object({
+  objectType: Joi.string().valid("SIMPLE_KEY", "JSONB").required(),
+  payload: Joi.when("objectType", {
+    is: "SIMPLE_KEY",
+    then: simpleKeySchema,
+    otherwise: jsonbSchema.required(),
+  }),
+}).required();
+
+const onApprovalActionRequiredSchema = Joi.object({
+  actionsRequired: Joi.array().items(actionSchema).min(1).required(),
+  actionType: Joi.string().required(),
+}).required();

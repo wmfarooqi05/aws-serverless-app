@@ -47,7 +47,18 @@ export const updateJsonbObjectHelper = (
   newJsonbItem: any,
   knexClient: Knex
 ) => {
-  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
+  const index = findIndexFromJSONBArray(
+    originalItem[jsonbItemKey],
+    jsonbItemId
+  );
+
+  if (index === -1) {
+    throw new CustomError(
+      `Item doesn't exists for update in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
+      404
+    );
+  }
+
   const keySnakeCase = jsonbItemKey
     .split(/(?=[A-Z])/)
     .join("_")
@@ -114,7 +125,17 @@ export const deleteJsonbObjectHelper = (
   jsonbItemId: any,
   knexClient: Knex
 ) => {
-  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
+  const index = findIndexFromJSONBArray(
+    originalItem[jsonbItemKey],
+    jsonbItemId
+  );
+
+  if (index === -1) {
+    throw new CustomError(
+      `Item doesn't exists for delete in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
+      404
+    );
+  }
   const keySnakeCase = jsonbItemKey
     .split(/(?=[A-Z])/)
     .join("_")
@@ -146,79 +167,100 @@ export const _findIndexFromJsonbArray = async (
 
   return index;
 };
-/**
- * It will convert the approval action array to final Knex Query
- * @param actionItems
- * @param actionType
- * @param knexClient
- * @param originalObject
- * @returns
- */
+
 export const transformJSONKeys = (
+  rowId: string,
   actionItems:
     | APPROVAL_ACTION_SIMPLE_KEY[]
     | APPROVAL_ACTION_JSONB_PAYLOAD[]
     | null,
+  originalObject: any,
   knexClient: Knex,
-  originalObject: any
+  tableName: string
 ) => {
   if (!actionItems) return null;
-  let finalKeys = {};
+  let simpleKeys = {};
+  const finalQueries = [];
   actionItems.forEach(
     (
       actionItem: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD
     ) => {
       if (actionItem.objectType === "SIMPLE_KEY") {
-        finalKeys = { ...finalKeys, ...actionItem.payload };
+        simpleKeys = { ...simpleKeys, ...actionItem.payload };
       } else {
         const {
-          payload: { jsonbItemKey, jsonbItemValue, jsonbItemId },
-          jsonActionType,
+          payload: {
+            jsonbItemKey,
+            jsonbItemValue,
+            jsonbItemId,
+            jsonActionType,
+          },
         } = actionItem;
 
-        const jsonbItemVal = jsonbItemValue ? JSON.parse(jsonbItemValue) : {};
-        let jsonQuery = {};
         switch (jsonActionType) {
-          case PendingApprovalType.JSON_PUSH:
-            jsonQuery = addJsonbObjectHelper(
-              jsonbItemKey,
-              knexClient,
-              jsonbItemVal
+          case PendingApprovalType.JSON_UPDATE:
+            finalQueries.push(
+              knexClient(tableName)
+                .where({ id: rowId })
+                .update(
+                  updateJsonbObjectHelper(
+                    originalObject,
+                    jsonbItemKey,
+                    jsonbItemId,
+                    jsonbItemValue,
+                    knexClient
+                  )
+                )
             );
             break;
-          case PendingApprovalType.JSON_UPDATE:
-            jsonQuery = updateJsonbObjectHelper(
-              originalObject[jsonbItemKey],
-              jsonbItemKey,
-              jsonbItemId,
-              jsonbItemVal,
-              knexClient
+          case PendingApprovalType.JSON_PUSH:
+            finalQueries.push(
+              knexClient(tableName)
+                .where({ id: rowId })
+                .update(
+                  addJsonbObjectHelper(jsonbItemKey, knexClient, jsonbItemValue)
+                )
             );
             break;
           case PendingApprovalType.JSON_DELETE:
-            jsonQuery = deleteJsonbObjectHelper(
-              originalObject[jsonbItemKey],
-              jsonbItemKey,
-              jsonbItemId,
-              knexClient
+            finalQueries.push(
+              knexClient(tableName)
+                .where({ id: rowId })
+                .update(
+                  deleteJsonbObjectHelper(
+                    originalObject,
+                    jsonbItemKey,
+                    jsonbItemId,
+                    knexClient
+                  )
+                )
             );
             break;
-        }
-
-        const key = Object.keys(jsonQuery)[0];
-        if (finalKeys[key]) {
-          finalKeys[key].push(jsonQuery);
-        } else {
-          finalKeys = {
-            ...finalKeys,
-            [key]: [jsonQuery],
-          };
+          default:
+            throw new Error(`Invalid action type: ${jsonActionType}`);
         }
       }
     }
   );
 
-  return finalKeys;
+  finalQueries.push(
+    knexClient(tableName).where({ id: rowId }).update(simpleKeys)
+  );
+
+  return finalQueries;
+};
+
+const convertObject = (given, knexClient: Knex) => {
+  const required = {};
+  for (const key in given) {
+    if (Array.isArray(given[key])) {
+      const combined = given[key].join(",");
+      required[key] = knexClient.raw(combined);
+    } else {
+      required[key] = given[key];
+    }
+  }
+  return required;
 };
 
 export const validateJSONItemAndGetIndex = async (
@@ -267,4 +309,52 @@ export const convertToWhereInValue = (value: string): string => {
     ?.split(",")
     .map((x) => `'${x}'`)
     .join(",");
+};
+
+export const addJsonbObjectQueryHelper = (
+  key: string,
+  knexClient: Knex,
+  item: any
+): Object => {
+  const id = randomUUID();
+  const keySnakeCase = key
+    .split(/(?=[A-Z])/)
+    .join("_")
+    .toLowerCase();
+
+  const itemWithArray = JSON.stringify([{ ...item, id }]);
+  const singleItem = JSON.stringify({ ...item, id });
+
+  return `${keySnakeCase} || :${singleItem}::jsonb`;
+};
+
+export const updateJsonbObjectQueryHelper = (
+  originalItem: object[],
+  jsonbItemKey: string,
+  jsonbItemId: string,
+  newJsonbItem: any,
+  knexClient: Knex
+) => {
+  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
+  const keySnakeCase = jsonbItemKey
+    .split(/(?=[A-Z])/)
+    .join("_")
+    .toLowerCase();
+  return `jsonb_set(${keySnakeCase}, '{${index}}', '${JSON.stringify(
+    newJsonbItem
+  )}', true)`;
+};
+
+export const deleteJsonbObjectQueryHelper = (
+  originalItem: object[],
+  jsonbItemKey: string,
+  jsonbItemId: any,
+  knexClient: Knex
+) => {
+  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
+  const keySnakeCase = jsonbItemKey
+    .split(/(?=[A-Z])/)
+    .join("_")
+    .toLowerCase();
+  return `${keySnakeCase} - ${index}`;
 };

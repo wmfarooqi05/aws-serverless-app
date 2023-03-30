@@ -1,6 +1,6 @@
 export enum PendingApprovalsStatus {
   // CANCELLED = "CANCELLED", //A pending request is canceled and any action items associated with the request are canceled.
-  ESCALATED = "", //	Because the original approver did not complete the RFI in the allotted amount of time, the RFI was sent to another approver.
+  ESCALATED = "ESCALATED", //	Because the original approver did not complete the RFI in the allotted amount of time, the RFI was sent to another approver.
   FAILED = "FAILED", //	The activity could not be completed. No further activity occurs.
   PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED", // 	The activity could not be completed because the approver was deleted from the system.
   PENDING = "PENDING", //	No action was taken to complete the activity.
@@ -14,8 +14,8 @@ export enum PendingApprovalsStatus {
 
 export interface IPendingApprovals {
   id?: string;
-  activityId: string;
-  activityName: string;
+  tableRowId: string;
+  tableName: string;
   approvers: string[];
   createdBy: string;
   onApprovalActionRequired: IOnApprovalActionRequired;
@@ -39,14 +39,14 @@ export enum PendingApprovalType {
 
 export interface APPROVAL_ACTION_JSONB_PAYLOAD {
   objectType: "JSONB";
-  jsonActionType:
-    | PendingApprovalType.JSON_PUSH
-    | PendingApprovalType.JSON_UPDATE
-    | PendingApprovalType.JSON_DELETE;
   payload: {
     jsonbItemId?: string; // Not present in case of Create
     jsonbItemValue: string;
     jsonbItemKey: string;
+    jsonActionType:
+      | PendingApprovalType.JSON_PUSH
+      | PendingApprovalType.JSON_UPDATE
+      | PendingApprovalType.JSON_DELETE;
   };
 }
 
@@ -58,7 +58,6 @@ export interface APPROVAL_ACTION_SIMPLE_KEY {
 }
 
 export interface IOnApprovalActionRequired {
-  rowId: string;
   actionType: PendingApprovalType;
   actionsRequired:
     | APPROVAL_ACTION_SIMPLE_KEY[]
@@ -67,6 +66,9 @@ export interface IOnApprovalActionRequired {
    * @deprecated The method should not be used
    */
   payload?: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD;
+  /**
+   * @deprecated The method should not be used
+   */
   tableName: string;
   query?: string;
 }

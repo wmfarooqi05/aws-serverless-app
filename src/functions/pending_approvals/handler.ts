@@ -68,7 +68,7 @@ export const approveOrRejectRequestHandler = async (event) => {
     const { requestId } = event.pathParameters;
     const resp = await container
       .resolve(PendingApprovalService)
-      .approveOrRejectRequest(requestId, event.body);
+      .approveOrRejectRequest(requestId, event.employee, event.body);
     return formatJSONResponse(resp, 200);
   } catch (e) {
     return formatErrorResponse(e);

@@ -8,7 +8,7 @@ import {
 import { CustomError } from "@helpers/custom-error";
 import { Knex } from "knex";
 
-export const validatePendingApprovalObject = (entry: IPendingApprovals) => {
+export const validatePendingApprovalObject = (entry: any) => {
   if (!entry) {
     // Case 3
     throw new CustomError(
@@ -44,42 +44,43 @@ export const validatePendingApprovalObject = (entry: IPendingApprovals) => {
 
 export const pendingApprovalKnexHelper = async (
   entry: IPendingApprovals,
-  // @TODO replace this with knexClient
   knexClient: Knex
 ) => {
-  const { actionType, actionsRequired, rowId, tableName, query } =
-    entry.onApprovalActionRequired;
+  const {
+    tableName,
+    tableRowId,
+    onApprovalActionRequired: { actionsRequired, query },
+  } = entry;
 
-  // @TODO replace this with getKnexClient
-  // const knexClient = docClient.knexClient;
   const originalObject = await knexClient(tableName)
-    .where({ id: rowId })
+    .where({ id: tableRowId })
     .first();
+  if (!originalObject) {
+    throw new CustomError(
+      `Object not found in table: ${tableName}, id: ${tableRowId}`,
+      400
+    );
+  }
   if (query) {
     // Case 1:
     return knexClient.raw(query);
   }
 
-  const knexWTable = knexClient(tableName);
-  const whereObj = { id: rowId };
-  if (actionType === PendingApprovalType.DELETE) {
-    return knexWTable.where(whereObj).del();
-  }
-
-  const finalKeys = transformJSONKeys(
+  const finalQueries: any[] = transformJSONKeys(
+    tableRowId,
     actionsRequired,
+    originalObject,
     knexClient,
-    originalObject
+    tableName
   );
 
-  // Case 2:
+  // Executing all queries as a single transaction
+  const responses = await knexClient.transaction(async (trx) => {
+    const updatePromises = finalQueries.map((finalQuery) =>
+      trx.raw(finalQuery.toString())
+    );
+    return Promise.all(updatePromises);
+  });
 
-  if (actionType === PendingApprovalType.CREATE) {
-    return knexWTable.insert(finalKeys).returning(Object.keys(finalKeys));
-  } else {
-    return knexWTable
-      .update(finalKeys)
-      .where(whereObj)
-      .returning(Object.keys(finalKeys));
-  }
+  return responses;
 };

@@ -14,7 +14,10 @@ import {
   pendingApprovalKnexHelper,
   validatePendingApprovalObject,
 } from "./helper";
-import { validateCreatePendingApproval } from "./schema";
+import {
+  validateCreatePendingApproval,
+  validatePendingApprovalBeforeJob,
+} from "./schema";
 // import { WebSocketService } from "@functions/websocket/service";
 import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
@@ -23,6 +26,7 @@ import { randomUUID } from "crypto";
 import Employee from "@models/Employees";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
+import Joi from "joi";
 
 export interface IPendingApprovalService {}
 
@@ -60,17 +64,40 @@ export class PendingApprovalService implements IPendingApprovalService {
       .paginate(getPaginateClauseObject(body));
   }
 
-  async approveOrRejectRequest(employee: IEmployeeJwt, body) {
-    // const updatedObjects: IPendingApprovals = await PendingApprovalModel.query()
-    //   .patchAndFetchById(body.pendingApprovalId, {
-    //     status: body.approved
-    //       ? PendingApprovalsStatus.SUBMITTED
-    //       : PendingApprovalsStatus.REJECTED,
-    //   })
-    //   .where({ id: body.pendingApprovalId });
+  async approveOrRejectRequest(
+    requestId: string,
+    employee: IEmployeeJwt,
+    body
+  ) {
+    const payload = JSON.parse(body);
+    // await Joi.object({ approved: Joi.boolean().required() }).validateAsync(
+    //   payload
+    // );
+    const pendingApproval: IPendingApprovals =
+      await PendingApprovalModel.query().findById(requestId);
+    switch (pendingApproval.status) {
+      case PendingApprovalsStatus.SUCCESS:
+        throw new CustomError("It is already completed", 400);
+      case PendingApprovalsStatus.REJECTED:
+        throw new CustomError("It is already rejected", 400);
+    }
 
-    const response = await this.postApproval(JSON.parse(body));
-    return response;
+    await PendingApprovalModel.query().patchAndFetchById(pendingApproval.id, {
+      status: payload.approved
+        ? PendingApprovalsStatus.SUBMITTED
+        : PendingApprovalsStatus.REJECTED,
+    });
+
+    await validatePendingApprovalBeforeJob(pendingApproval);
+    const updatedEntry = await this.postApproval(pendingApproval);
+
+    return PendingApprovalModel.query()
+      .patchAndFetchById(updatedEntry.id, {
+        retryCount: updatedEntry.retryCount + 1,
+        resultPayload: updatedEntry.resultPayload,
+        status: updatedEntry.status,
+      })
+      .returning("*");
     // @TODO do we need this?
     // const pendingRequests: IPendingApprovals =
     //   await PendingApprovalModel.query().findByIds(body.pendingApprovalIds);
@@ -121,59 +148,42 @@ export class PendingApprovalService implements IPendingApprovalService {
   async postApproval(entry: IPendingApprovals) {
     const error = {};
     let errorCount = 0;
-    let resultPayload = {};
     let taskDone = false; // in case task is done, but something crashes after that,
     // in that case, either we will do something like rollback(in future) or make pending_approval as done
     try {
-      console.log("entry", entry);
-
+      console.log("entryPayload", entry);
       // write joi validator, loop through each payload and check that key must be one of schema keys
       validatePendingApprovalObject(entry);
 
-      resultPayload = await pendingApprovalKnexHelper(
-        entry,
-        this.docClient.getKnexClient()
-      );
+      await pendingApprovalKnexHelper(entry, this.docClient.getKnexClient());
 
       taskDone = true;
-      if (resultPayload === 0) {
-        throw new CustomError("Item doesn't exists", 404);
-      } // update and delete original row doesnt exist }
-      if (!resultPayload) {
-        // Case 5
-        throw new CustomError("Query failed", 502);
-      } else if (resultPayload === 1) {
-        resultPayload = [{ result: "1" }];
-      } else if (typeof resultPayload === "object") {
-        resultPayload = [resultPayload];
-      }
-
-      // await PendingApprovalModel.query().patchAndFetchById(entry.id, {
-      //   resultPayload: resultPayload,
-      //   status: PendingApprovalsStatus.SUCCESS,
-      // });
-      // Add history object
+      return {
+        ...entry,
+        resultPayload: [],
+        status: PendingApprovalsStatus.SUCCESS,
+      };
     } catch (e) {
       error[errorCount] = e;
       error[errorCount]._stack = e.stack;
       error[errorCount]._message = e.message;
       errorCount++;
 
-      return error;
-      if (!entry) {
-        // Push to SQS because no data entry exists;
-        // Case 3
-        // SQS.push({ entryId: id, payload: error, type: 'PENDING_APPROVAL_ERROR' });
-      } else {
-        // Case 4
-        // await PendingApprovalModel.query().patchAndFetchById(entry.id, {
-        //   retryCount: entry.retryCount + 1,
-        //   resultPayload: [error],
-        //   status: taskDone
-        //     ? PendingApprovalsStatus.SUCCESS // make it success with partially error
-        //     : PendingApprovalsStatus.FAILED,
-        // });
-      }
+      // if (!entry) {
+      //   // Push to SQS because no data entry exists;
+      //   // Case 3
+      //   // SQS.push({ entryId: id, payload: error, type: 'PENDING_APPROVAL_ERROR' });
+      // } else {
+      // Case 4
+      return {
+        ...entry,
+        retryCount: entry.retryCount + 1,
+        resultPayload: [error],
+        status: taskDone
+          ? PendingApprovalsStatus.SUCCESS // make it success with partially error
+          : PendingApprovalsStatus.FAILED,
+      };
+      // }
     } finally {
       // Do if something is required
     }
@@ -188,7 +198,11 @@ export class PendingApprovalService implements IPendingApprovalService {
    * Case 5: Not decided, if resultPayload is empty after success, maybe due to some error
    * @param id
    */
-  async approvePendingApprovalWithQuery(requestId: string) {
+  async approvePendingApprovalWithQuery(
+    employee: IEmployeeJwt,
+    requestId: string
+  ) {
+    return requestId;
     // try {
     //   return pendingApprovalKnexHelper(entry, this.docClient);
     // } catch (e) {
@@ -213,24 +227,27 @@ export class PendingApprovalService implements IPendingApprovalService {
         return;
         // throw new CustomError("Pending Approval already completed", 400);
       }
-      resultPayload = await pendingApprovalKnexHelper(entry, this.docClient);
+      resultPayload = await pendingApprovalKnexHelper(
+        entry,
+        this.docClient.getKnexClient()
+      );
       taskDone = true;
-      if (resultPayload === 0) {
-        throw new CustomError("Item doesn't exists", 404);
-      } // update and delete original row doesnt exist }
-      if (!resultPayload) {
-        // Case 5
-        throw new CustomError("Query failed", 502);
-      } else if (resultPayload === 1) {
-        resultPayload = [{ result: "1" }];
-      } else if (typeof resultPayload === "object") {
-        resultPayload = [resultPayload];
-      }
+      // if (resultPayload === 0) {
+      //   throw new CustomError("Item doesn't exists", 404);
+      // } // update and delete original row doesnt exist }
+      // if (!resultPayload) {
+      //   // Case 5
+      //   throw new CustomError("Query failed", 502);
+      // } else if (resultPayload === 1) {
+      //   resultPayload = [{ result: "1" }];
+      // } else if (typeof resultPayload === "object") {
+      //   resultPayload = [resultPayload];
+      // }
 
-      await PendingApprovalModel.query().patchAndFetchById(requestId, {
-        resultPayload: resultPayload,
-        status: PendingApprovalsStatus.SUCCESS,
-      });
+      // await PendingApprovalModel.query().patchAndFetchById(requestId, {
+      //   resultPayload: resultPayload,
+      //   status: PendingApprovalsStatus.SUCCESS,
+      // });
     } catch (e) {
       error[errorCount] = e;
       error[errorCount]._stack = e.stack;
