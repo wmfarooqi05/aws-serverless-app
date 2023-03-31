@@ -1,8 +1,10 @@
+import { UPDATE_HISTORY_TABLE } from "@models/commons";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   APPROVAL_ACTION_SIMPLE_KEY,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
+import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import { randomUUID } from "crypto";
 import { Knex } from "knex";
 import { CustomError } from "src/helpers/custom-error";
@@ -144,14 +146,16 @@ export const _findIndexFromJsonbArray = async (
 };
 
 export const transformJSONKeys = (
-  rowId: string,
+  tableRowId: string,
   actionItems:
     | APPROVAL_ACTION_SIMPLE_KEY[]
     | APPROVAL_ACTION_JSONB_PAYLOAD[]
     | null,
+  actionType: PendingApprovalType,
   originalObject: any,
   knexClient: Knex,
-  tableName: string
+  tableName: string,
+  updatedBy: string
 ) => {
   if (!actionItems) return null;
   let simpleKeys = {};
@@ -162,6 +166,32 @@ export const transformJSONKeys = (
     ) => {
       if (actionItem.objectType === "SIMPLE_KEY") {
         simpleKeys = { ...simpleKeys, ...actionItem.payload };
+        const field = Object.keys(actionItem.payload)[0];
+        if (actionType !== PendingApprovalType.CREATE) {
+          let updateHistoryObj: IUpdateHistory = {
+            tableName,
+            tableRowId,
+            field,
+            actionType: actionType,
+            updatedBy,
+          } as IUpdateHistory;
+          if (actionType === PendingApprovalType.DELETE) {
+            updateHistoryObj = {
+              ...updateHistoryObj,
+              oldValue: JSON.stringify(originalObject),
+              newValue: null,
+            };
+          } else {
+            updateHistoryObj = {
+              ...updateHistoryObj,
+              oldValue: originalObject[field],
+              newValue: actionItem.payload[field],
+            };
+          }
+          finalQueries.push(
+            knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+          );
+        }
       } else {
         const {
           payload: {
@@ -171,23 +201,41 @@ export const transformJSONKeys = (
             jsonActionType,
           },
         } = actionItem;
+        let index = -1;
 
-        const index = findIndexFromJSONBArray(
-          originalObject[jsonbItemKey],
-          jsonbItemId
-        );
-        if (index === -1) {
-          throw new CustomError(
-            `Item doesn't exists for ${jsonActionType} in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
-            404
+        if (jsonActionType !== PendingApprovalType.JSON_PUSH) {
+          index = findIndexFromJSONBArray(
+            originalObject[jsonbItemKey],
+            jsonbItemId
           );
+          if (index === -1) {
+            throw new CustomError(
+              `Item doesn't exists for ${jsonActionType} in item: ${jsonbItemKey}, id: ${jsonbItemId}`,
+              404
+            );
+          }
         }
+
+        finalQueries.push(
+          knexClient(UPDATE_HISTORY_TABLE).insert({
+            tableName,
+            tableRowId,
+            field: jsonbItemKey,
+            oldValue:
+              jsonActionType === PendingApprovalType.JSON_PUSH
+                ? null
+                : originalObject[jsonbItemKey][index],
+            actionType: jsonActionType,
+            newValue: actionItem.payload[jsonbItemKey],
+            updatedBy,
+          } as IUpdateHistory)
+        );
 
         switch (jsonActionType) {
           case PendingApprovalType.JSON_UPDATE:
             finalQueries.push(
               knexClient(tableName)
-                .where({ id: rowId })
+                .where({ id: tableRowId })
                 .update(
                   updateJsonbObjectHelper(
                     jsonbItemKey,
@@ -201,7 +249,7 @@ export const transformJSONKeys = (
           case PendingApprovalType.JSON_PUSH:
             finalQueries.push(
               knexClient(tableName)
-                .where({ id: rowId })
+                .where({ id: tableRowId })
                 .update(
                   addJsonbObjectHelper(jsonbItemKey, knexClient, jsonbItemValue)
                 )
@@ -210,7 +258,7 @@ export const transformJSONKeys = (
           case PendingApprovalType.JSON_DELETE:
             finalQueries.push(
               knexClient(tableName)
-                .where({ id: rowId })
+                .where({ id: tableRowId })
                 .update(
                   deleteJsonbObjectHelper(jsonbItemKey, index, knexClient)
                 )
@@ -224,7 +272,7 @@ export const transformJSONKeys = (
   );
 
   finalQueries.push(
-    knexClient(tableName).where({ id: rowId }).update(simpleKeys)
+    knexClient(tableName).where({ id: tableRowId }).update(simpleKeys)
   );
 
   return finalQueries;

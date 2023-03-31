@@ -90,7 +90,7 @@ export class PendingApprovalService implements IPendingApprovalService {
     });
 
     await validatePendingApprovalBeforeJob(pendingApproval);
-    const updatedEntry = await this.postApproval(pendingApproval);
+    const updatedEntry = await this.postApproval(employee.sub, pendingApproval);
 
     return PendingApprovalModel.query()
       .patchAndFetchById(updatedEntry.id, {
@@ -145,7 +145,7 @@ export class PendingApprovalService implements IPendingApprovalService {
    * Case 5: Not decided, if resultPayload is empty after success, maybe due to some error
    * @param id
    */
-  async postApproval(entry: IPendingApprovals) {
+  async postApproval(updatedBy: string, entry: IPendingApprovals) {
     const error = {};
     let errorCount = 0;
     let taskDone = false; // in case task is done, but something crashes after that,
@@ -154,7 +154,11 @@ export class PendingApprovalService implements IPendingApprovalService {
       // write joi validator, loop through each payload and check that key must be one of schema keys
       validatePendingApprovalObject(entry);
 
-      await pendingApprovalKnexHelper(entry, this.docClient.getKnexClient());
+      await pendingApprovalKnexHelper(
+        updatedBy,
+        entry,
+        this.docClient.getKnexClient()
+      );
 
       taskDone = true;
       return {

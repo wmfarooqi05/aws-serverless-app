@@ -33,10 +33,13 @@ import {
   addJsonbObjectHelper,
   convertToWhereInValue,
   deleteJsonbObjectHelper,
+  transformJSONKeys,
   updateJsonbObjectHelper,
 } from "src/common/json_helpers";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
+  APPROVAL_ACTION_SIMPLE_KEY,
+  IOnApprovalActionRequired,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IEmployee, IEmployeeJwt, roleKey } from "@models/interfaces/Employees";
@@ -52,7 +55,6 @@ import {
   getPaginateClauseObject,
   sanitizeColumnNames,
 } from "@common/query";
-import EmployeeModel from "@models/Employees";
 import { EmployeeService } from "@functions/employees/service";
 
 export interface ICompanyService {
@@ -66,6 +68,9 @@ export interface ICompanyService {
   ): Promise<ICompanyModel>;
   deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
 }
+
+const tableSchema = CompanyModel.jsonSchema.properties;
+const tableName = CompanyModel.tableName;
 
 @injectable()
 export class CompanyService implements ICompanyService {
@@ -180,7 +185,7 @@ export class CompanyService implements ICompanyService {
     employee: IEmployeeJwt,
     id: string,
     body: any
-  ): Promise<ICompanyModel> {
+  ): Promise<any> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
     // if (
@@ -196,15 +201,17 @@ export class CompanyService implements ICompanyService {
     //   );
     //   return item;
     // } else {
-    const updatedCompany = await CompanyModel.query().patchAndFetchById(
-      id,
-      payload
-    );
-    if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
-      throw new CustomError("Object not found", 404);
-    }
-    return updatedCompany;
+    // const updatedCompany = await CompanyModel.query().findById(id);
+    // if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
+    //   throw new CustomError("Object not found", 404);
     // }
+
+    return this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      id,
+      payload,
+      employee.sub
+    );
   }
 
   async deleteCompany(employee: IEmployeeJwt, id: string): Promise<any> {
@@ -536,5 +543,110 @@ export class CompanyService implements ICompanyService {
      * Even if key is allowed to change, we have to check if every sales rep can update it
      * or only the one assigned on it
      */
+  }
+
+  convertPayloadToArray = (
+    actionType: PendingApprovalType,
+    tableRowId: string,
+    payload: object,
+    jsonbItemId: string = null
+  ) => {
+    interface PayloadType {
+      tableRowId: string;
+      tableName: string;
+      onApprovalActionRequired: IOnApprovalActionRequired;
+    }
+    const approvalActions: IOnApprovalActionRequired = {
+      actionType,
+      actionsRequired: [],
+    };
+    Object.keys(payload).forEach((key) => {
+      let objectType = this.getObjectType(key);
+      if (objectType === "SIMPLE_KEY") {
+        approvalActions.actionsRequired.push({
+          objectType,
+          payload: { [key]: payload[key] },
+        });
+      } else {
+        approvalActions.actionsRequired.push({
+          objectType,
+          payload: {
+            jsonbItemId,
+            jsonbItemKey: key,
+            jsonbItemValue: payload[key],
+          },
+        });
+      }
+    });
+    return {
+      tableName,
+      tableRowId,
+      onApprovalActionRequired: approvalActions,
+    } as PayloadType;
+  };
+
+  async updateHistoryHelper(
+    actionType: PendingApprovalType,
+    tableRowId: string,
+    payload: object,
+    updatedBy,
+    jsonbItemId: string = null
+  ) {
+    const {
+      onApprovalActionRequired: { actionsRequired },
+    } = this.convertPayloadToArray(
+      actionType,
+      tableRowId,
+      payload,
+      jsonbItemId
+    );
+    const knexClient = this.docClient.getKnexClient();
+    const originalObject = await knexClient(tableName)
+      .where({ id: tableRowId })
+      .first();
+    if (!originalObject) {
+      throw new CustomError(
+        `Object not found in table: ${tableName}, id: ${tableRowId}`,
+        400
+      );
+    }
+
+    const finalQueries: any[] = transformJSONKeys(
+      tableRowId,
+      actionsRequired,
+      actionType,
+      originalObject,
+      knexClient,
+      tableName,
+      updatedBy
+    );
+
+    // Executing all queries as a single transaction
+    const responses = await knexClient.transaction(async (trx) => {
+      const updatePromises = finalQueries.map((finalQuery) =>
+        trx.raw(finalQuery.toString())
+      );
+      return Promise.all(updatePromises);
+    });
+
+    return responses;
+  }
+
+  getObjectType(key) {
+    type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSON";
+    const map: Record<string, OBJECT_KEY_TYPE> = {
+      tableRowId: "SIMPLE_KEY",
+      tableName: "SIMPLE_KEY",
+      approvers: "SIMPLE_KEY",
+      createdBy: "SIMPLE_KEY",
+      onApprovalActionRequired: "JSON",
+      escalationTime: "SIMPLE_KEY",
+      skipEscalation: "SIMPLE_KEY",
+      status: "SIMPLE_KEY",
+      retryCount: "SIMPLE_KEY",
+      resultPayload: "SIMPLE_KEY",
+    };
+
+    return map[key];
   }
 }

@@ -21,6 +21,7 @@ export const ACCESS_PERMISSIONS_TABLE =
   process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions";
 export const AUTH_TOKEN_TABLE = process.env.AUTH_TOKENS || "auth_tokens";
 export const JOBS_RESULTS_TABLE = process.env.JOBS_RESULTS || "jobs_results";
+export const UPDATE_HISTORY_TABLE = process.env.UPDATE_HISTORY_TABLE = "update_history";
 export const TEAMS_TABLE = process.env.TEAMS_TABLE || "teams";
 
 export type ModuleType =

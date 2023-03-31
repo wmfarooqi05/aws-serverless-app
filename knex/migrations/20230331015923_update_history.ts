@@ -11,10 +11,10 @@ export async function up(knex: Knex): Promise<void> {
       table.string("table_row_id");
       table.string("table_name");
       table.string("field").notNullable();
-      table.string("value").notNullable();
-      table.string("old_value").notNullable();
-      table.string("new_value").notNullable();
-      table.jsonb("approvers").defaultTo("[]");
+      table.string("sub_field");
+      table.string("old_value");
+      table.string("new_value");
+      table.string("action_type").notNullable();
       table
         .uuid("updated_by")
         .index()

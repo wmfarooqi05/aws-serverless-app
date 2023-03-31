@@ -20,21 +20,14 @@ export default class UpdateHistoryModel extends Model {
         tableRowId: { type: "string" },
         tableName: { type: "string" },
         field: { type: "string" },
-        value: { type: "string" }, // this will be beneficial when we have json key
-        // old and new value will represent whole json, but value will tell what was the actual value
+        subField: { type: "string" },
         old_value: { type: "string" },
-        new_value: { type: "string" },
+        new_value: { type: "string" }, // no idea if supporting this two
+        actionType: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: [
-        "tableRowId",
-        "tableName",
-        "field",
-        "value",
-        "old_value",
-        "new_value",
-      ],
+      required: ["tableRowId", "tableName", "field"],
       additionalProperties: false,
     };
   }

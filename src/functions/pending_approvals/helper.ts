@@ -43,13 +43,14 @@ export const validatePendingApprovalObject = (entry: any) => {
 };
 
 export const pendingApprovalKnexHelper = async (
+  updatedBy: string,
   entry: IPendingApprovals,
   knexClient: Knex
 ) => {
   const {
     tableName,
     tableRowId,
-    onApprovalActionRequired: { actionsRequired, query },
+    onApprovalActionRequired: { actionsRequired, actionType, query },
   } = entry;
 
   const originalObject = await knexClient(tableName)
@@ -69,9 +70,11 @@ export const pendingApprovalKnexHelper = async (
   const finalQueries: any[] = transformJSONKeys(
     tableRowId,
     actionsRequired,
+    actionType,
     originalObject,
     knexClient,
-    tableName
+    tableName,
+    updatedBy
   );
 
   // Executing all queries as a single transaction
