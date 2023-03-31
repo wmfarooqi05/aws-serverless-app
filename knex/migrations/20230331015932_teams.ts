@@ -13,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
         .references("id")
         .inTable(Tables.employees)
         .notNullable();
-      table.string("team_name").notNullable();
+      table.string("team_name").notNullable().unique();
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()
