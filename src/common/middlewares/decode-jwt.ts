@@ -61,7 +61,7 @@ export const jwtRequired = () => {
         const role = event?.employee?.[roleKey][0] || "";
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
-        event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
+        // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
 
         // @DEV
         if (event.employee?.sub) {

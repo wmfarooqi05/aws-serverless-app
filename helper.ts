@@ -20,6 +20,7 @@ export const ensureEnvConfigs = () => {
     "REMINDERS_TABLE",
     "AUTH_TOKENS",
     "JOBS_RESULTS",
+    "UPDATE_HISTORY_TABLE",
 
     "DEPLOYMENT_BUCKET",
     "ELASTIC_CACHE_SERVER",

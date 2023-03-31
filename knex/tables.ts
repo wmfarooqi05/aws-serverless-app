@@ -8,4 +8,6 @@ export const tableName = {
   notifications: process.env.NOTIFICATIONS_TABLE || "notifications",
   authTokens: process.env.AUTH_TOKENS || "auth_tokens",
   jobsResults: process.env.JOBS_RESULTS || "jobs_result",
+  updateHistory: process.env.UPDATE_HISTORY || "update_history",
+  teams: process.env.TEAMS || "teams",
 };

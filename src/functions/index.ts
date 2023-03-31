@@ -83,6 +83,14 @@ import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
 
 import { sqsJobQueueInvokeHandler } from "@functions/sqs";
 
+import {
+  getTeamById,
+  getTeams,
+  createTeam,
+  updateTeam,
+  deleteTeam,
+} from "@functions/teams";
+
 export default {
   createCompany,
   deleteCompany,
@@ -157,4 +165,11 @@ export default {
   //
   sqsJobQueueInvokeHandler,
   bulkImportUsersProcessHandler,
+
+  // teams
+  getTeamById,
+  getTeams,
+  createTeam,
+  updateTeam,
+  deleteTeam,
 };
