@@ -1,9 +1,7 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { PENDING_APPROVAL_TABLE } from "./commons";
-import {
-  PendingApprovalsStatus,
-} from "./interfaces/PendingApprovals";
+import { PendingApprovalsStatus } from "./interfaces/PendingApprovals";
 
 @singleton()
 export default class PendingApprovalsModel extends Model {
@@ -14,7 +12,6 @@ export default class PendingApprovalsModel extends Model {
   static get columnNames(): string[] {
     return Object.keys(this.jsonSchema.properties);
   }
-
 
   static get jsonSchema() {
     return {
@@ -32,8 +29,8 @@ export default class PendingApprovalsModel extends Model {
         escalationTime: { type: "string" },
         skipEscalation: { type: "boolean", default: true },
         status: { type: "string", default: PendingApprovalsStatus.PENDING },
-        retryCount: { type: "number" },
-        resultPayload: { type: "array" },
+        retryCount: { type: "number", default: 0 },
+        resultPayload: { type: "array", default: JSON.stringify([]) },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },

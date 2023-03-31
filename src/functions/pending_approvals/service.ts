@@ -7,6 +7,7 @@ import {
   PendingApprovalsStatus,
   IOnApprovalActionRequired,
   APPROVAL_ACTION_JSONB_PAYLOAD,
+  APPROVAL_ACTION_SIMPLE_KEY,
 } from "@models/interfaces/PendingApprovals";
 import { injectable, inject } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
@@ -116,7 +117,7 @@ export class PendingApprovalService implements IPendingApprovalService {
     title: string,
     tableName: string,
     type: PendingApprovalType,
-    payload?: object | APPROVAL_ACTION_JSONB_PAYLOAD
+    payload?: APPROVAL_ACTION_SIMPLE_KEY[] | APPROVAL_ACTION_JSONB_PAYLOAD[]
   ) {
     // await validateCreatePendingApproval(payload);
 
@@ -124,7 +125,6 @@ export class PendingApprovalService implements IPendingApprovalService {
       await this.createPendingApprovalItem(
         employeeId,
         rowId,
-        title,
         tableName,
         type,
         payload
@@ -285,16 +285,14 @@ export class PendingApprovalService implements IPendingApprovalService {
   private async createPendingApprovalItem(
     employeeId: string,
     rowId: string,
-    title: string,
     tableName: string,
     actionType: PendingApprovalType,
-    payload?: object | APPROVAL_ACTION_JSONB_PAYLOAD
+    payload?: APPROVAL_ACTION_SIMPLE_KEY[] | APPROVAL_ACTION_JSONB_PAYLOAD[]
   ): Promise<IPendingApprovals> {
     const onApprovalActionRequired: IOnApprovalActionRequired = {
-      rowId,
       tableName,
       actionType,
-      payload,
+      actionsRequired: payload,
     };
 
     const employeeItem: IEmployee = await Employee.query().findById(employeeId);
@@ -303,13 +301,16 @@ export class PendingApprovalService implements IPendingApprovalService {
       throw new CustomError("User do not have any reporting manager", 400);
     }
 
-    const item = {
-      activityId: `${actionType}_${title.toUpperCase()}_${randomUUID()}`,
-      activityName: `${actionType}_${title.toUpperCase()}`,
+    const item: IPendingApprovals = {
+      tableName,
+      tableRowId: rowId,
+      //  `${actionType}_${title.toUpperCase()}_${randomUUID()}`,
       approvers: [employeeItem.reportingManager],
       createdBy: employeeId,
-      onApprovalActionRequired: [onApprovalActionRequired],
+      onApprovalActionRequired,
       status: PendingApprovalsStatus.PENDING,
+      retryCount: 0,
+      resultPayload: [],
     };
 
     const pendingApproval: IPendingApprovals =
