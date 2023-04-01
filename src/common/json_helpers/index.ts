@@ -21,7 +21,7 @@ export const addJsonbObjectHelper = (
   knexClient: Knex,
   item: any
 ): Object => {
-  const id = randomUUID();
+  const id = item.id ?? randomUUID();
   const keySnakeCase = key
     .split(/(?=[A-Z])/)
     .join("_")
@@ -226,10 +226,10 @@ export const transformJSONKeys = (
             field: jsonbItemKey,
             oldValue:
               jsonActionType === PendingApprovalType.JSON_PUSH
-                ? null
-                : originalObject[jsonbItemKey][index],
+                ? JSON.stringify(originalObject[jsonbItemKey])
+                : JSON.stringify(originalObject[jsonbItemKey][index]),
             actionType: jsonActionType,
-            newValue: actionItem.payload[jsonbItemKey],
+            newValue: jsonbItemValue,
             updatedBy,
           } as IUpdateHistory)
         );
@@ -349,7 +349,7 @@ export const addJsonbObjectQueryHelper = (
   knexClient: Knex,
   item: any
 ): Object => {
-  const id = randomUUID();
+  const id = item.id ?? randomUUID();
   const keySnakeCase = key
     .split(/(?=[A-Z])/)
     .join("_")

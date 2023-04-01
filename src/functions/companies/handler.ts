@@ -126,8 +126,8 @@ const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
     const company = await container
       .resolve(CompanyService)
       .updateCompanyAssignedEmployee(
+        event?.employee,
         companyId,
-        event?.employee?.sub,
         event.body
       );
 
@@ -165,7 +165,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
         event.body
       );
 
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse({ ...company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -181,7 +181,7 @@ const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
       .resolve(CompanyService)
       .deleteConcernedPerson(companyId, concernedPersonId);
 
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse({ ...company }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }

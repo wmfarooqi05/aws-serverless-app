@@ -99,7 +99,6 @@ export const validateUpdateCompanyAssignedEmployee = async (
     assignedBy: Joi.string().guid().required(),
     assignTo: Joi.string().guid(),
     companyId: Joi.string().guid().required(),
-    comments: Joi.string(),
   }).validateAsync(
     { ...payload, assignedBy, companyId },
     {

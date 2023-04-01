@@ -233,56 +233,29 @@ export class CompanyService implements ICompanyService {
       id,
       employee.sub
     );
-
-    if (!deleted) {
-      throw new CustomError("Company not found", 404);
-    }
-    // }
   }
-  async updateCompanyAssignedEmployee(companyId, assignedBy, body) {
+  async updateCompanyAssignedEmployee(employee: IEmployeeJwt, companyId, body) {
     // @TODO: @Auth this employee should be the manager of changing person
     // @Paul No need for pending approval [Check with Paul]
+    const payload = JSON.parse(body);
     await validateUpdateCompanyAssignedEmployee(
       companyId,
-      assignedBy,
-      JSON.parse(body)
+      employee.sub,
+      payload
     );
 
-    const { assignTo, comments } = JSON.parse(body);
+    const { assignTo } = payload;
 
     const company = await CompanyModel.query().findById(companyId);
     if (!company) {
       throw new CustomError("Company not found", 404);
     }
-
-    // const update
-    const assignmentHistory: IAssignmentHistory = {
-      assignedTo: assignTo || null,
-      assignedBy,
-      comments: comments || "",
-      date: moment().utc().format(),
-    };
-
-    const updateQuery = {
-      ...addJsonbObjectHelper(
-        "assignmentHistory",
-        this.docClient.getKnexClient(),
-        assignmentHistory
-      ),
-      assignedTo: assignTo ? assignTo : CompanyModel.raw("NULL"),
-      assignedBy,
-    };
-
-    const updatedCompany = await CompanyModel.query().patchAndFetchById(
+    return this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
       companyId,
-      updateQuery
+      employee.sub,
+      { assignedTo: assignTo ?? CompanyModel.raw("NULL") }
     );
-
-    if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
-      throw new CustomError("Object not found", 404);
-    }
-
-    return updatedCompany;
   }
 
   async createConcernedPersons(employee: IEmployeeJwt, companyId, body) {
@@ -330,23 +303,17 @@ export class CompanyService implements ICompanyService {
       );
       return { pendingApproval: item };
     }
-    const company = await CompanyModel.query()
-      .patch(
-        addJsonbObjectHelper(
-          "concernedPersons",
-          this.docClient.getKnexClient(),
-          payload
-        )
-      )
-      .where({ id: companyId })
-      .returning("*")
-      .first();
 
-    if (!company) {
-      throw new CustomError("Company does't exists", 404);
-    }
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      employee.sub,
+      { concernedPersons: payload },
+      PendingApprovalType.JSON_PUSH,
+      null
+    );
 
-    return { company };
+    return payload;
   }
 
   async updateConcernedPerson(
@@ -372,29 +339,27 @@ export class CompanyService implements ICompanyService {
     if (!company) {
       throw new CustomError("Company doesn't exists.", 404);
     }
-
-    // @TODO check if concernedPersons is null
     const index = company.concernedPersons.findIndex(
       (x) => x.id === concernedPersonId
     );
 
     if (index === -1) {
-      throw new CustomError("Concerned Person doesn't exist", 404);
+      throw new CustomError("Concerned Person doesn't exists", 404);
     }
 
-    const updateQuery = updateJsonbObjectHelper(
-      "concernedPersons",
-      {
-        ...company.concernedPersons[index],
-        ...payload,
-        updatedBy: employeeId,
-        updatedAt: moment().utc().format(),
-      },
-      index,
-      this.docClient.getKnexClient()
+    const newPayload = {
+      ...company.concernedPersons[index],
+      ...payload,
+    };
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      employeeId,
+      { concernedPersons: newPayload },
+      PendingApprovalType.JSON_UPDATE,
+      concernedPersonId
     );
-
-    return CompanyModel.query().patchAndFetchById(companyId, updateQuery);
+    return newPayload;
   }
 
   async deleteConcernedPerson(companyId: string, concernedPersonId: string) {
@@ -554,6 +519,7 @@ export class CompanyService implements ICompanyService {
     actionType: PendingApprovalType,
     tableRowId: string,
     payload: object,
+    jsonActionType: string = null,
     jsonbItemId: string = null
   ) => {
     interface PayloadType {
@@ -588,6 +554,7 @@ export class CompanyService implements ICompanyService {
             objectType,
             payload: {
               jsonbItemId,
+              jsonActionType,
               jsonbItemKey: key,
               jsonbItemValue: payload[key],
             },
@@ -607,6 +574,7 @@ export class CompanyService implements ICompanyService {
     tableRowId: string,
     updatedBy,
     payload: object = null,
+    jsonActionType: string = null,
     jsonbItemId: string = null
   ) {
     const {
@@ -615,6 +583,7 @@ export class CompanyService implements ICompanyService {
       actionType,
       tableRowId,
       payload,
+      jsonActionType,
       jsonbItemId
     );
     const knexClient = this.docClient.getKnexClient();
