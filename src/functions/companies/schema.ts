@@ -80,6 +80,8 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
     priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
     status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
     stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
+    tags: Joi.array().items(Joi.string()),
+    details: Joi.object(),
   }).validateAsync(
     { ...obj, id },
     {

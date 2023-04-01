@@ -28,11 +28,6 @@ export enum COMPANY_PRIORITY {
 
 const tableName = Tables.companies;
 
-const defaultDetails = JSON.stringify({
-  priority: COMPANY_PRIORITY.NO_PRIORITY,
-  status: COMPANY_STATUS.NONE,
-});
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
@@ -60,16 +55,16 @@ export async function up(knex: Knex): Promise<void> {
         .onDelete("SET NULL");
       table.jsonb("assignment_history").defaultTo([]);
       table.jsonb("addresses").defaultTo([]);
-      table.jsonb("details").defaultTo(defaultDetails);
+      table.jsonb("details").defaultTo(JSON.stringify({}));
       table
         .enum("stage", Object.values(COMPANY_STAGES))
         .defaultTo(COMPANY_STAGES.LEAD);
-      // table
-      //   .enum("priority", Object.values(COMPANY_PRIORITY))
-      //   .defaultTo(COMPANY_PRIORITY.LOWEST);
-      // table
-      //   .enum("status", Object.values(COMPANY_STATUS))
-      //   .defaultTo(COMPANY_STATUS.NONE);
+      table
+        .enum("priority", Object.values(COMPANY_PRIORITY))
+        .defaultTo(COMPANY_PRIORITY.NO_PRIORITY);
+      table
+        .enum("status", Object.values(COMPANY_STATUS))
+        .defaultTo(COMPANY_STATUS.NONE);
       table.string("tags").defaultTo(""); // @TODO fix this
       table.jsonb("notes").defaultTo([]);
 

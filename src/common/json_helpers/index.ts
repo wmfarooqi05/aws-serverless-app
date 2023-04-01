@@ -165,33 +165,36 @@ export const transformJSONKeys = (
       actionItem: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD
     ) => {
       if (actionItem.objectType === "SIMPLE_KEY") {
-        simpleKeys = { ...simpleKeys, ...actionItem.payload };
-        const field = Object.keys(actionItem.payload)[0];
-        if (actionType !== PendingApprovalType.CREATE) {
-          let updateHistoryObj: IUpdateHistory = {
-            tableName,
-            tableRowId,
-            field,
-            actionType: actionType,
-            updatedBy,
-          } as IUpdateHistory;
-          if (actionType === PendingApprovalType.DELETE) {
-            updateHistoryObj = {
-              ...updateHistoryObj,
-              oldValue: JSON.stringify(originalObject),
-              newValue: null,
-            };
-          } else {
-            updateHistoryObj = {
-              ...updateHistoryObj,
-              oldValue: originalObject[field],
-              newValue: actionItem.payload[field],
-            };
-          }
+        let updateHistoryObj: IUpdateHistory = {
+          tableName,
+          tableRowId,
+          actionType: actionType,
+          updatedBy,
+        } as IUpdateHistory;
+
+        if (actionType === PendingApprovalType.DELETE) {
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            oldValue: JSON.stringify(originalObject),
+            newValue: null,
+          };
           finalQueries.push(
-            knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+            knexClient(tableName).where("id", "=", tableRowId).del()
           );
+        } else if (actionType === PendingApprovalType.UPDATE) {
+          simpleKeys = { ...simpleKeys, ...actionItem.payload };
+
+          const field = Object.keys(actionItem.payload)[0];
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            field,
+            oldValue: originalObject[field],
+            newValue: actionItem.payload[field],
+          };
         }
+        finalQueries.push(
+          knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+        );
       } else {
         const {
           payload: {
@@ -271,9 +274,11 @@ export const transformJSONKeys = (
     }
   );
 
-  finalQueries.push(
-    knexClient(tableName).where({ id: tableRowId }).update(simpleKeys)
-  );
+  if (simpleKeys && Object.keys(simpleKeys).length > 0) {
+    finalQueries.push(
+      knexClient(tableName).where({ id: tableRowId }).update(simpleKeys)
+    );
+  }
 
   return finalQueries;
 };

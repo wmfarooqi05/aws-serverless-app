@@ -46,6 +46,8 @@ export default class CompanyModel extends Model {
           items: { type: "object" },
           default: [],
         },
+        priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
+        status: { type: "string", default: COMPANY_STATUS.NONE },
         details: {
           type: "object",
           default: defaultCompanyDetails,

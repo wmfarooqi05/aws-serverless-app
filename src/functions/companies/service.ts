@@ -209,8 +209,8 @@ export class CompanyService implements ICompanyService {
     return this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       id,
-      payload,
-      employee.sub
+      employee.sub,
+      payload
     );
   }
 
@@ -227,7 +227,12 @@ export class CompanyService implements ICompanyService {
     //   );
     //   return item;
     // } else {
-    const deleted = await CompanyModel.query().deleteById(id);
+    // const deleted = await CompanyModel.query().deleteById(id);
+    return this.updateHistoryHelper(
+      PendingApprovalType.DELETE,
+      id,
+      employee.sub
+    );
 
     if (!deleted) {
       throw new CustomError("Company not found", 404);
@@ -560,24 +565,36 @@ export class CompanyService implements ICompanyService {
       actionType,
       actionsRequired: [],
     };
-    Object.keys(payload).forEach((key) => {
-      let objectType = this.getObjectType(key);
-      if (objectType === "SIMPLE_KEY") {
-        approvalActions.actionsRequired.push({
-          objectType,
-          payload: { [key]: payload[key] },
-        });
-      } else {
-        approvalActions.actionsRequired.push({
-          objectType,
-          payload: {
-            jsonbItemId,
-            jsonbItemKey: key,
-            jsonbItemValue: payload[key],
-          },
-        });
-      }
-    });
+
+    if (actionType === PendingApprovalType.DELETE) {
+      approvalActions.actionsRequired.push({
+        objectType: "SIMPLE_KEY",
+        payload: null,
+      });
+    } else {
+      Object.keys(payload).forEach((key) => {
+        let objectType = this.getObjectType(key);
+        if (objectType === "SIMPLE_KEY") {
+          let value = payload[key];
+          if (typeof value === "object") {
+            value = JSON.stringify(value);
+          }
+          approvalActions.actionsRequired.push({
+            objectType,
+            payload: { [key]: value },
+          });
+        } else {
+          approvalActions.actionsRequired.push({
+            objectType,
+            payload: {
+              jsonbItemId,
+              jsonbItemKey: key,
+              jsonbItemValue: payload[key],
+            },
+          });
+        }
+      });
+    }
     return {
       tableName,
       tableRowId,
@@ -588,8 +605,8 @@ export class CompanyService implements ICompanyService {
   async updateHistoryHelper(
     actionType: PendingApprovalType,
     tableRowId: string,
-    payload: object,
     updatedBy,
+    payload: object = null,
     jsonbItemId: string = null
   ) {
     const {
@@ -635,16 +652,19 @@ export class CompanyService implements ICompanyService {
   getObjectType(key) {
     type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSON";
     const map: Record<string, OBJECT_KEY_TYPE> = {
+      companyName: "SIMPLE_KEY",
+      concernedPersons: "JSON",
+      addresses: "SIMPLE_KEY",
+      assignedTo: "SIMPLE_KEY",
+      assignedBy: "SIMPLE_KEY",
+      priority: "SIMPLE_KEY",
+      status: "SIMPLE_KEY",
+      details: "SIMPLE_KEY",
+      stage: "SIMPLE_KEY",
+      tags: "SIMPLE_KEY",
+      notes: "JSON",
       tableRowId: "SIMPLE_KEY",
       tableName: "SIMPLE_KEY",
-      approvers: "SIMPLE_KEY",
-      createdBy: "SIMPLE_KEY",
-      onApprovalActionRequired: "JSON",
-      escalationTime: "SIMPLE_KEY",
-      skipEscalation: "SIMPLE_KEY",
-      status: "SIMPLE_KEY",
-      retryCount: "SIMPLE_KEY",
-      resultPayload: "SIMPLE_KEY",
     };
 
     return map[key];
