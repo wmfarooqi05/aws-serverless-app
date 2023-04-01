@@ -283,19 +283,6 @@ export const transformJSONKeys = (
   return finalQueries;
 };
 
-const convertObject = (given, knexClient: Knex) => {
-  const required = {};
-  for (const key in given) {
-    if (Array.isArray(given[key])) {
-      const combined = given[key].join(",");
-      required[key] = knexClient.raw(combined);
-    } else {
-      required[key] = given[key];
-    }
-  }
-  return required;
-};
-
 export const validateJSONItemAndGetIndex = async (
   knexClient: Knex,
   tableName: string,
@@ -304,7 +291,7 @@ export const validateJSONItemAndGetIndex = async (
   jsonItemId: string,
   errorRowNotFound = null,
   errorJSONItemNotFound = null
-): Promise<number> => {
+): Promise<{ index: number; originalObject: Object }> => {
   const originalRowItem = await knexClient
     .table(tableName)
     .where({ id: tableRowId })
@@ -328,7 +315,7 @@ export const validateJSONItemAndGetIndex = async (
       404
     );
   }
-  return index;
+  return { index, originalObject: originalRowItem };
 };
 
 /**

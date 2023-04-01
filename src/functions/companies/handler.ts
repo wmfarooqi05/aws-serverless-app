@@ -125,13 +125,9 @@ const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const company = await container
       .resolve(CompanyService)
-      .updateCompanyAssignedEmployee(
-        event?.employee,
-        companyId,
-        event.body
-      );
+      .updateCompanyAssignedEmployee(event?.employee, companyId, event.body);
 
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse(company, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -142,10 +138,10 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { companyId } = event.pathParameters;
-    const company = await container
+    const concernedPerson = await container
       .resolve(CompanyService)
       .createConcernedPersons(event?.employee, companyId, event.body);
-    return formatJSONResponse({ ...company }, 200);
+    return formatJSONResponse(concernedPerson, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -156,7 +152,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { companyId, concernedPersonId } = event.pathParameters;
-    const company = await container
+    const concernedPerson = await container
       .resolve(CompanyService)
       .updateConcernedPerson(
         companyId,
@@ -165,7 +161,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
         event.body
       );
 
-    return formatJSONResponse({ ...company }, 200);
+    return formatJSONResponse(concernedPerson, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -177,11 +173,11 @@ const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const { concernedPersonId, companyId } = event.pathParameters;
     // Add guard validation if required
-    const company = await container
+    const concernedPerson = await container
       .resolve(CompanyService)
-      .deleteConcernedPerson(companyId, concernedPersonId);
+      .deleteConcernedPerson(event.employee, companyId, concernedPersonId);
 
-    return formatJSONResponse({ ...company }, 200);
+    return formatJSONResponse(concernedPerson, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -192,10 +188,10 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { companyId } = event.pathParameters;
-    const company = await container
+    const notes = await container
       .resolve(CompanyService)
       .getNotes(event?.employee?.sub, companyId);
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -204,10 +200,10 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 const createNotesHandler = async (event) => {
   try {
     const { companyId } = event.pathParameters;
-    const company = await container
+    const notes = await container
       .resolve(CompanyService)
       .createNotes(event?.employee?.sub, companyId, event.body);
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -218,11 +214,11 @@ const updateNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 > = async (event) => {
   try {
     const { companyId, notesId } = event.pathParameters;
-    const company = await container
+    const notes = await container
       .resolve(CompanyService)
       .updateNotes(event?.employee?.sub, companyId, notesId, event.body);
 
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -234,11 +230,11 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const { notesId, companyId } = event.pathParameters;
     // Add guard validation if required
-    const company = await container
+    const notes = await container
       .resolve(CompanyService)
-      .deleteNotes(companyId, notesId);
+      .deleteNotes(event.employee, companyId, notesId);
 
-    return formatJSONResponse({ company }, 200);
+    return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }

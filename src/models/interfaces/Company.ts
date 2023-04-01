@@ -1,6 +1,6 @@
 // Only adder can modify notes
 // Manager can delete
-interface INotes {
+export interface INotes {
   id: string;
   addedBy: string;
   updatedAt: string;

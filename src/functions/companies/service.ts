@@ -9,6 +9,7 @@ import {
   IConcernedPerson,
   ICompany,
   COMPANY_STAGES,
+  INotes,
 } from "@models/interfaces/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
@@ -23,6 +24,7 @@ import {
   validateGetNotes,
   validateAddNotes,
   validateUpdateNotes,
+  validateDeleteNotes,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
@@ -35,6 +37,7 @@ import {
   deleteJsonbObjectHelper,
   transformJSONKeys,
   updateJsonbObjectHelper,
+  validateJSONItemAndGetIndex,
 } from "src/common/json_helpers";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
@@ -56,6 +59,7 @@ import {
   sanitizeColumnNames,
 } from "@common/query";
 import { EmployeeService } from "@functions/employees/service";
+import Joi from "joi";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -178,7 +182,8 @@ export class CompanyService implements ICompanyService {
       } as IConcernedPerson;
     });
 
-    return CompanyModel.query().insert(payload).returning("*");
+    const company = await CompanyModel.query().insert(payload).returning("*");
+    return company;
   }
 
   async updateCompany(
@@ -206,12 +211,15 @@ export class CompanyService implements ICompanyService {
     //   throw new CustomError("Object not found", 404);
     // }
 
-    return this.updateHistoryHelper(
+    await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       id,
       employee.sub,
       payload
     );
+
+    const company = await CompanyModel.query().findById(id);
+    return { company };
   }
 
   async deleteCompany(employee: IEmployeeJwt, id: string): Promise<any> {
@@ -228,11 +236,13 @@ export class CompanyService implements ICompanyService {
     //   return item;
     // } else {
     // const deleted = await CompanyModel.query().deleteById(id);
-    return this.updateHistoryHelper(
+    await this.updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
       employee.sub
     );
+
+    return { company: { id } };
   }
   async updateCompanyAssignedEmployee(employee: IEmployeeJwt, companyId, body) {
     // @TODO: @Auth this employee should be the manager of changing person
@@ -250,12 +260,14 @@ export class CompanyService implements ICompanyService {
     if (!company) {
       throw new CustomError("Company not found", 404);
     }
-    return this.updateHistoryHelper(
+    await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       { assignedTo: assignTo ?? CompanyModel.raw("NULL") }
     );
+
+    return { company: { ...company, assignedTo: assignTo ?? null } };
   }
 
   async createConcernedPersons(employee: IEmployeeJwt, companyId, body) {
@@ -289,8 +301,12 @@ export class CompanyService implements ICompanyService {
       }
       // or employee is manager, determine if this manager is allowed to see data
       const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
-        key: "concernedPersons",
-        jsonbItem: payload,
+        objectType: "JSONB",
+        payload: {
+          jsonbItemValue: payload,
+          jsonbItemKey: "concernedPersons",
+          jsonActionType: PendingApprovalType.JSON_PUSH,
+        },
       };
 
       const item = await this.pendingApprovalService.createPendingApproval(
@@ -299,7 +315,7 @@ export class CompanyService implements ICompanyService {
         ModuleTitles.COMPANY,
         COMPANIES_TABLE_NAME,
         PendingApprovalType.JSON_PUSH,
-        jsonbPayload
+        [jsonbPayload]
       );
       return { pendingApproval: item };
     }
@@ -313,7 +329,7 @@ export class CompanyService implements ICompanyService {
       null
     );
 
-    return payload;
+    return { concernedPersons: payload };
   }
 
   async updateConcernedPerson(
@@ -334,21 +350,16 @@ export class CompanyService implements ICompanyService {
       payload
     );
 
-    const company: ICompany = await CompanyModel.query().findById(companyId);
-
-    if (!company) {
-      throw new CustomError("Company doesn't exists.", 404);
-    }
-    const index = company.concernedPersons.findIndex(
-      (x) => x.id === concernedPersonId
+    const { index, originalObject } = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      CompanyModel.tableName,
+      companyId,
+      "concernedPersons",
+      concernedPersonId
     );
 
-    if (index === -1) {
-      throw new CustomError("Concerned Person doesn't exists", 404);
-    }
-
     const newPayload = {
-      ...company.concernedPersons[index],
+      ...originalObject["concernedPersons"][index],
       ...payload,
     };
     await this.updateHistoryHelper(
@@ -359,43 +370,44 @@ export class CompanyService implements ICompanyService {
       PendingApprovalType.JSON_UPDATE,
       concernedPersonId
     );
-    return newPayload;
+    return { concernedPersons: newPayload };
   }
 
-  async deleteConcernedPerson(companyId: string, concernedPersonId: string) {
-    // @ADD some query to find index of id directly
-    const company: ICompany = await CompanyModel.query().findOne({
-      id: companyId,
-    });
-
-    if (!company) {
-      throw new CustomError("Company doesn't exists", 404);
-    }
-
-    const index = company?.concernedPersons?.findIndex(
-      (x) => x.id === concernedPersonId
+  async deleteConcernedPerson(
+    employee: IEmployeeJwt,
+    companyId: string,
+    concernedPersonId: string
+  ) {
+    const key = "concernedPersons";
+    const { originalObject, index } = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      CompanyModel.tableName,
+      companyId,
+      key,
+      concernedPersonId
     );
 
-    if (index === -1) {
-      throw new CustomError("Concerned Person doesn't exist", 404);
-    }
-
-    const deleteQuery = deleteJsonbObjectHelper(
-      "concernedPersons",
-      index,
-      this.docClient.getKnexClient()
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      employee.sub,
+      { [key]: null },
+      PendingApprovalType.JSON_DELETE,
+      concernedPersonId
     );
 
-    return CompanyModel.query().patchAndFetchById(companyId, deleteQuery);
+    return { concernedPersons: originalObject[key][index] };
   }
 
   // Notes
   async getNotes(employeeId: string, companyId: any) {
     await validateGetNotes(employeeId, companyId);
-    return this.docClient
+    const notes = await this.docClient
       .getKnexClient()(CompanyModel.tableName)
-      .select(["id", "notes"])
-      .where({ id: companyId });
+      .select(["notes"])
+      .where({ id: companyId })
+      .first();
+    return notes.notes;
   }
 
   // Notes
@@ -404,7 +416,7 @@ export class CompanyService implements ICompanyService {
     if (payload) {
       await validateAddNotes(addedBy, companyId, payload);
     }
-    const notesItem: INotes = {
+    const notes: INotes = {
       id: randomUUID(),
       addedBy,
       isEdited: false,
@@ -412,95 +424,71 @@ export class CompanyService implements ICompanyService {
       updatedAt: moment().utc().format(),
     };
 
-    // @TODO we are adding [] by default, so maybe not need double check
-    const company = await CompanyModel.query()
-      .patch({
-        notes: CompanyModel.raw(
-          `
-          CASE
-            WHEN notes IS NULL THEN :arr::JSONB
-            ELSE notes || :obj::JSONB
-          END
-          `,
-          {
-            obj: JSON.stringify(notesItem),
-            arr: JSON.stringify([notesItem]),
-          }
-        ),
-      })
-      .where({ id: companyId })
-      .returning("*")
-      .first();
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      addedBy,
+      { notes },
+      PendingApprovalType.JSON_PUSH,
+      null
+    );
 
-    if (!company) {
-      throw new CustomError("Company does't exists", 404);
-    }
-
-    return company;
+    return { notes };
   }
 
   async updateNotes(addedBy: string, companyId: string, notesId: string, body) {
     const payload = JSON.parse(body);
     await validateUpdateNotes(addedBy, companyId, notesId, payload);
 
-    const company: ICompany = await CompanyModel.query()
-      .findById(companyId)
-      .returning(["notes"]);
+    const { index, originalObject } = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      CompanyModel.tableName,
+      companyId,
+      "notes",
+      notesId
+    );
 
-    if (!company) {
-      throw new CustomError("Company doesn't exists.", 404);
-    }
-
-    // @TODO check if concernedPersons is null
-    const index = company?.notes?.findIndex((x) => x.id === notesId);
-
-    if (index === -1 || index === undefined) {
-      throw new CustomError("Notes doesn't exist", 404);
-    }
-
-    if (company.notes[index].addedBy !== addedBy) {
-      throw new CustomError("Only creator can modify his notes", 403);
-    }
-
-    const date = moment().utc().format();
-    const updatedNotes: INotes = {
-      ...company.notes[index],
-      notesText: payload.notesText,
-      updatedAt: date,
-      isEdited: true,
+    const notes = {
+      ...originalObject["notes"][index],
+      ...payload,
     };
-
-    return CompanyModel.query().patchAndFetchById(companyId, {
-      notes: ActivityModel.raw(
-        `
-          jsonb_set(notes, 
-            '{
-              ${index}
-            }', '${JSON.stringify(updatedNotes)}', 
-            true
-          )
-        `
-      ),
-    });
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      addedBy,
+      { notes },
+      PendingApprovalType.JSON_UPDATE,
+      notesId
+    );
+    return { notes };
   }
 
-  async deleteNotes(companyId: string, notesId: string) {
+  async deleteNotes(
+    employee: IEmployeeJwt,
+    companyId: string,
+    notesId: string
+  ) {
     // @ADD some query to find index of id directly
-    const company: ICompany = await CompanyModel.query()
-      .findOne({
-        id: companyId,
-      })
-      .returning(["notes"]);
+    await validateDeleteNotes({ companyId, notesId });
+    const key = "notes";
+    const { originalObject, index } = await validateJSONItemAndGetIndex(
+      this.docClient.getKnexClient(),
+      CompanyModel.tableName,
+      companyId,
+      key,
+      notesId
+    );
 
-    const index = company?.notes?.findIndex((x) => x.id === notesId);
+    await this.updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      companyId,
+      employee.sub,
+      { [key]: null },
+      PendingApprovalType.JSON_DELETE,
+      notesId
+    );
 
-    if (index === -1 || index === undefined) {
-      throw new CustomError("Company doesn't exist", 404);
-    }
-
-    return CompanyModel.query().patchAndFetchById(companyId, {
-      notes: ActivityModel.raw(`notes - ${index}`),
-    });
+    return { notes: originalObject[key][index] };
   }
 
   permissionResolver() {

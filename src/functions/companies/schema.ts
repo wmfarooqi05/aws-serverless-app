@@ -201,3 +201,10 @@ export const validateUpdateNotes = async (
     }
   );
 };
+
+export const validateDeleteNotes = async (obj) => {
+  return Joi.object({
+    companyId: Joi.string().guid().required(),
+    notesId: Joi.string().guid().required(),
+  }).validateAsync(obj);
+};
