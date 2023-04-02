@@ -160,7 +160,10 @@ export class CompanyService implements ICompanyService {
     return company;
   }
 
-  async createCompany(employee: IEmployeeJwt, body: any): Promise<{ company?: CompanyModel; pendingApproval?: IPendingApprovals }> {
+  async createCompany(
+    employee: IEmployeeJwt,
+    body: any
+  ): Promise<{ company?: CompanyModel; pendingApproval?: IPendingApprovals }> {
     const payload = JSON.parse(body);
     payload.createdBy = employee.sub;
     await validateCreateCompany(payload);
@@ -210,26 +213,31 @@ export class CompanyService implements ICompanyService {
     return { company };
   }
 
-  async deleteCompany(employee: IEmployeeJwt, id: string): Promise<any> {
-    // if (
-    //   RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
-    // ) {
-    //   const item = await this.pendingApprovalService.createPendingApproval(
-    //     employee.sub,
-    //     id,
-    //     ModuleTitles.COMPANY,
-    //     COMPANIES_TABLE_NAME,
-    //     PendingApprovalType.DELETE
-    //   );
-    //   return item;
-    // } else {
-    // const deleted = await CompanyModel.query().deleteById(id);
+  async deleteCompany(
+    employee: IEmployeeJwt,
+    id: string
+  ): Promise<{
+    company?: Pick<ICompany, "id">;
+    pendingApproval?: IPendingApprovals;
+  }> {
+    await Joi.object({
+      id: Joi.string().uuid().required(),
+    }).validateAsync({ id });
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.DELETE,
+        id,
+        employee.sub,
+        CompanyModel.tableName
+      );
+    }
     await this.updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
-      employee.sub
+      employee.sub,
+      CompanyModel.tableName
     );
-
     return { company: { id } };
   }
   async updateCompanyAssignedEmployee(employee: IEmployeeJwt, companyId, body) {
@@ -241,16 +249,26 @@ export class CompanyService implements ICompanyService {
       employee.sub,
       payload
     );
-
     const company = await CompanyModel.query().findById(companyId);
     if (!company) {
       throw new CustomError("Company not found", 404);
+    }
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        { assignedTo: payload?.assignTo ?? null }
+      );
     }
     await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
-      { assignedTo: payload?.assignTo ?? CompanyModel.raw("NULL") }
+      CompanyModel.tableName,
+      { assignedTo: payload?.assignTo ?? null }
     );
 
     return { company: { ...company, assignedTo: payload?.assignTo ?? null } };
@@ -273,43 +291,22 @@ export class CompanyService implements ICompanyService {
      *  Store it in redis, fetch here and check if create is permitted by default or not
      * if yes, then ok, otherwise put this in pending approval
      *  */
-    const permission: boolean = getGlobalPermission(
-      "company.childModules.concernedPersons",
-      "create"
-    );
-    if (
-      !permission &&
-      RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
-    ) {
-      const company = await CompanyModel.query().findById(companyId);
-      if (!company) {
-        throw new CustomError("Company not found", 404);
-      }
-      // or employee is manager, determine if this manager is allowed to see data
-      const jsonbPayload: APPROVAL_ACTION_JSONB_PAYLOAD = {
-        objectType: "JSONB",
-        payload: {
-          jsonbItemValue: payload,
-          jsonbItemKey: "concernedPersons",
-          jsonActionType: PendingApprovalType.JSON_PUSH,
-        },
-      };
-
-      const item = await this.pendingApprovalService.createPendingApproval(
-        employee.sub,
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
         companyId,
-        ModuleTitles.COMPANY,
-        COMPANIES_TABLE_NAME,
-        PendingApprovalType.JSON_PUSH,
-        [jsonbPayload]
+        employee.sub,
+        CompanyModel.tableName,
+        { assignedTo: payload?.assignTo ?? null }
       );
-      return { pendingApproval: item };
     }
 
     await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
+      CompanyModel.tableName,
       { concernedPersons: payload },
       PendingApprovalType.JSON_PUSH,
       null
@@ -321,7 +318,7 @@ export class CompanyService implements ICompanyService {
   async updateConcernedPerson(
     companyId: string,
     concernedPersonId: string,
-    employeeId: string,
+    employee: IEmployeeJwt,
     body
   ) {
     /**
@@ -330,7 +327,7 @@ export class CompanyService implements ICompanyService {
 
     const payload = JSON.parse(body);
     await validateUpdateConcernedPerson(
-      employeeId,
+      employee.sub,
       companyId,
       concernedPersonId,
       payload
@@ -348,10 +345,24 @@ export class CompanyService implements ICompanyService {
       ...originalObject["concernedPersons"][index],
       ...payload,
     };
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.DELETE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        { concernedPersons: newPayload },
+        PendingApprovalType.JSON_UPDATE,
+        concernedPersonId
+      );
+    }
+
     await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
-      employeeId,
+      employee.sub,
+      CompanyModel.tableName,
       { concernedPersons: newPayload },
       PendingApprovalType.JSON_UPDATE,
       concernedPersonId
@@ -373,11 +384,25 @@ export class CompanyService implements ICompanyService {
       concernedPersonId
     );
 
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.DELETE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        null,
+        PendingApprovalType.JSON_UPDATE,
+        concernedPersonId
+      );
+    }
+
     await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
-      { [key]: null },
+      CompanyModel.tableName,
+      null,
       PendingApprovalType.JSON_DELETE,
       concernedPersonId
     );
@@ -386,8 +411,8 @@ export class CompanyService implements ICompanyService {
   }
 
   // Notes
-  async getNotes(employeeId: string, companyId: any) {
-    await validateGetNotes(employeeId, companyId);
+  async getNotes(employee: IEmployeeJwt, companyId: any) {
+    await validateGetNotes(employee.sub, companyId);
     const notes = await this.docClient
       .getKnexClient()(CompanyModel.tableName)
       .select(["notes"])
@@ -414,6 +439,7 @@ export class CompanyService implements ICompanyService {
       PendingApprovalType.UPDATE,
       companyId,
       addedBy,
+      CompanyModel.tableName,
       { notes },
       PendingApprovalType.JSON_PUSH,
       null
@@ -442,6 +468,7 @@ export class CompanyService implements ICompanyService {
       PendingApprovalType.UPDATE,
       companyId,
       addedBy,
+      CompanyModel.tableName,
       { notes },
       PendingApprovalType.JSON_UPDATE,
       notesId
@@ -469,6 +496,7 @@ export class CompanyService implements ICompanyService {
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
+      CompanyModel.tableName,
       { [key]: null },
       PendingApprovalType.JSON_DELETE,
       notesId
@@ -492,6 +520,7 @@ export class CompanyService implements ICompanyService {
   convertPayloadToArray = (
     actionType: PendingApprovalType,
     tableRowId: string,
+    tableName: string,
     payload: object,
     jsonActionType: string = null,
     jsonbItemId: string = null
@@ -516,9 +545,10 @@ export class CompanyService implements ICompanyService {
         let objectType = this.getObjectType(key);
         if (objectType === "SIMPLE_KEY") {
           let value = payload[key];
-          if (typeof value === "object") {
+          if (typeof value !== null && value === "object") {
             value = JSON.stringify(value);
           }
+
           approvalActions.actionsRequired.push({
             objectType,
             payload: { [key]: value },
@@ -547,6 +577,7 @@ export class CompanyService implements ICompanyService {
     actionType: PendingApprovalType,
     tableRowId: string,
     updatedBy,
+    tableName: string,
     payload: object = null,
     jsonActionType: string = null,
     jsonbItemId: string = null
@@ -556,6 +587,7 @@ export class CompanyService implements ICompanyService {
     } = this.convertPayloadToArray(
       actionType,
       tableRowId,
+      tableName,
       payload,
       jsonActionType,
       jsonbItemId

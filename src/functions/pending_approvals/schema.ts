@@ -157,23 +157,27 @@ const jsonbSchema = Joi.object({
   }),
 });
 
-const simpleKeySchema = Joi.object({
-  companyName: Joi.string(),
-  assignedTo: Joi.string().uuid(),
-})
-  .xor("companyName", "assignedTo")
-  .required();
+// const simpleKeySchema = Joi.object({
+//   companyName: Joi.string(),
+//   assignedTo: Joi.string().uuid(),
+// })
+//   .xor("companyName", "assignedTo")
+//   .required();
 
 const actionSchema = Joi.object({
   objectType: Joi.string().valid("SIMPLE_KEY", "JSONB").required(),
   payload: Joi.when("objectType", {
     is: "SIMPLE_KEY",
-    then: simpleKeySchema,
+    then: Joi.object(),
     otherwise: jsonbSchema.required(),
   }),
 }).required();
 
 const onApprovalActionRequiredSchema = Joi.object({
-  actionsRequired: Joi.array().items(actionSchema).min(1).required(),
+  actionsRequired: Joi.when("actionType", {
+    is: "DELETE",
+    then: Joi.not().required(),
+    otherwise: Joi.array().items(actionSchema).min(1).required(),
+  }),
   actionType: Joi.string().required(),
 }).required();

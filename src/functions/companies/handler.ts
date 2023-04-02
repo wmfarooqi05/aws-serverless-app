@@ -12,7 +12,10 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import { allowRoleWrapper, checkRolePermission } from "@middlewares/jwtMiddleware";
+import {
+  allowRoleWrapper,
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 
 export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -20,10 +23,7 @@ export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const newCompany = await container
       .resolve(CompanyService)
-      .createCompany(
-        event.employee,
-        event.body
-      );
+      .createCompany(event.employee, event.body);
     return formatJSONResponse(newCompany, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -103,13 +103,10 @@ export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<ICompanyMo
   middy(async (event) => {
     try {
       const { companyId } = event.pathParameters;
-      await container
+      const response = await container
         .resolve(CompanyService)
         .deleteCompany(event?.employee, companyId);
-      return formatJSONResponse(
-        { message: "Company deleted successfully" },
-        200
-      );
+      return formatJSONResponse(response, 200);
     } catch (e) {
       return formatErrorResponse(e);
     }
@@ -157,7 +154,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
       .updateConcernedPerson(
         companyId,
         concernedPersonId,
-        event?.employee?.sub,
+        event?.employee,
         event.body
       );
 
@@ -190,7 +187,7 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId } = event.pathParameters;
     const notes = await container
       .resolve(CompanyService)
-      .getNotes(event?.employee?.sub, companyId);
+      .getNotes(event?.employee, companyId);
     return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -202,7 +199,7 @@ const createNotesHandler = async (event) => {
     const { companyId } = event.pathParameters;
     const notes = await container
       .resolve(CompanyService)
-      .createNotes(event?.employee?.sub, companyId, event.body);
+      .createNotes(event?.employee, companyId, event.body);
     return formatJSONResponse(notes, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -216,7 +213,7 @@ const updateNotesHandler: ValidatedEventAPIGatewayProxyEvent<
     const { companyId, notesId } = event.pathParameters;
     const notes = await container
       .resolve(CompanyService)
-      .updateNotes(event?.employee?.sub, companyId, notesId, event.body);
+      .updateNotes(event?.employee, companyId, notesId, event.body);
 
     return formatJSONResponse(notes, 200);
   } catch (e) {
@@ -240,32 +237,57 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getCompanies = checkRolePermission(getCompaniesHandler, 'COMPANY_READ_ALL');
+export const getCompanies = checkRolePermission(
+  getCompaniesHandler,
+  "COMPANY_READ_ALL"
+);
 // .use(permissionMiddleware2(["update"], "COMPANY"));
 // export const getMyCompanies = allowRoleWrapper(getMyCompaniesHandler);
 export const getCompaniesByEmployeeId = allowRoleWrapper(
   getCompaniesByEmployeeIdHandler
 );
-export const updateCompany = checkRolePermission(updateCompanyHandler, 'COMPANY_UPDATE');
-export const createCompany = checkRolePermission(createCompanyHandler, 'COMPANY_CREATE');
-export const deleteCompany = checkRolePermission(deleteCompanyHandler, 'COMPANY_DELETE');
-
-export const updateCompanyAssignedEmployee = allowRoleWrapper(
-  updateCompanyAssignedEmployeeHandler
+export const updateCompany = checkRolePermission(
+  updateCompanyHandler,
+  "COMPANY_UPDATE"
+);
+export const createCompany = checkRolePermission(
+  createCompanyHandler,
+  "COMPANY_CREATE"
+);
+export const deleteCompany = checkRolePermission(
+  deleteCompanyHandler,
+  "COMPANY_DELETE"
 );
 
-export const createConcernedPersons = allowRoleWrapper(
-  createConcernedPersonsHandler
+export const updateCompanyAssignedEmployee = checkRolePermission(
+  updateCompanyAssignedEmployeeHandler,
+  "COMPANY_UPDATE"
 );
 
-export const updateConcernedPerson = allowRoleWrapper(
-  updateConcernedPersonHandler
-);
-export const deleteConcernedPerson = allowRoleWrapper(
-  deleteConcernedPersonHandler
+export const createConcernedPersons = checkRolePermission(
+  createConcernedPersonsHandler,
+  "COMPANY_UPDATE"
 );
 
-export const createNotes = allowRoleWrapper(createNotesHandler);
-export const updateNotes = allowRoleWrapper(updateNotesHandler);
-export const deleteNotes = allowRoleWrapper(deleteNotesHandler);
-export const getNotes = allowRoleWrapper(getNotesHandler);
+export const updateConcernedPerson = checkRolePermission(
+  updateConcernedPersonHandler,
+  "COMPANY_UPDATE"
+);
+export const deleteConcernedPerson = checkRolePermission(
+  deleteConcernedPersonHandler,
+  "COMPANY_UPDATE"
+);
+
+export const createNotes = checkRolePermission(
+  createNotesHandler,
+  "COMPANY_UPDATE"
+);
+export const updateNotes = checkRolePermission(
+  updateNotesHandler,
+  "COMPANY_UPDATE"
+);
+export const deleteNotes = checkRolePermission(
+  deleteNotesHandler,
+  "COMPANY_UPDATE"
+);
+export const getNotes = checkRolePermission(getNotesHandler, "COMPANY_READ");

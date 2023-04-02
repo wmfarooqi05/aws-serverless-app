@@ -284,7 +284,9 @@ export const createKnexTransactionsWithPendingPayload = (
 
   if (simpleKeys && Object.keys(simpleKeys).length > 0) {
     finalQueries.push(
-      knexClient(tableName).where({ id: tableRowId }).update(simpleKeys)
+      knexClient(tableName)
+        .where({ id: tableRowId })
+        .update(transformJSONKeys(simpleKeys))
     );
   }
 
@@ -390,8 +392,10 @@ export const deleteJsonbObjectQueryHelper = (
 export const transformJSONKeys = (payload: any | null) => {
   if (!payload) return null;
   Object.keys(payload).forEach((x) => {
-    if (typeof payload[x] === "object") {
+    if (typeof payload[x] !== null && typeof payload[x] === "object") {
       payload[x] = JSON.stringify(payload[x]);
+    } else if (payload[x] === "null") {
+      payload[x] = null;
     }
   });
 

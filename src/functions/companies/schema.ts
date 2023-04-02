@@ -97,7 +97,7 @@ export const validateUpdateCompanyAssignedEmployee = async (
 ) => {
   await Joi.object({
     assignedBy: Joi.string().guid().required(),
-    assignTo: Joi.string().guid(),
+    assignTo: Joi.string().guid().allow(null),
     companyId: Joi.string().guid().required(),
   }).validateAsync(
     { ...payload, assignedBy, companyId },

@@ -72,9 +72,9 @@ export class PendingApprovalService implements IPendingApprovalService {
     body
   ) {
     const payload = JSON.parse(body);
-    // await Joi.object({ approved: Joi.boolean().required() }).validateAsync(
-    //   payload
-    // );
+    await Joi.object({
+      approved: Joi.boolean().required(),
+    }).validateAsync(payload);
     const pendingApproval: IPendingApprovals =
       await PendingApprovalModel.query().findById(requestId);
     switch (pendingApproval.status) {
@@ -104,16 +104,6 @@ export class PendingApprovalService implements IPendingApprovalService {
 
     delete updatedPendingObject.onApprovalActionRequired;
     return updatedPendingObject;
-    // @TODO do we need this?
-    // const pendingRequests: IPendingApprovals =
-    //   await PendingApprovalModel.query().findByIds(body.pendingApprovalIds);
-
-    // return PendingApprovalModel.query()
-    //   .patch(body.approve)
-    //   .whereIn(body.requestIds);
-    // return this.docClient
-    //   .getKnexClient(PendingApprovalModel.tableName)
-    //   .update({});
   }
   /**
    * @deprecated
