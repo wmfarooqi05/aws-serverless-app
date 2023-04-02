@@ -28,7 +28,7 @@ import Employee from "@models/Employees";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import Joi from "joi";
-import { transformJSONKeys } from "@common/json_helpers";
+import { createKnexTransactionsWithPendingPayload } from "@common/json_helpers";
 
 export interface IPendingApprovalService {}
 
@@ -93,13 +93,17 @@ export class PendingApprovalService implements IPendingApprovalService {
     await validatePendingApprovalBeforeJob(pendingApproval);
     const updatedEntry = await this.postApproval(employee.sub, pendingApproval);
 
-    return PendingApprovalModel.query()
-      .patchAndFetchById(updatedEntry.id, {
-        retryCount: updatedEntry.retryCount + 1,
-        resultPayload: updatedEntry.resultPayload,
-        status: updatedEntry.status,
-      })
-      .returning("*");
+    const updatedPendingObject: IPendingApprovals =
+      await PendingApprovalModel.query()
+        .patchAndFetchById(updatedEntry.id, {
+          retryCount: updatedEntry.retryCount + 1,
+          resultPayload: updatedEntry.resultPayload,
+          status: updatedEntry.status,
+        })
+        .first();
+
+    delete updatedPendingObject.onApprovalActionRequired;
+    return updatedPendingObject;
     // @TODO do we need this?
     // const pendingRequests: IPendingApprovals =
     //   await PendingApprovalModel.query().findByIds(body.pendingApprovalIds);
@@ -163,18 +167,26 @@ export class PendingApprovalService implements IPendingApprovalService {
       // write joi validator, loop through each payload and check that key must be one of schema keys
       validatePendingApprovalObject(entry);
 
-      await pendingApprovalKnexHelper(
+      const response = await pendingApprovalKnexHelper(
         updatedBy,
         entry,
         this.docClient.getKnexClient()
       );
 
       taskDone = true;
-      return {
+      const returningObject = {
         ...entry,
         resultPayload: [],
         status: PendingApprovalsStatus.SUCCESS,
       };
+
+      if (
+        entry.onApprovalActionRequired.actionType === PendingApprovalType.CREATE
+      ) {
+        returningObject.resultPayload.push(response);
+      }
+
+      return returningObject;
     } catch (e) {
       error[errorCount] = e;
       error[errorCount]._stack = e.stack;
@@ -328,6 +340,9 @@ export class PendingApprovalService implements IPendingApprovalService {
       retryCount: 0,
       resultPayload: [],
     };
+    if (actionType === PendingApprovalType.CREATE) {
+      delete item.tableRowId;
+    }
     const pendingApproval: IPendingApprovals =
       await PendingApprovalModel.query().insert(item);
     return { pendingApproval };
@@ -446,6 +461,11 @@ export class PendingApprovalService implements IPendingApprovalService {
         objectType: "SIMPLE_KEY",
         payload: null,
       });
+    } else if (actionType === PendingApprovalType.CREATE) {
+      approvalActions.actionsRequired.push({
+        objectType: "SIMPLE_KEY",
+        payload,
+      });
     } else {
       Object.keys(payload).forEach((key) => {
         let objectType = this.getObjectType(tableName, key);
@@ -497,6 +517,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       jsonActionType,
       jsonbItemId
     );
+
     const knexClient = this.docClient.getKnexClient();
     const originalObject = await knexClient(tableName)
       .where({ id: tableRowId })
@@ -508,7 +529,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       );
     }
 
-    const finalQueries: any[] = transformJSONKeys(
+    const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
       tableRowId,
       actionsRequired,
       actionType,

@@ -35,7 +35,7 @@ import {
   addJsonbObjectHelper,
   convertToWhereInValue,
   deleteJsonbObjectHelper,
-  transformJSONKeys,
+  createKnexTransactionsWithPendingPayload,
   updateJsonbObjectHelper,
   validateJSONItemAndGetIndex,
 } from "src/common/json_helpers";
@@ -43,6 +43,7 @@ import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   APPROVAL_ACTION_SIMPLE_KEY,
   IOnApprovalActionRequired,
+  IPendingApprovals,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IEmployee, IEmployeeJwt, roleKey } from "@models/interfaces/Employees";
@@ -159,18 +160,10 @@ export class CompanyService implements ICompanyService {
     return company;
   }
 
-  async createCompany(employeeId: string, body: any): Promise<ICompanyModel> {
+  async createCompany(employee: IEmployeeJwt, body: any): Promise<{ company?: CompanyModel; pendingApproval?: IPendingApprovals }> {
     const payload = JSON.parse(body);
-    payload.createdBy = employeeId;
+    payload.createdBy = employee.sub;
     await validateCreateCompany(payload);
-    if (payload.stage === COMPANY_STAGES.LEAD) {
-      payload.details = JSON.stringify({
-        status: payload?.status ?? defaultCompanyDetails.status,
-        priority: payload?.priority ?? defaultCompanyDetails.priority,
-      });
-      delete payload.status;
-      delete payload.priority;
-    }
 
     const timeNow = moment().utc().format();
     payload.concernedPersons = payload.concernedPersons?.map((x: any) => {
@@ -181,19 +174,29 @@ export class CompanyService implements ICompanyService {
         updatedAt: timeNow,
       } as IConcernedPerson;
     });
-
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.CREATE,
+        null,
+        employee.sub,
+        CompanyModel.tableName,
+        payload
+      );
+    }
     const company = await CompanyModel.query().insert(payload).returning("*");
-    return company;
+    return { company };
   }
 
   async updateCompany(
     employee: IEmployeeJwt,
     id: string,
     body: any
-  ): Promise<{ company?: any; pendingApproval?: any }> {
+  ): Promise<{ company?: CompanyModel; pendingApproval?: IPendingApprovals }> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
-    if (!employee.permitted && employee.createPendingApproval) {
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         id,
@@ -202,12 +205,6 @@ export class CompanyService implements ICompanyService {
         payload
       );
     }
-    await this.updateHistoryHelper(
-      PendingApprovalType.UPDATE,
-      id,
-      employee.sub,
-      payload
-    );
 
     const company = await CompanyModel.query().findById(id);
     return { company };
@@ -574,7 +571,7 @@ export class CompanyService implements ICompanyService {
       );
     }
 
-    const finalQueries: any[] = transformJSONKeys(
+    const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
       tableRowId,
       actionsRequired,
       actionType,

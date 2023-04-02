@@ -1,4 +1,4 @@
-import { transformJSONKeys } from "src/common/json_helpers";
+import { createKnexTransactionsWithPendingPayload } from "src/common/json_helpers";
 // import { CustomError } from "src/helpers/custom-error";
 import {
   IPendingApprovals,
@@ -56,7 +56,7 @@ export const pendingApprovalKnexHelper = async (
   const originalObject = await knexClient(tableName)
     .where({ id: tableRowId })
     .first();
-  if (!originalObject) {
+  if (!originalObject && actionType !== PendingApprovalType.CREATE) {
     throw new CustomError(
       `Object not found in table: ${tableName}, id: ${tableRowId}`,
       400
@@ -67,7 +67,7 @@ export const pendingApprovalKnexHelper = async (
     return knexClient.raw(query);
   }
 
-  const finalQueries: any[] = transformJSONKeys(
+  const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
     tableRowId,
     actionsRequired,
     actionType,
@@ -78,11 +78,15 @@ export const pendingApprovalKnexHelper = async (
   );
 
   // Executing all queries as a single transaction
-  const responses = await knexClient.transaction(async (trx) => {
+  let responses = {};
+  await knexClient.transaction(async (trx) => {
     const updatePromises = finalQueries.map((finalQuery) =>
       trx.raw(finalQuery.toString())
     );
-    return Promise.all(updatePromises);
+    const resp = await Promise.all(updatePromises);
+    if (actionType === PendingApprovalType.CREATE) {
+      responses = resp[0]?.rows[0];
+    }
   });
 
   return responses;

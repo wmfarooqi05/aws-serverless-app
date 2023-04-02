@@ -21,7 +21,7 @@ export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
     const newCompany = await container
       .resolve(CompanyService)
       .createCompany(
-        event.employee?.sub || "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
+        event.employee,
         event.body
       );
     return formatJSONResponse(newCompany, 201);
@@ -247,8 +247,8 @@ export const getCompaniesByEmployeeId = allowRoleWrapper(
   getCompaniesByEmployeeIdHandler
 );
 export const updateCompany = checkRolePermission(updateCompanyHandler, 'COMPANY_UPDATE');
-export const createCompany = allowRoleWrapper(createCompanyHandler);
-export const deleteCompany = allowRoleWrapper(deleteCompanyHandler);
+export const createCompany = checkRolePermission(createCompanyHandler, 'COMPANY_CREATE');
+export const deleteCompany = checkRolePermission(deleteCompanyHandler, 'COMPANY_DELETE');
 
 export const updateCompanyAssignedEmployee = allowRoleWrapper(
   updateCompanyAssignedEmployeeHandler

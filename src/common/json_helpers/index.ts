@@ -145,7 +145,7 @@ export const _findIndexFromJsonbArray = async (
   return index;
 };
 
-export const transformJSONKeys = (
+export const createKnexTransactionsWithPendingPayload = (
   tableRowId: string,
   actionItems:
     | APPROVAL_ACTION_SIMPLE_KEY[]
@@ -165,36 +165,44 @@ export const transformJSONKeys = (
       actionItem: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD
     ) => {
       if (actionItem.objectType === "SIMPLE_KEY") {
-        let updateHistoryObj: IUpdateHistory = {
-          tableName,
-          tableRowId,
-          actionType: actionType,
-          updatedBy,
-        } as IUpdateHistory;
-
-        if (actionType === PendingApprovalType.DELETE) {
-          updateHistoryObj = {
-            ...updateHistoryObj,
-            oldValue: JSON.stringify(originalObject),
-            newValue: null,
-          };
+        if (actionType === PendingApprovalType.CREATE) {
           finalQueries.push(
-            knexClient(tableName).where("id", "=", tableRowId).del()
+            knexClient(tableName)
+              .insert(transformJSONKeys(actionItem.payload))
+              .returning("*")
           );
-        } else if (actionType === PendingApprovalType.UPDATE) {
-          simpleKeys = { ...simpleKeys, ...actionItem.payload };
+        } else {
+          let updateHistoryObj: IUpdateHistory = {
+            tableName,
+            tableRowId,
+            actionType: actionType,
+            updatedBy,
+          } as IUpdateHistory;
 
-          const field = Object.keys(actionItem.payload)[0];
-          updateHistoryObj = {
-            ...updateHistoryObj,
-            field,
-            oldValue: originalObject[field],
-            newValue: actionItem.payload[field],
-          };
+          if (actionType === PendingApprovalType.DELETE) {
+            updateHistoryObj = {
+              ...updateHistoryObj,
+              oldValue: JSON.stringify(originalObject),
+              newValue: null,
+            };
+            finalQueries.push(
+              knexClient(tableName).where("id", "=", tableRowId).del()
+            );
+          } else if (actionType === PendingApprovalType.UPDATE) {
+            simpleKeys = { ...simpleKeys, ...actionItem.payload };
+
+            const field = Object.keys(actionItem.payload)[0];
+            updateHistoryObj = {
+              ...updateHistoryObj,
+              field,
+              oldValue: originalObject[field],
+              newValue: actionItem.payload[field],
+            };
+          }
+          finalQueries.push(
+            knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+          );
         }
-        finalQueries.push(
-          knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
-        );
       } else {
         const {
           payload: {
@@ -377,4 +385,15 @@ export const deleteJsonbObjectQueryHelper = (
     .join("_")
     .toLowerCase();
   return `${keySnakeCase} - ${index}`;
+};
+
+export const transformJSONKeys = (payload: any | null) => {
+  if (!payload) return null;
+  Object.keys(payload).forEach((x) => {
+    if (typeof payload[x] === "object") {
+      payload[x] = JSON.stringify(payload[x]);
+    }
+  });
+
+  return payload;
 };

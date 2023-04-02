@@ -122,7 +122,11 @@ export const validatePendingApprovalBeforeJob = async (
     status: Joi.string().valid(...Object.keys(PendingApprovalsStatus)),
     id: Joi.string().uuid().required(),
     retryCount: Joi.number().integer().min(0).required(),
-    tableRowId: Joi.string().uuid().required(),
+    tableRowId: Joi.when("onApprovalActionRequired.actionType", {
+      is: "CREATE",
+      then: Joi.not().required(),
+      otherwise: Joi.string().guid().required(),
+    }), // Joi.string().uuid().not().required(),
     tableName: Joi.string().required(),
     onApprovalActionRequired: onApprovalActionRequiredSchema.required(),
   }).validateAsync(obj, {

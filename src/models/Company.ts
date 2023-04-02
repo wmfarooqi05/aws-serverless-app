@@ -40,12 +40,6 @@ export default class CompanyModel extends Model {
         addresses: { type: "array" },
         assignedTo: { type: "string" },
         assignedBy: { type: "string" },
-        // @TODO move this to log history
-        assignmentHistory: {
-          type: "array",
-          items: { type: "object" },
-          default: [],
-        },
         priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
         status: { type: "string", default: COMPANY_STATUS.NONE },
         details: {

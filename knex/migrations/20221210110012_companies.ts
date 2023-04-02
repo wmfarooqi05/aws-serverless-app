@@ -53,7 +53,6 @@ export async function up(knex: Knex): Promise<void> {
         .references("id")
         .inTable(Tables.employees)
         .onDelete("SET NULL");
-      table.jsonb("assignment_history").defaultTo([]);
       table.jsonb("addresses").defaultTo([]);
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table
