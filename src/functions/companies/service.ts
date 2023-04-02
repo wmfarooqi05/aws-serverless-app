@@ -1,16 +1,9 @@
 import "reflect-metadata";
 import CompanyModel, {
-  defaultCompanyDetails,
   ICompanyModel,
   ICompanyPaginated,
 } from "@models/Company";
-import {
-  IAssignmentHistory,
-  IConcernedPerson,
-  ICompany,
-  COMPANY_STAGES,
-  INotes,
-} from "@models/interfaces/Company";
+import { IConcernedPerson, ICompany, INotes } from "@models/interfaces/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 
@@ -32,28 +25,16 @@ import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
 import {
-  addJsonbObjectHelper,
   convertToWhereInValue,
-  deleteJsonbObjectHelper,
-  createKnexTransactionsWithPendingPayload,
-  updateJsonbObjectHelper,
   validateJSONItemAndGetIndex,
+  updateHistoryHelper,
 } from "src/common/json_helpers";
 import {
-  APPROVAL_ACTION_JSONB_PAYLOAD,
-  APPROVAL_ACTION_SIMPLE_KEY,
-  IOnApprovalActionRequired,
   IPendingApprovals,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
-import { IEmployee, IEmployeeJwt, roleKey } from "@models/interfaces/Employees";
-import { RolesEnum } from "@models/interfaces/Employees";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
-import {
-  COMPANIES_TABLE_NAME,
-  getGlobalPermission,
-  ModuleTitles,
-} from "@models/commons";
 import {
   getOrderByItems,
   getPaginateClauseObject,
@@ -73,9 +54,6 @@ export interface ICompanyService {
   ): Promise<ICompanyModel>;
   deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
 }
-
-const tableSchema = CompanyModel.jsonSchema.properties;
-const tableName = CompanyModel.tableName;
 
 @injectable()
 export class CompanyService implements ICompanyService {
@@ -209,6 +187,15 @@ export class CompanyService implements ICompanyService {
       );
     }
 
+    await updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      id,
+      employee.sub,
+      CompanyModel.tableName,
+      this.docClient.getKnexClient(),
+      payload
+    );
+
     const company = await CompanyModel.query().findById(id);
     return { company };
   }
@@ -232,11 +219,12 @@ export class CompanyService implements ICompanyService {
         CompanyModel.tableName
       );
     }
-    await this.updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
       employee.sub,
-      CompanyModel.tableName
+      CompanyModel.tableName,
+      this.docClient.getKnexClient()
     );
     return { company: { id } };
   }
@@ -263,11 +251,12 @@ export class CompanyService implements ICompanyService {
         { assignedTo: payload?.assignTo ?? null }
       );
     }
-    await this.updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { assignedTo: payload?.assignTo ?? null }
     );
 
@@ -298,15 +287,18 @@ export class CompanyService implements ICompanyService {
         companyId,
         employee.sub,
         CompanyModel.tableName,
-        { assignedTo: payload?.assignTo ?? null }
+        { concernedPersons: payload },
+        PendingApprovalType.JSON_PUSH,
+        null
       );
     }
 
-    await this.updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { concernedPersons: payload },
       PendingApprovalType.JSON_PUSH,
       null
@@ -348,7 +340,7 @@ export class CompanyService implements ICompanyService {
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.DELETE,
+        PendingApprovalType.UPDATE,
         companyId,
         employee.sub,
         CompanyModel.tableName,
@@ -358,11 +350,12 @@ export class CompanyService implements ICompanyService {
       );
     }
 
-    await this.updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { concernedPersons: newPayload },
       PendingApprovalType.JSON_UPDATE,
       concernedPersonId
@@ -387,22 +380,23 @@ export class CompanyService implements ICompanyService {
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.DELETE,
+        PendingApprovalType.UPDATE,
         companyId,
         employee.sub,
         CompanyModel.tableName,
-        null,
-        PendingApprovalType.JSON_UPDATE,
+        { [key]: null },
+        PendingApprovalType.JSON_DELETE,
         concernedPersonId
       );
     }
 
-    await this.updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       CompanyModel.tableName,
-      null,
+      this.docClient.getKnexClient(),
+      { [key]: null },
       PendingApprovalType.JSON_DELETE,
       concernedPersonId
     );
@@ -422,24 +416,38 @@ export class CompanyService implements ICompanyService {
   }
 
   // Notes
-  async createNotes(addedBy: string, companyId: string, body: any) {
+  async createNotes(employee: IEmployeeJwt, companyId: string, body: any) {
     const payload = JSON.parse(body);
     if (payload) {
-      await validateAddNotes(addedBy, companyId, payload);
+      await validateAddNotes(employee.sub, companyId, payload);
     }
     const notes: INotes = {
       id: randomUUID(),
-      addedBy,
+      addedBy: employee.sub,
       isEdited: false,
       notesText: payload.notesText,
       updatedAt: moment().utc().format(),
     };
 
-    await this.updateHistoryHelper(
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        { notes },
+        PendingApprovalType.JSON_PUSH,
+        null
+      );
+    }
+
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
-      addedBy,
+      employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { notes },
       PendingApprovalType.JSON_PUSH,
       null
@@ -448,9 +456,14 @@ export class CompanyService implements ICompanyService {
     return { notes };
   }
 
-  async updateNotes(addedBy: string, companyId: string, notesId: string, body) {
+  async updateNotes(
+    employee: IEmployeeJwt,
+    companyId: string,
+    notesId: string,
+    body
+  ) {
     const payload = JSON.parse(body);
-    await validateUpdateNotes(addedBy, companyId, notesId, payload);
+    await validateUpdateNotes(employee.sub, companyId, notesId, payload);
 
     const { index, originalObject } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
@@ -464,11 +477,26 @@ export class CompanyService implements ICompanyService {
       ...originalObject["notes"][index],
       ...payload,
     };
-    await this.updateHistoryHelper(
+
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        { notes },
+        PendingApprovalType.JSON_UPDATE,
+        notesId
+      );
+    }
+
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
-      addedBy,
+      employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { notes },
       PendingApprovalType.JSON_UPDATE,
       notesId
@@ -492,11 +520,25 @@ export class CompanyService implements ICompanyService {
       notesId
     );
 
-    await this.updateHistoryHelper(
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
+        companyId,
+        employee.sub,
+        CompanyModel.tableName,
+        { [key]: null },
+        PendingApprovalType.JSON_DELETE,
+        notesId
+      );
+    }
+
+    await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
       CompanyModel.tableName,
+      this.docClient.getKnexClient(),
       { [key]: null },
       PendingApprovalType.JSON_DELETE,
       notesId
@@ -515,133 +557,5 @@ export class CompanyService implements ICompanyService {
      * Even if key is allowed to change, we have to check if every sales rep can update it
      * or only the one assigned on it
      */
-  }
-
-  convertPayloadToArray = (
-    actionType: PendingApprovalType,
-    tableRowId: string,
-    tableName: string,
-    payload: object,
-    jsonActionType: string = null,
-    jsonbItemId: string = null
-  ) => {
-    interface PayloadType {
-      tableRowId: string;
-      tableName: string;
-      onApprovalActionRequired: IOnApprovalActionRequired;
-    }
-    const approvalActions: IOnApprovalActionRequired = {
-      actionType,
-      actionsRequired: [],
-    };
-
-    if (actionType === PendingApprovalType.DELETE) {
-      approvalActions.actionsRequired.push({
-        objectType: "SIMPLE_KEY",
-        payload: null,
-      });
-    } else {
-      Object.keys(payload).forEach((key) => {
-        let objectType = this.getObjectType(key);
-        if (objectType === "SIMPLE_KEY") {
-          let value = payload[key];
-          if (typeof value !== null && value === "object") {
-            value = JSON.stringify(value);
-          }
-
-          approvalActions.actionsRequired.push({
-            objectType,
-            payload: { [key]: value },
-          });
-        } else {
-          approvalActions.actionsRequired.push({
-            objectType,
-            payload: {
-              jsonbItemId,
-              jsonActionType,
-              jsonbItemKey: key,
-              jsonbItemValue: payload[key],
-            },
-          });
-        }
-      });
-    }
-    return {
-      tableName,
-      tableRowId,
-      onApprovalActionRequired: approvalActions,
-    } as PayloadType;
-  };
-
-  async updateHistoryHelper(
-    actionType: PendingApprovalType,
-    tableRowId: string,
-    updatedBy,
-    tableName: string,
-    payload: object = null,
-    jsonActionType: string = null,
-    jsonbItemId: string = null
-  ) {
-    const {
-      onApprovalActionRequired: { actionsRequired },
-    } = this.convertPayloadToArray(
-      actionType,
-      tableRowId,
-      tableName,
-      payload,
-      jsonActionType,
-      jsonbItemId
-    );
-    const knexClient = this.docClient.getKnexClient();
-    const originalObject = await knexClient(tableName)
-      .where({ id: tableRowId })
-      .first();
-    if (!originalObject) {
-      throw new CustomError(
-        `Object not found in table: ${tableName}, id: ${tableRowId}`,
-        400
-      );
-    }
-
-    const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
-      tableRowId,
-      actionsRequired,
-      actionType,
-      originalObject,
-      knexClient,
-      tableName,
-      updatedBy
-    );
-
-    // Executing all queries as a single transaction
-    const responses = await knexClient.transaction(async (trx) => {
-      const updatePromises = finalQueries.map((finalQuery) =>
-        trx.raw(finalQuery.toString())
-      );
-      return Promise.all(updatePromises);
-    });
-
-    return responses;
-  }
-
-  getObjectType(key) {
-    type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSON";
-    const map: Record<string, OBJECT_KEY_TYPE> = {
-      companyName: "SIMPLE_KEY",
-      concernedPersons: "JSON",
-      addresses: "SIMPLE_KEY",
-      assignedTo: "SIMPLE_KEY",
-      assignedBy: "SIMPLE_KEY",
-      priority: "SIMPLE_KEY",
-      status: "SIMPLE_KEY",
-      details: "SIMPLE_KEY",
-      stage: "SIMPLE_KEY",
-      tags: "SIMPLE_KEY",
-      notes: "JSON",
-      tableRowId: "SIMPLE_KEY",
-      tableName: "SIMPLE_KEY",
-    };
-
-    return map[key];
   }
 }

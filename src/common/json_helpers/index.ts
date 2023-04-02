@@ -2,6 +2,7 @@ import { UPDATE_HISTORY_TABLE } from "@models/commons";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   APPROVAL_ACTION_SIMPLE_KEY,
+  IOnApprovalActionRequired,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
@@ -188,7 +189,7 @@ export const createKnexTransactionsWithPendingPayload = (
             finalQueries.push(
               knexClient(tableName).where("id", "=", tableRowId).del()
             );
-          } else if (actionType === PendingApprovalType.UPDATE) {
+          } else  {
             simpleKeys = { ...simpleKeys, ...actionItem.payload };
 
             const field = Object.keys(actionItem.payload)[0];
@@ -400,4 +401,140 @@ export const transformJSONKeys = (payload: any | null) => {
   });
 
   return payload;
+};
+
+export const convertPayloadToArray = (
+  actionType: PendingApprovalType,
+  tableRowId: string,
+  tableName: string,
+  payload: object,
+  jsonActionType: string = null,
+  jsonbItemId: string = null
+) => {
+  interface PayloadType {
+    tableRowId: string;
+    tableName: string;
+    onApprovalActionRequired: IOnApprovalActionRequired;
+  }
+  const approvalActions: IOnApprovalActionRequired = {
+    actionType,
+    actionsRequired: [],
+    tableName,
+  };
+
+  if (actionType === PendingApprovalType.DELETE) {
+    approvalActions.actionsRequired.push({
+      objectType: "SIMPLE_KEY",
+      payload: null,
+    });
+  } else if (actionType === PendingApprovalType.CREATE) {
+    approvalActions.actionsRequired.push({
+      objectType: "SIMPLE_KEY",
+      payload,
+    });
+  } else {
+    Object.keys(payload).forEach((key) => {
+      let objectType = getObjectType(tableName, key);
+      if (objectType === "SIMPLE_KEY") {
+        let value = payload[key];
+        if (typeof value === "object") {
+          value = JSON.stringify(value);
+        }
+        approvalActions.actionsRequired.push({
+          objectType,
+          payload: { [key]: value },
+        });
+      } else {
+        approvalActions.actionsRequired.push({
+          objectType,
+          payload: {
+            jsonbItemId,
+            jsonActionType,
+            jsonbItemKey: key,
+            jsonbItemValue: payload[key],
+          },
+        });
+      }
+    });
+  }
+  return {
+    tableName,
+    tableRowId,
+    onApprovalActionRequired: approvalActions,
+  } as PayloadType;
+};
+
+export const updateHistoryHelper = async (
+  actionType: PendingApprovalType,
+  tableRowId: string,
+  updatedBy: string,
+  tableName: string,
+  knexClient: Knex,
+  payload: object = null,
+  jsonActionType: string = null,
+  jsonbItemId: string = null
+) => {
+  const {
+    onApprovalActionRequired: { actionsRequired },
+  } = convertPayloadToArray(
+    actionType,
+    tableRowId,
+    tableName,
+    payload,
+    jsonActionType,
+    jsonbItemId
+  );
+
+  const originalObject = await knexClient(tableName)
+    .where({ id: tableRowId })
+    .first();
+  if (!originalObject) {
+    throw new CustomError(
+      `Object not found in table: ${tableName}, id: ${tableRowId}`,
+      400
+    );
+  }
+
+  const finalQueries = createKnexTransactionsWithPendingPayload(
+    tableRowId,
+    actionsRequired,
+    actionType,
+    originalObject,
+    knexClient,
+    tableName,
+    updatedBy
+  );
+
+  // Executing all queries as a single transaction
+  const responses = await knexClient.transaction(async (trx) => {
+    const updatePromises = finalQueries.map((finalQuery) =>
+      trx.raw(finalQuery.toString())
+    );
+    return Promise.all(updatePromises);
+  });
+
+  return responses;
+};
+
+export const getObjectType = (tableName: string, key: string) => {
+  type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSONB";
+  const map: Record<string, Record<string, OBJECT_KEY_TYPE>> = {
+    companies: {
+      companyName: "SIMPLE_KEY",
+      concernedPersons: "JSONB",
+      addresses: "SIMPLE_KEY",
+      assignedTo: "SIMPLE_KEY",
+      assignedBy: "SIMPLE_KEY",
+      priority: "SIMPLE_KEY",
+      status: "SIMPLE_KEY",
+      details: "SIMPLE_KEY",
+      stage: "SIMPLE_KEY",
+      tags: "SIMPLE_KEY",
+      notes: "JSONB",
+      tableRowId: "SIMPLE_KEY",
+      tableName: "SIMPLE_KEY",
+    },
+  };
+
+  return map[tableName][key];
 };

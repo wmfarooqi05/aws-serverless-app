@@ -67,7 +67,7 @@ export const pendingApprovalKnexHelper = async (
     return knexClient.raw(query);
   }
 
-  const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
+  const finalQueries = createKnexTransactionsWithPendingPayload(
     tableRowId,
     actionsRequired,
     actionType,
@@ -78,7 +78,7 @@ export const pendingApprovalKnexHelper = async (
   );
 
   // Executing all queries as a single transaction
-  let responses = {};
+  let responses = null;
   await knexClient.transaction(async (trx) => {
     const updatePromises = finalQueries.map((finalQuery) =>
       trx.raw(finalQuery.toString())

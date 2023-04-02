@@ -28,7 +28,10 @@ import Employee from "@models/Employees";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import Joi from "joi";
-import { createKnexTransactionsWithPendingPayload } from "@common/json_helpers";
+import {
+  convertPayloadToArray,
+  createKnexTransactionsWithPendingPayload,
+} from "@common/json_helpers";
 
 export interface IPendingApprovalService {}
 
@@ -170,9 +173,7 @@ export class PendingApprovalService implements IPendingApprovalService {
         status: PendingApprovalsStatus.SUCCESS,
       };
 
-      if (
-        entry.onApprovalActionRequired.actionType === PendingApprovalType.CREATE
-      ) {
+      if (response) {
         returningObject.resultPayload.push(response);
       }
 
@@ -306,7 +307,7 @@ export class PendingApprovalService implements IPendingApprovalService {
     jsonActionType: string = null,
     jsonbItemId: string = null
   ): Promise<{ pendingApproval: IPendingApprovals }> {
-    const { onApprovalActionRequired } = this.convertPayloadToArray(
+    const { onApprovalActionRequired } = convertPayloadToArray(
       actionType,
       tableRowId,
       tableName,
@@ -426,140 +427,4 @@ export class PendingApprovalService implements IPendingApprovalService {
   }
 
   ///helper
-
-  convertPayloadToArray = (
-    actionType: PendingApprovalType,
-    tableRowId: string,
-    tableName: string,
-    payload: object,
-    jsonActionType: string = null,
-    jsonbItemId: string = null
-  ) => {
-    interface PayloadType {
-      tableRowId: string;
-      tableName: string;
-      onApprovalActionRequired: IOnApprovalActionRequired;
-    }
-    const approvalActions: IOnApprovalActionRequired = {
-      actionType,
-      actionsRequired: [],
-      tableName: "",
-    };
-
-    if (actionType === PendingApprovalType.DELETE) {
-      approvalActions.actionsRequired.push({
-        objectType: "SIMPLE_KEY",
-        payload: null,
-      });
-    } else if (actionType === PendingApprovalType.CREATE) {
-      approvalActions.actionsRequired.push({
-        objectType: "SIMPLE_KEY",
-        payload,
-      });
-    } else {
-      Object.keys(payload).forEach((key) => {
-        let objectType = this.getObjectType(tableName, key);
-        if (objectType === "SIMPLE_KEY") {
-          let value = payload[key];
-          if (typeof value === "object") {
-            value = JSON.stringify(value);
-          }
-          approvalActions.actionsRequired.push({
-            objectType,
-            payload: { [key]: value },
-          });
-        } else {
-          approvalActions.actionsRequired.push({
-            objectType,
-            payload: {
-              jsonbItemId,
-              jsonActionType,
-              jsonbItemKey: key,
-              jsonbItemValue: payload[key],
-            },
-          });
-        }
-      });
-    }
-    return {
-      tableName,
-      tableRowId,
-      onApprovalActionRequired: approvalActions,
-    } as PayloadType;
-  };
-
-  async updateHistoryHelper(
-    actionType: PendingApprovalType,
-    tableRowId: string,
-    updatedBy: string,
-    tableName: string,
-    payload: object = null,
-    jsonActionType: string = null,
-    jsonbItemId: string = null
-  ) {
-    const {
-      onApprovalActionRequired: { actionsRequired },
-    } = this.convertPayloadToArray(
-      actionType,
-      tableRowId,
-      tableName,
-      payload,
-      jsonActionType,
-      jsonbItemId
-    );
-
-    const knexClient = this.docClient.getKnexClient();
-    const originalObject = await knexClient(tableName)
-      .where({ id: tableRowId })
-      .first();
-    if (!originalObject) {
-      throw new CustomError(
-        `Object not found in table: ${tableName}, id: ${tableRowId}`,
-        400
-      );
-    }
-
-    const finalQueries: any[] = createKnexTransactionsWithPendingPayload(
-      tableRowId,
-      actionsRequired,
-      actionType,
-      originalObject,
-      knexClient,
-      tableName,
-      updatedBy
-    );
-
-    // Executing all queries as a single transaction
-    const responses = await knexClient.transaction(async (trx) => {
-      const updatePromises = finalQueries.map((finalQuery) =>
-        trx.raw(finalQuery.toString())
-      );
-      return Promise.all(updatePromises);
-    });
-
-    return responses;
-  }
-
-  getObjectType(tableName: string, key: string) {
-    type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSON";
-    const map: Record<string, Record<string, OBJECT_KEY_TYPE>> = {
-      companies: {
-        companyName: "SIMPLE_KEY",
-        concernedPersons: "JSON",
-        addresses: "SIMPLE_KEY",
-        assignedTo: "SIMPLE_KEY",
-        assignedBy: "SIMPLE_KEY",
-        priority: "SIMPLE_KEY",
-        status: "SIMPLE_KEY",
-        details: "SIMPLE_KEY",
-        stage: "SIMPLE_KEY",
-        tags: "SIMPLE_KEY",
-        notes: "JSON",
-        tableRowId: "SIMPLE_KEY",
-        tableName: "SIMPLE_KEY",
-      },
-    };
-
-    return map[tableName][key];
-  }
 }
