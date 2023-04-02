@@ -190,27 +190,18 @@ export class CompanyService implements ICompanyService {
     employee: IEmployeeJwt,
     id: string,
     body: any
-  ): Promise<any> {
+  ): Promise<{ company?: any; pendingApproval?: any }> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
-    // if (
-    //   RolesEnum[employee["cognito:groups"][0]] === RolesEnum.SALES_REP_GROUP
-    // ) {
-    //   const item = await this.pendingApprovalService.createPendingApproval(
-    //     employee.sub,
-    //     id,
-    //     ModuleTitles.COMPANY,
-    //     COMPANIES_TABLE_NAME,
-    //     PendingApprovalType.UPDATE,
-    //     payload
-    //   );
-    //   return item;
-    // } else {
-    // const updatedCompany = await CompanyModel.query().findById(id);
-    // if (!updatedCompany || Object.keys(updatedCompany).length === 0) {
-    //   throw new CustomError("Object not found", 404);
-    // }
-
+    if (!employee.permitted && employee.createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        PendingApprovalType.UPDATE,
+        id,
+        employee.sub,
+        CompanyModel.tableName,
+        payload
+      );
+    }
     await this.updateHistoryHelper(
       PendingApprovalType.UPDATE,
       id,
@@ -254,8 +245,6 @@ export class CompanyService implements ICompanyService {
       payload
     );
 
-    const { assignTo } = payload;
-
     const company = await CompanyModel.query().findById(companyId);
     if (!company) {
       throw new CustomError("Company not found", 404);
@@ -264,10 +253,10 @@ export class CompanyService implements ICompanyService {
       PendingApprovalType.UPDATE,
       companyId,
       employee.sub,
-      { assignedTo: assignTo ?? CompanyModel.raw("NULL") }
+      { assignedTo: payload?.assignTo ?? CompanyModel.raw("NULL") }
     );
 
-    return { company: { ...company, assignedTo: assignTo ?? null } };
+    return { company: { ...company, assignedTo: payload?.assignTo ?? null } };
   }
 
   async createConcernedPersons(employee: IEmployeeJwt, companyId, body) {

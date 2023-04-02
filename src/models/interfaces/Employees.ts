@@ -2,6 +2,8 @@ export interface IEmployeeJwt {
   sub: string;
   "cognito:groups": string;
   teamId: string;
+  permitted: boolean;
+  createPendingApproval: boolean;
 }
 
 export const roleKey = "cognito:groups";

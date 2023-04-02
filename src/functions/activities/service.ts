@@ -423,33 +423,33 @@ export class ActivityService implements IActivityService {
     ) {
       try {
         const resp = await this.runSideGoogleJob(activity);
-        activity[0].details.jobData = {
+        activity.details.jobData = {
           status: resp?.status || 424,
         };
       } catch (e) {
-        activity[0].details.jobData = {
+        activity.details.jobData = {
           status: 500,
         };
         if (e.config && e.headers) {
-          activity[0].details.jobData.errorStack = formatGoogleErrorBody(e);
+          activity.details.jobData.errorStack = formatGoogleErrorBody(e);
         } else {
-          activity[0].details.jobData.errorStack = {
+          activity.details.jobData.errorStack = {
             message: e.message,
             stack: e.stack,
           };
         }
       }
     } else if (
-      (activity[0].activityType === ACTIVITY_TYPE.TASK ||
-        activity[0].activityType === ACTIVITY_TYPE.CALL) &&
-      activity[0].details?.isScheduled
+      (activity.activityType === ACTIVITY_TYPE.TASK ||
+        activity.activityType === ACTIVITY_TYPE.CALL) &&
+      activity.details?.isScheduled
     ) {
       try {
         // AWS EB Scheduler Case
         const response = await this.scheduleEb(
           activity.reminders,
           activity.dueDate,
-          activity[0].id,
+          activity.id,
           ReminderTimeType.CUSTOM
         );
         activity[0].details.jobData = response;

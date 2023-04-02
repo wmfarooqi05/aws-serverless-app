@@ -13,6 +13,7 @@ export enum PendingApprovalsStatus {
 }
 
 export interface IPendingApprovals {
+  activityName: string;
   id?: string;
   tableRowId: string;
   tableName: string;

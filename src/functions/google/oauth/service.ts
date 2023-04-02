@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
 import { google, Auth, calendar_v3 } from "googleapis";
-import { EnvironmentVariableValidator } from "@common/utils/EnvironmentVariableValidator";
+import { ensureConfigs } from "@utils/EnvVarsUtil";
 import moment from "moment-timezone";
 import { CustomError } from "@helpers/custom-error";
 import Joi from "joi";
@@ -216,7 +216,7 @@ export class GoogleOAuthService {
       : false;
   }
   getApUrl(url: string): string {
-    EnvironmentVariableValidator.ensureConfigs("CLIENT_BASE_URL");
+    ensureConfigs(["CLIENT_BASE_URL"]);
     return `${process.env.CLIENT_BASE_URL}${url}`;
   }
 

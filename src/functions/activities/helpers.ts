@@ -14,7 +14,7 @@ import { IEmployee } from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
 import { calendar_v3 } from "googleapis";
 import { Knex } from "knex";
-import moment from "moment";
+import moment from "moment-timezone";
 
 export const createDetailsPayload = (
   employee: IEmployee,

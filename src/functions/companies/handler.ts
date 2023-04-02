@@ -12,7 +12,7 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
+import { allowRoleWrapper, checkRolePermission } from "@middlewares/jwtMiddleware";
 
 export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -240,13 +240,13 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getCompanies = allowRoleWrapper(getCompaniesHandler);
+export const getCompanies = checkRolePermission(getCompaniesHandler, 'COMPANY_READ_ALL');
 // .use(permissionMiddleware2(["update"], "COMPANY"));
 // export const getMyCompanies = allowRoleWrapper(getMyCompaniesHandler);
 export const getCompaniesByEmployeeId = allowRoleWrapper(
   getCompaniesByEmployeeIdHandler
 );
-export const updateCompany = allowRoleWrapper(updateCompanyHandler);
+export const updateCompany = checkRolePermission(updateCompanyHandler, 'COMPANY_UPDATE');
 export const createCompany = allowRoleWrapper(createCompanyHandler);
 export const deleteCompany = allowRoleWrapper(deleteCompanyHandler);
 

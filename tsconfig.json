@@ -19,7 +19,8 @@
       "@helpers/*": ["src/helpers/*"],
       "@types/*": ["src/types/*"],
       "@libs/*": ["src/libs/*"],
-      "@middlewares/*": ["src/libs/middlewares/*"]
+      "@middlewares/*": ["src/libs/middlewares/*"],
+      "@utils/*": ["src/utils/*"],
       // "/opt/nodejs/*": ["layers/nodejs/node_modules/*"]
     }
   },

@@ -23,7 +23,7 @@ export default class PendingApprovalsModel extends Model {
         approvers: { type: "array" },
         createdBy: { type: "string" },
         onApprovalActionRequired: {
-          type: "array",
+          type: "object",
           default: {},
         },
         escalationTime: { type: "string" },
@@ -35,8 +35,6 @@ export default class PendingApprovalsModel extends Model {
         updatedAt: { type: "string" },
       },
       required: [
-        "activityId",
-        "activityName",
         "createdBy",
         "onApprovalActionRequired",
       ],

@@ -28,6 +28,7 @@ import Employee from "@models/Employees";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import Joi from "joi";
+import { transformJSONKeys } from "@common/json_helpers";
 
 export interface IPendingApprovalService {}
 
@@ -110,7 +111,16 @@ export class PendingApprovalService implements IPendingApprovalService {
     //   .getKnexClient(PendingApprovalModel.tableName)
     //   .update({});
   }
-
+  /**
+   * @deprecated
+   * @param employeeId
+   * @param rowId
+   * @param title
+   * @param tableName
+   * @param type
+   * @param payload
+   * @returns
+   */
   async createPendingApproval(
     employeeId: string,
     rowId: string,
@@ -134,7 +144,6 @@ export class PendingApprovalService implements IPendingApprovalService {
     await this.createPendingApprovalNotifications(pendingApprovalItem);
     return pendingApprovalItem;
   }
-
   /**
    *
    * Cases
@@ -192,7 +201,7 @@ export class PendingApprovalService implements IPendingApprovalService {
     }
   }
   /**
-   *
+   * @deprecated
    * Cases
    * Case 1: Entry has query, and will call raw to execute, update status
    * Case 2: Entry is without query, so call knex, update status
@@ -286,6 +295,52 @@ export class PendingApprovalService implements IPendingApprovalService {
     // SNS
   }
 
+  async createPendingApprovalRequest(
+    actionType: PendingApprovalType,
+    tableRowId: string,
+    createdBy: string,
+    tableName: string,
+    payload: object = null,
+    jsonActionType: string = null,
+    jsonbItemId: string = null
+  ): Promise<{ pendingApproval: IPendingApprovals }> {
+    const { onApprovalActionRequired } = this.convertPayloadToArray(
+      actionType,
+      tableRowId,
+      tableName,
+      payload,
+      jsonActionType,
+      jsonbItemId
+    );
+    const employeeItem: IEmployee = await Employee.query().findById(createdBy);
+
+    if (!employeeItem.reportingManager) {
+      throw new CustomError("User do not have any reporting manager", 400);
+    }
+
+    const item: IPendingApprovals = {
+      tableRowId,
+      tableName,
+      approvers: [employeeItem.reportingManager],
+      createdBy,
+      onApprovalActionRequired,
+      status: PendingApprovalsStatus.PENDING,
+      retryCount: 0,
+      resultPayload: [],
+    };
+    const pendingApproval: IPendingApprovals =
+      await PendingApprovalModel.query().insert(item);
+    return { pendingApproval };
+  }
+  /**
+   * @deprecated
+   * @param employeeId
+   * @param rowId
+   * @param tableName
+   * @param actionType
+   * @param payload
+   * @returns
+   */
   private async createPendingApprovalItem(
     employeeId: string,
     rowId: string,
@@ -363,5 +418,137 @@ export class PendingApprovalService implements IPendingApprovalService {
   private async sendWebSocketNotificationHelper(notifItem: string) {
     // Here we will decide which notifications should be invoked
     this.notificationService.sendWebSocketNotification(notifItem);
+  }
+
+  ///helper
+
+  convertPayloadToArray = (
+    actionType: PendingApprovalType,
+    tableRowId: string,
+    tableName: string,
+    payload: object,
+    jsonActionType: string = null,
+    jsonbItemId: string = null
+  ) => {
+    interface PayloadType {
+      tableRowId: string;
+      tableName: string;
+      onApprovalActionRequired: IOnApprovalActionRequired;
+    }
+    const approvalActions: IOnApprovalActionRequired = {
+      actionType,
+      actionsRequired: [],
+      tableName: "",
+    };
+
+    if (actionType === PendingApprovalType.DELETE) {
+      approvalActions.actionsRequired.push({
+        objectType: "SIMPLE_KEY",
+        payload: null,
+      });
+    } else {
+      Object.keys(payload).forEach((key) => {
+        let objectType = this.getObjectType(tableName, key);
+        if (objectType === "SIMPLE_KEY") {
+          let value = payload[key];
+          if (typeof value === "object") {
+            value = JSON.stringify(value);
+          }
+          approvalActions.actionsRequired.push({
+            objectType,
+            payload: { [key]: value },
+          });
+        } else {
+          approvalActions.actionsRequired.push({
+            objectType,
+            payload: {
+              jsonbItemId,
+              jsonActionType,
+              jsonbItemKey: key,
+              jsonbItemValue: payload[key],
+            },
+          });
+        }
+      });
+    }
+    return {
+      tableName,
+      tableRowId,
+      onApprovalActionRequired: approvalActions,
+    } as PayloadType;
+  };
+
+  async updateHistoryHelper(
+    actionType: PendingApprovalType,
+    tableRowId: string,
+    updatedBy: string,
+    tableName: string,
+    payload: object = null,
+    jsonActionType: string = null,
+    jsonbItemId: string = null
+  ) {
+    const {
+      onApprovalActionRequired: { actionsRequired },
+    } = this.convertPayloadToArray(
+      actionType,
+      tableRowId,
+      tableName,
+      payload,
+      jsonActionType,
+      jsonbItemId
+    );
+    const knexClient = this.docClient.getKnexClient();
+    const originalObject = await knexClient(tableName)
+      .where({ id: tableRowId })
+      .first();
+    if (!originalObject) {
+      throw new CustomError(
+        `Object not found in table: ${tableName}, id: ${tableRowId}`,
+        400
+      );
+    }
+
+    const finalQueries: any[] = transformJSONKeys(
+      tableRowId,
+      actionsRequired,
+      actionType,
+      originalObject,
+      knexClient,
+      tableName,
+      updatedBy
+    );
+
+    // Executing all queries as a single transaction
+    const responses = await knexClient.transaction(async (trx) => {
+      const updatePromises = finalQueries.map((finalQuery) =>
+        trx.raw(finalQuery.toString())
+      );
+      return Promise.all(updatePromises);
+    });
+
+    return responses;
+  }
+
+  getObjectType(tableName: string, key: string) {
+    type OBJECT_KEY_TYPE = "SIMPLE_KEY" | "JSON";
+    const map: Record<string, Record<string, OBJECT_KEY_TYPE>> = {
+      companies: {
+        companyName: "SIMPLE_KEY",
+        concernedPersons: "JSON",
+        addresses: "SIMPLE_KEY",
+        assignedTo: "SIMPLE_KEY",
+        assignedBy: "SIMPLE_KEY",
+        priority: "SIMPLE_KEY",
+        status: "SIMPLE_KEY",
+        details: "SIMPLE_KEY",
+        stage: "SIMPLE_KEY",
+        tags: "SIMPLE_KEY",
+        notes: "JSON",
+        tableRowId: "SIMPLE_KEY",
+        tableName: "SIMPLE_KEY",
+      },
+    };
+
+    return map[tableName][key];
   }
 }

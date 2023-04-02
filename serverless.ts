@@ -2,7 +2,7 @@ import type { AWS } from "@serverless/typescript";
 import * as dotenv from "dotenv";
 // import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
-import { ensureEnvConfigs } from "./helper";
+import { ensureEnvConfigs } from "./env-var-validtors";
 
 var fs = require("fs");
 var contents = fs.readFileSync("package.json");

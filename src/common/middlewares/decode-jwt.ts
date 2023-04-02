@@ -13,8 +13,17 @@ import { ForbiddenError } from "@casl/ability";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { formatErrorResponse } from "@libs/api-gateway";
-import { roleKey, RolesArray, RolesEnum } from "@models/interfaces/Employees";
+import {
+  IRoles,
+  roleKey,
+  RolesArray,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 import { throwUnAuthorizedError } from "@common/errors";
+import {
+  accessPermissionsCacheMap,
+  PERMISSION_KEY,
+} from "@models/AccessPermissions";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -61,7 +70,7 @@ export const jwtRequired = () => {
         const role = event?.employee?.[roleKey][0] || "";
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
-        event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
+        // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
 
         // @DEV
         if (event.employee?.sub) {
@@ -85,10 +94,23 @@ export const jwtRequired = () => {
   };
 };
 
-export const allowRoleAndAbove = (permittedRole: number) => {
+/**
+ * @param permissionKey Remove role and fetch the permissions and verify instead
+ * @returns
+ */
+export const allowRoleAndAbove = (permissionKey: PERMISSION_KEY) => {
   return {
-    before: ({ event }) => {
-      if (RolesEnum[event.employee[roleKey]] < permittedRole) {
+    before: async ({ event }) => {
+      const { permitted, createPendingApproval } = await getPermittedRole(
+        event.employee[roleKey],
+        permissionKey
+      );
+      event.employee = {
+        ...event.employee,
+        permitted,
+        createPendingApproval,
+      };
+      if (!permitted && !createPendingApproval) {
         return formatErrorResponse({
           message: "Current role is not authorized to access this data",
           statusCode: 403,
@@ -112,6 +134,12 @@ export const allowOnlyMe = (key: string) => {
   };
 };
 
+/**
+ * @deprecated
+ * @param permittedRole
+ * @param key
+ * @returns
+ */
 export const allowMeOrRole = (
   permittedRole: number = RolesEnum.SALES_REP_GROUP,
   key: string
@@ -171,4 +199,18 @@ export const permissionMiddleware2 = (
       }
     },
   };
+};
+
+export const getPermittedRole = async (
+  employeeRole: IRoles,
+  permissionKey: PERMISSION_KEY
+): Promise<{
+  permitted: boolean;
+  createPendingApproval: boolean;
+}> => {
+  const { role: permittedRole, createPendingApproval } =
+    accessPermissionsCacheMap[permissionKey];
+  const permitted = RolesEnum[employeeRole] >= RolesEnum[permittedRole];
+
+  return { permitted, createPendingApproval };
 };

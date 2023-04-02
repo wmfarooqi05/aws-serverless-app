@@ -1,4 +1,4 @@
-import { ensureConfigs } from "src/utils/EnvVarsUtil";
+import { ensureConfigs } from "./src/utils/EnvVarsUtil";
 
 export const ensureEnvConfigs = () => {
   ensureConfigs([
@@ -18,9 +18,10 @@ export const ensureEnvConfigs = () => {
     "PENDING_APPROVAL_TABLE",
     "NOTIFICATIONS_TABLE",
     "REMINDERS_TABLE",
-    "AUTH_TOKENS",
-    "JOBS_RESULTS",
+    "AUTH_TOKENS_TABLE",
+    "JOBS_RESULTS_TABLE",
     "UPDATE_HISTORY_TABLE",
+    "ACCESS_PERMISSIONS_TABLE",
 
     "DEPLOYMENT_BUCKET",
     "ELASTIC_CACHE_SERVER",
