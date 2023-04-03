@@ -41,7 +41,7 @@ export class WebSocketService implements IWebSocketService {
   }
 
   async handle(
-    employeeId: string, // = "28758dac-a6a2-4f90-96ed-0a42a37d3fb3",
+    employeeId: string = "28758dac-a6a2-4f90-96ed-0a42a37d3fb3",
     body: any,
     connectionId: string,
     routeKey: string
@@ -191,10 +191,13 @@ export class WebSocketService implements IWebSocketService {
   }
 
   async sendNotifications(notifications: INotification[]) {
+    console.log("[WebSockets] sendNotifications", notifications);
     for (let i = 0; i < notifications.length; i++) {
       const connectionId = await this.getConnectionId(
         notifications[i].receiverEmployee
       );
+      console.log("Index:", i, ", connectionId: ", connectionId);
+
       if (connectionId) {
         await this.sendSimpleMessage(
           connectionId,
