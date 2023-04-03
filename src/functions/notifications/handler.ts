@@ -18,6 +18,7 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
+import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
 
 export const createNotification: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
@@ -38,7 +39,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const notifications = await container
       .resolve(NotificationService)
-      .getNotifications(event.employee?.sub, event.queryStringParameters);
+      .getNotifications(event.employee, event.queryStringParameters || {});
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -91,6 +92,8 @@ export const deleteNotification: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getNotifications = middy(getNotificationsHandler).use(
-  decodeJWTMiddleware()
+export const getNotifications = checkRolePermission(
+  getNotificationsHandler,
+  "COMPANY_READ_ALL"
 );
+

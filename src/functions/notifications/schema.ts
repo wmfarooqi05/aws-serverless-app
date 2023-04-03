@@ -1,14 +1,17 @@
+import { getPaginatedJoiKeys } from "@common/schema";
+import NotificationModel from "@models/Notification";
 import * as Joi from "joi";
 
-export const validateGetNotifications = async (obj: any) => {
+const schemaKeys = Object.keys(NotificationModel.jsonSchema.properties);
+
+export const validateGetNotifications = async (obj: any = {}) => {
   await Joi.object({
-    page: Joi.number().min(0),
-    pageSize: Joi.number().min(0),
-    returningFields: Joi.string(),
-  }).validateAsync(obj, {
-    abortEarly: true,
-    
-  });
+    readStatus: Joi.boolean(),
+  })
+    .concat(getPaginatedJoiKeys(schemaKeys))
+    .validateAsync(obj, {
+      abortEarly: true,
+    });
 };
 
 export const validateCreateNotification = async (obj: any) => {
@@ -26,7 +29,7 @@ export const validateCreateNotification = async (obj: any) => {
     ),
   }).validateAsync(obj, {
     abortEarly: true,
-     // @TODO cleanup api update
+    // @TODO cleanup api update
   });
 };
 
@@ -36,7 +39,6 @@ export const updateNotificationsReadStatus = async (obj: any) => {
     status: Joi.boolean().required(),
   }).validateAsync(obj, {
     abortEarly: true,
-    
   });
 };
 
@@ -54,7 +56,6 @@ export const validateUpdateNotificationAssignedEmployee = async (
     { ...payload, assignedBy, notificationId },
     {
       abortEarly: true,
-      
     }
   );
 };
@@ -77,7 +78,6 @@ export const validateCreateConcernedPerson = async (
       { ...payload, notificationId, employeeId },
       {
         abortEarly: true,
-        
       }
     );
 };
@@ -100,7 +100,6 @@ export const validateUpdateConcernedPerson = async (
     { ...payload, notificationId, employeeId, concernedPersonId },
     {
       abortEarly: true,
-      
     }
   );
 };

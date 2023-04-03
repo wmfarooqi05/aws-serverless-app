@@ -48,7 +48,7 @@ export default class NotificationModel extends Model {
         subtitle: { type: "string" },
         senderEmployee: { type: "string" },
         // comma separated items
-        receiverEmployee: { type: "string" },
+        receiverEmployee: { type: "array" },
         extraData: { type: "object" }, // object
         notificationType: { type: "string" },
         readStatus: { type: "boolean" },

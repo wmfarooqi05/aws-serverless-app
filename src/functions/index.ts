@@ -55,6 +55,12 @@ import {
 } from "@functions/websocket";
 
 import {
+  getNotifications,
+  getNotificationById,
+  updateNotification,
+} from "@functions/notifications";
+
+import {
   googleOauthCallbackHandler,
   googleOauthHandler,
   googleOauthExtendRefreshToken,
@@ -170,4 +176,9 @@ export default {
   createTeam,
   updateTeam,
   deleteTeam,
+
+  // notifications
+  getNotificationById,
+  getNotifications,
+  updateNotification,
 };

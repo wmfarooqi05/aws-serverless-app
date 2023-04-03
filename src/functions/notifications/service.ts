@@ -3,6 +3,14 @@ import { inject, injectable } from "tsyringe";
 import NotificationModel, { INotification } from "@models/Notification";
 import { CustomError } from "@helpers/custom-error";
 import { WebSocketService } from "@functions/websocket/service";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { DatabaseService } from "@libs/database/database-service-objection";
+import { validateGetNotifications } from "./schema";
+import {
+  getOrderByItems,
+  getPaginateClauseObject,
+  sanitizeColumnNames,
+} from "@common/query";
 
 export interface INotificationService {}
 
@@ -16,6 +24,7 @@ export interface NotificationEBSchedulerPayload {
 @injectable()
 export class NotificationService implements INotificationService {
   constructor(
+    @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(WebSocketService)
     private readonly webSocketService: WebSocketService // private scheduler: AWS.Scheduler
   ) {
@@ -73,14 +82,26 @@ export class NotificationService implements INotificationService {
     return NotificationModel.query().insert(notifications);
   }
 
-  async getNotifications(employeeId, body) {
-    const payload = JSON.parse(body);
+  async getNotifications(employee: IEmployeeJwt, body) {
+    await validateGetNotifications(body || {});
+    const { readStatus, returningFields } = body;
 
-    const whereObj: any = { employeeId };
-    if (payload.readStatus) {
-      whereObj.readStatus = payload.readStatus;
-    }
-    return NotificationModel.query().where(whereObj);
+    const whereClause: any = {};
+
+    return this.docClient
+      .getKnexClient()(NotificationModel.tableName)
+      .select(
+        sanitizeColumnNames(NotificationModel.columnNames, returningFields)
+      )
+      .where(whereClause)
+      .where((builder) => {
+        builder.where({ receiverEmployee: employee.sub });
+        if (readStatus) {
+          builder.whereRaw(`details->>'readStatus' = ${readStatus}`);
+        }
+      })
+      .orderBy(...getOrderByItems(body))
+      .paginate(getPaginateClauseObject(body));
   }
 
   async getNotificationById(employeeId: string, id: string) {
