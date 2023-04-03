@@ -20,23 +20,10 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 import { container } from "@common/container";
 import {
   allowRoleWrapper,
+  checkRolePermission,
   jwtRequiredWrapper,
 } from "@libs/middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
-
-export const approvePendingApprovalHandler: ValidatedEventAPIGatewayProxyEvent<
-  IPendingApprovalModel
-> = async (event) => {
-  try {
-    const { requestId } = event.pathParameters;
-    const resp = await container
-      .resolve(PendingApprovalService)
-      .approvePendingApprovalWithQuery(requestId, event.body);
-    return formatJSONResponse(resp, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
 
 // @TODO only for testing
 export const sendWebSocketNotification: ValidatedEventAPIGatewayProxyEvent<
@@ -75,14 +62,14 @@ export const approveOrRejectRequestHandler = async (event) => {
   }
 };
 
-export const approvePendingApproval = middy(approvePendingApprovalHandler).use(
-  decodeJWTMiddleware()
+// No need to guard this, just keep it open (a user will only get his related entries)
+export const getMyPendingApprovals = checkRolePermission(
+  getMyPendingApprovalsHandler,
+  "PENDING_APPROVAL_GET_MY",
 );
 
-export const getMyPendingApprovals = jwtRequiredWrapper(
-  getMyPendingApprovalsHandler
-);
-export const approveOrRejectRequest = allowRoleWrapper(
+// No need to guard this, just keep it open (a user will only approve his authorized entries)
+export const approveOrRejectRequest = checkRolePermission( 
   approveOrRejectRequestHandler,
-  RolesEnum.SALES_MANAGER_GROUP
+  "PENDING_APPROVAL_APPROVE"
 );

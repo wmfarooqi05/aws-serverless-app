@@ -17,9 +17,8 @@ export interface NotificationEBSchedulerPayload {
 export class NotificationService implements INotificationService {
   constructor(
     @inject(WebSocketService)
-    private readonly webSocketService: WebSocketService
-  ) // private scheduler: AWS.Scheduler
-  {
+    private readonly webSocketService: WebSocketService // private scheduler: AWS.Scheduler
+  ) {
     //   this.scheduler = new AWS.Scheduler({
     //     region: process.env.AWS_SCHEDULER_REGION,
     //   });
@@ -70,6 +69,10 @@ export class NotificationService implements INotificationService {
     return NotificationModel.query().insert(notificationPayload);
   }
 
+  async createNotifications(notifications: INotification[]) {
+    return NotificationModel.query().insert(notifications);
+  }
+
   async getNotifications(employeeId, body) {
     const payload = JSON.parse(body);
 
@@ -107,10 +110,13 @@ export class NotificationService implements INotificationService {
     return response;
   }
 
-  /**@TODO remove this */
-  async sendWebSocketNotification(data: string) {
+  /**
+   * @TODO replace this function with SQS in future
+   * SQS will enqueue request, and then send websocket notification
+   */
+  async sendWebSocketNotification(notifications: INotification[]) {
     // @TODO add Joi validation
-    this.webSocketService.sendMessage(data);
+    return this.webSocketService.sendNotifications(notifications);
   }
 
   // async ScheduleNotification() {

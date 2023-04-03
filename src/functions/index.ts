@@ -37,7 +37,6 @@ import {
 } from "@functions/companies";
 
 import {
-  approvePendingApproval,
   sendWebSocketNotification,
   getMyPendingApprovals,
   approveOrRejectRequest,
@@ -127,7 +126,6 @@ export default {
   getEmployeeStaleActivityByStatus,
   // ACTIVITY
   // createActivity,
-  approvePendingApproval,
   sendWebSocketNotification,
   updateStatusOfActivity,
   getMyPendingApprovals,

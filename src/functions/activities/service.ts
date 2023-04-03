@@ -353,22 +353,6 @@ export class ActivityService implements IActivityService {
     }
   }
 
-  async createPendingActivity(
-    employee: IEmployeeJwt,
-    activityId: string,
-    type: PendingApprovalType,
-    payload: any
-  ) {
-    return this.pendingApprovalService.createPendingApproval(
-      employee.sub,
-      activityId,
-      ModuleTitles.ACTIVITY,
-      ActivityModel.tableName,
-      type,
-      payload
-    );
-  }
-
   async getMyStaleActivities(employee: IEmployeeJwt, body: any) {
     await validateGetMyStaleActivities(body);
     return this.docClient.get(this.TableName).modify(function (qb) {

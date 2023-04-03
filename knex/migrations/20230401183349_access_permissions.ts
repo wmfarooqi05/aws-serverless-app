@@ -31,6 +31,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("permission_key").notNullable().unique();
       table.boolean("is_allowed").notNullable().defaultTo(true);
       table.boolean("create_pending_approval").notNullable().defaultTo(true);
+      table.boolean("special_permissions").notNullable().defaultTo(false);
       table
         .uuid("updated_by")
         .index()

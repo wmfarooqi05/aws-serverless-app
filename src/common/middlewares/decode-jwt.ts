@@ -19,12 +19,15 @@ import {
   RolesArray,
   RolesEnum,
 } from "@models/interfaces/Employees";
-import { throwUnAuthorizedError } from "@common/errors";
+import {
+  returnUnAuthorizedError,
+  throwUnAuthorizedError,
+} from "@common/errors";
 import {
   accessPermissionsCacheMap,
   PERMISSION_KEY,
 } from "@models/AccessPermissions";
-import { validateForSpecialPermission } from "./helper";
+import { checkIfPermittedWithSpecialPermission } from "./helper";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -125,39 +128,42 @@ export const allowRoleAndAbove = (permissionKey: PERMISSION_KEY) => {
 export const getPermittedAndApprovalFlags = (permissionKey: PERMISSION_KEY) => {
   return {
     before: async ({ event }) => {
-      const { permitted, createPendingApproval } = await getPermittedRole(
+      const permittedRole = await getPermittedRole(
         event.employee[roleKey],
         permissionKey
       );
       event.employee = {
         ...event.employee,
-        permitted,
-        createPendingApproval,
+        ...permittedRole,
       };
     },
   };
 };
 
 export const validatePermissions = (
-  tableName: string = null,
   urlParamKey: string = null,
   employeeRelationKey: string = null
 ) => {
   return {
     before: async ({ event }) => {
-      const { permitted, createPendingApproval } = event.employee;
+      const {
+        permitted,
+        createPendingApproval,
+        specialPermissions,
+        tableName,
+      } = event.employee;
       if (!permitted) {
-        const specialPermission = await validateForSpecialPermission(
+        if (!specialPermissions && !createPendingApproval) {
+          returnUnAuthorizedError();
+        }
+        const specialPermitted = await checkIfPermittedWithSpecialPermission(
           event,
           tableName,
           urlParamKey,
           employeeRelationKey
         );
-        if (!specialPermission && !createPendingApproval) {
-          return formatErrorResponse({
-            message: "Current role is not authorized to access this data",
-            statusCode: 403,
-          });
+        if (!specialPermitted) {
+          returnUnAuthorizedError();
         }
       }
     },
@@ -251,10 +257,16 @@ export const getPermittedRole = async (
 ): Promise<{
   permitted: boolean;
   createPendingApproval: boolean;
+  specialPermissions: boolean;
+  tableName: string;
 }> => {
-  const { role: permittedRole, createPendingApproval } =
-    accessPermissionsCacheMap[permissionKey];
+  const {
+    role: permittedRole,
+    createPendingApproval,
+    tableName,
+    specialPermissions,
+  } = accessPermissionsCacheMap[permissionKey];
   const permitted = RolesEnum[employeeRole] >= RolesEnum[permittedRole];
 
-  return { permitted, createPendingApproval };
+  return { permitted, createPendingApproval, specialPermissions, tableName };
 };

@@ -161,7 +161,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.CREATE,
         null,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         payload
       );
@@ -183,7 +183,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         id,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         payload
       );
@@ -217,7 +217,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.DELETE,
         id,
-        employee.sub,
+        employee,
         CompanyModel.tableName
       );
     }
@@ -248,7 +248,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { assignedTo: payload?.assignTo ?? null }
       );
@@ -287,7 +287,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { concernedPersons: payload },
         PendingApprovalType.JSON_PUSH,
@@ -344,7 +344,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { concernedPersons: newPayload },
         PendingApprovalType.JSON_UPDATE,
@@ -384,7 +384,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { [key]: null },
         PendingApprovalType.JSON_DELETE,
@@ -436,7 +436,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { notes },
         PendingApprovalType.JSON_PUSH,
@@ -485,7 +485,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { notes },
         PendingApprovalType.JSON_UPDATE,
@@ -527,7 +527,7 @@ export class CompanyService implements ICompanyService {
       return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.UPDATE,
         companyId,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
         { [key]: null },
         PendingApprovalType.JSON_DELETE,

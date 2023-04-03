@@ -1,9 +1,6 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import {
-  ModuleType,
-  NOTIFICATIONS_TABLE_NAME,
-} from "./commons";
+import { ModuleType, NOTIFICATIONS_TABLE_NAME } from "./commons";
 
 export type INFO_TYPE = "CREATE_COMPANY" | "UPDATE_COMPANY" | "DELETE_COMPANY";
 
@@ -12,6 +9,8 @@ interface IExtraData {
   module: ModuleType; // PENDING APPROVAL
   // infoType: INFO_TYPE;
   infoType: string; // @TODO it is same as title for now
+  senderEmployeeName: string;
+  avatar: string;
 }
 
 export type NotificationType = "ACTIONABLE_ITEM" | "INFO_NOTIFICATION";
@@ -40,7 +39,6 @@ export default class NotificationModel extends Model {
     return Object.keys(this.jsonSchema.properties);
   }
 
-
   static get jsonSchema() {
     return {
       type: "object",
@@ -58,7 +56,12 @@ export default class NotificationModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["title", "senderEmployee", "receiverEmployee", "receiverEmployee"],
+      required: [
+        "title",
+        "senderEmployee",
+        "receiverEmployee",
+        "receiverEmployee",
+      ],
       additionalProperties: false,
     };
   }

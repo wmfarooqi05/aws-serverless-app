@@ -10,6 +10,8 @@ import { SQSEvent } from "aws-lambda";
 import JobsResultsModel, { IJobsResults } from "@models/JobsResult";
 import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcess } from "@functions/jobs/bulkSignupProcess";
+import { IPendingApprovals } from "@models/interfaces/PendingApprovals";
+import { INotification } from "@models/Notification";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -48,8 +50,10 @@ export class SQSService {
           throw new CustomError("job id not found", 400);
           return;
         }
-        const job: IJobsResults = await JobsResultsModel.query().findById(messageBody.jobId);
-        if (job.jobType === 'UPLOAD_COMPANIES_FROM_EXCEL') {
+        const job: IJobsResults = await JobsResultsModel.query().findById(
+          messageBody.jobId
+        );
+        if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
           await bulkImportUsersProcess(job);
         }
 
@@ -144,4 +148,10 @@ export class SQSService {
       console.error(`Error deleting message from queue: ${error}`);
     }
   }
+
+  // async enqueueNotifications(
+  //   notifications: INotification[]
+  // ) {
+  //   this.quq
+  // }
 }

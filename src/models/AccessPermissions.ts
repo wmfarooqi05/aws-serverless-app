@@ -22,6 +22,7 @@ export interface IAccessPermissions {
   permissionKey: string;
   updatedBy?: string;
   allowedEmployees: Object[];
+  specialPermissions: boolean;
 }
 
 @singleton()
@@ -57,6 +58,10 @@ export default class AccessPermissions extends Model {
         },
         createPendingApproval: {
           type: "boolean",
+        },
+        specialPermissions: {
+          type: "boolean",
+          default: false,
         },
         /** this will be a map like this
          *  {
@@ -96,6 +101,7 @@ const defaultPermissions: IAccessPermissions = {
   createPendingApproval: true,
   allowedEmployees: [],
   permissionKey: "COMPANIES_READ_ALL",
+  specialPermissions: true
 };
 
 const defaultAllowedPermissions: IAccessPermissions = {
@@ -106,6 +112,7 @@ const defaultAllowedPermissions: IAccessPermissions = {
   createPendingApproval: true,
   allowedEmployees: [],
   permissionKey: "COMPANIES_READ_ALL",
+  specialPermissions: true
 };
 
 export type PERMISSION_KEY =
@@ -125,10 +132,12 @@ export type PERMISSION_KEY =
   | "ACTIVITY_READ"
   | "ACTIVITY_CREATE"
   | "ACTIVITY_UPDATE"
-  | "ACTIVITY_DELETE";
+  | "ACTIVITY_DELETE"
+  | "PENDING_APPROVAL_GET_MY"
+  | "PENDING_APPROVAL_APPROVE";
 
 export const accessPermissionsCacheMap: IAccessPermissionsCacheMap = {
-  "*": defaultPermissions, // remove *
+  "*": defaultAllowedPermissions, // remove *
   COMPANY_READ_ALL: defaultAllowedPermissions,
   COMPANY_READ: defaultAllowedPermissions,
   COMPANY_CREATE: defaultPermissions,
@@ -143,7 +152,9 @@ export const accessPermissionsCacheMap: IAccessPermissionsCacheMap = {
   // ACTIVITY
   ACTIVITY_READ: defaultAllowedPermissions,
   ACTIVITY_READ_ALL: defaultAllowedPermissions,
-  ACTIVITY_CREATE: defaultPermissions,
-  ACTIVITY_DELETE: defaultPermissions,
-  ACTIVITY_UPDATE: defaultPermissions,
+  ACTIVITY_CREATE: defaultAllowedPermissions,
+  ACTIVITY_DELETE: defaultAllowedPermissions,
+  ACTIVITY_UPDATE: defaultAllowedPermissions,
+  PENDING_APPROVAL_GET_MY: defaultAllowedPermissions,
+  PENDING_APPROVAL_APPROVE: defaultPermissions,
 };

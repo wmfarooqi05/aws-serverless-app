@@ -23,7 +23,7 @@ export const getParamKeyValueFromEvent = (event, key: string) => {
   throw new CustomError("Param key not found", 400);
 };
 
-export const validateForSpecialPermission = async (
+export const checkIfPermittedWithSpecialPermission = async (
   event: any,
   tableName: string = null,
   urlParamKey: string = null,

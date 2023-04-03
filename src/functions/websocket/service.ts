@@ -14,6 +14,7 @@ import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
 import { CacheService } from "@common/service/CacheService";
 import axios from "axios";
+import { INotification } from "@models/Notification";
 
 export interface IWebSocketService {}
 
@@ -29,7 +30,6 @@ const config: ApiGatewayManagementApiClientConfig = {
 
 @injectable()
 export class WebSocketService implements IWebSocketService {
-  apigwManagementApi: ApiGatewayManagementApiClient;
   tableName: string = process.env.ConnectionTableName;
   partitionKeyName: string = process.env.ConnectionTablePartitionKey;
   apiGateway: ApiGatewayManagementApiClient = null;
@@ -156,9 +156,10 @@ export class WebSocketService implements IWebSocketService {
         };
       }
       console.log("command", command);
-      // @TODO move this client to global scope
+      // @TODO remove on Prod
       const resp1 = await axios.get("https://www.google.com");
       console.log("resp1", resp1.status);
+
       const resp = await this.apiGateway.send(command);
       console.log("resp?.$metadata", resp?.$metadata);
       return { ...resp.$metadata, connectionId };
@@ -171,20 +172,8 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  private async getConnectionId(employeeId: string) {
+  private async getConnectionId(employeeId: string): Promise<string> {
     try {
-      // console.log("[Websocket], getConnectionId, calling getItem");
-      // const connectionItem = await this.dynamoService.getItem(
-      //   this.tableName,
-      //   this.partitionKeyName,
-      //   employeeId
-      // );
-
-      // console.log(
-      //   "[Websocket], getConnectionId, connectionItem",
-      //   connectionItem
-      // );
-      // const connectionPayload = JSON.parse(connectionItem.Item?.data?.S);
       const payloadString = await this.cacheService.getItem(employeeId);
       const connectionPayload = JSON.parse(payloadString);
       if (!connectionPayload?.connectionId) {
@@ -198,6 +187,25 @@ export class WebSocketService implements IWebSocketService {
       return connectionPayload.connectionId;
     } catch (e) {
       console.error("getConnectionId, employeeId", employeeId, e);
+    }
+  }
+
+  async sendNotifications(notifications: INotification[]) {
+    for (let i = 0; i < notifications.length; i++) {
+      const connectionId = await this.getConnectionId(
+        notifications[i].receiverEmployee
+      );
+      if (connectionId) {
+        await this.sendSimpleMessage(
+          connectionId,
+          JSON.stringify({
+            type: "NOTIFICATION",
+            senderName: notifications[i].extraData.senderEmployeeName,
+            module: notifications[i].extraData.infoType,
+            payload: notifications[i],
+          })
+        );
+      }
     }
   }
 }

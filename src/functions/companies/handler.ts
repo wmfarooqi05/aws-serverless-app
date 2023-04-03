@@ -239,8 +239,7 @@ export const getCompanies = checkRolePermission(
   getCompaniesHandler,
   "COMPANY_READ_ALL"
 );
-// .use(permissionMiddleware2(["update"], "COMPANY"));
-// export const getMyCompanies = allowRoleWrapper(getMyCompaniesHandler);
+
 export const getCompaniesByEmployeeId = checkRolePermission(
   getCompaniesByEmployeeIdHandler,
   "COMPANY_READ"
@@ -248,7 +247,6 @@ export const getCompaniesByEmployeeId = checkRolePermission(
 export const updateCompany = checkRolePermission(
   updateCompanyHandler,
   "COMPANY_UPDATE",
-  COMPANIES_TABLE_NAME,
   "companyId",
   "assignedTo"
 );
@@ -268,31 +266,43 @@ export const updateCompanyAssignedEmployee = checkRolePermission(
 
 export const createConcernedPersons = checkRolePermission(
   createConcernedPersonsHandler,
-  "COMPANY_UPDATE"
+  "CONCERNED_PERSON_CREATE",
+  "companyId",
+  "assignedTo"
 );
 
 export const updateConcernedPerson = checkRolePermission(
   updateConcernedPersonHandler,
-  "COMPANY_UPDATE"
+  "CONCERNED_PERSON_UPDATE",
+  "companyId",
+  "assignedTo"
 );
 export const deleteConcernedPerson = checkRolePermission(
   deleteConcernedPersonHandler,
-  "COMPANY_UPDATE"
+  "CONCERNED_PERSON_DELETE",
+  "companyId",
+  "assignedTo"
 );
 
 export const createNotes = checkRolePermission(
   createNotesHandler,
-  "COMPANY_UPDATE"
+  "NOTES_CREATE",
+  "companyId",
+  "assignedTo"
 );
 
 export const updateNotes = checkRolePermission(
   updateNotesHandler,
-  "COMPANY_UPDATE"
+  "NOTES_UPDATE",
+  "companyId",
+  "assignedTo"
 );
 
 export const deleteNotes = checkRolePermission(
   deleteNotesHandler,
-  "COMPANY_UPDATE"
+  "NOTES_DELETE",
+  "companyId",
+  "assignedTo"
 );
 
 export const getNotes = checkRolePermission(getNotesHandler, "COMPANY_READ");

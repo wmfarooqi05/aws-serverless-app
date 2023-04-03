@@ -76,7 +76,6 @@ export const allowRoleWrapper = (
 export const checkRolePermission = (
   func: any,
   permissionKey: PERMISSION_KEY,
-  tableName: string = null,
   urlParamKey: string = null,
   employeeRelationKey: string = null
 ) => {
@@ -84,7 +83,7 @@ export const checkRolePermission = (
     .use(decodeJWTMiddleware())
     .use(jwtRequired())
     .use(getPermittedAndApprovalFlags(permissionKey))
-    .use(validatePermissions(tableName, urlParamKey, employeeRelationKey));
+    .use(validatePermissions(urlParamKey, employeeRelationKey));
 };
 
 export default jwtMiddlewareWrapper;
