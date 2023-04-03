@@ -25,7 +25,6 @@ export enum COMPANY_PRIORITY {
   HIGH = "HIGH",
   HIGHEST = "HIGHEST",
 }
-
 const tableName = Tables.companies;
 
 export async function up(knex: Knex): Promise<void> {

@@ -42,6 +42,7 @@ import {
 } from "@common/query";
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
+import { validateRequestByEmployeeRole } from "@common/helpers/permissions";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -176,6 +177,7 @@ export class CompanyService implements ICompanyService {
   ): Promise<{ company?: CompanyModel; pendingApproval?: IPendingApprovals }> {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
+
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(

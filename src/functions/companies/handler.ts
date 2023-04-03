@@ -12,10 +12,8 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import {
-  allowRoleWrapper,
-  checkRolePermission,
-} from "@middlewares/jwtMiddleware";
+import { checkRolePermission } from "@middlewares/jwtMiddleware";
+import { COMPANIES_TABLE_NAME } from "@models/commons";
 
 export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -243,12 +241,16 @@ export const getCompanies = checkRolePermission(
 );
 // .use(permissionMiddleware2(["update"], "COMPANY"));
 // export const getMyCompanies = allowRoleWrapper(getMyCompaniesHandler);
-export const getCompaniesByEmployeeId = allowRoleWrapper(
-  getCompaniesByEmployeeIdHandler
+export const getCompaniesByEmployeeId = checkRolePermission(
+  getCompaniesByEmployeeIdHandler,
+  "COMPANY_READ"
 );
 export const updateCompany = checkRolePermission(
   updateCompanyHandler,
-  "COMPANY_UPDATE"
+  "COMPANY_UPDATE",
+  COMPANIES_TABLE_NAME,
+  "companyId",
+  "assignedTo"
 );
 export const createCompany = checkRolePermission(
   createCompanyHandler,
@@ -282,12 +284,15 @@ export const createNotes = checkRolePermission(
   createNotesHandler,
   "COMPANY_UPDATE"
 );
+
 export const updateNotes = checkRolePermission(
   updateNotesHandler,
   "COMPANY_UPDATE"
 );
+
 export const deleteNotes = checkRolePermission(
   deleteNotesHandler,
   "COMPANY_UPDATE"
 );
+
 export const getNotes = checkRolePermission(getNotesHandler, "COMPANY_READ");

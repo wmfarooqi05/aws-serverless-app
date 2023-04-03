@@ -13,8 +13,9 @@ import { ActivityService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import { allowMeOrRoleWrapper, allowRoleWrapper, jwtRequiredWrapper } from "@middlewares/jwtMiddleware";
-import { RolesEnum } from "@models/interfaces/Employees";
+import {
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 
 const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
@@ -77,7 +78,7 @@ export const getTopActivitiesHandler = async (event) => {
   }
 };
 
-export const getActivityById: ValidatedEventAPIGatewayProxyEvent<
+const getActivityByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
   const { activityId } = event.pathParameters;
@@ -133,7 +134,7 @@ const createActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const updateActivityHandler = async (event) => {
+const updateActivityHandler = async (event) => {
   try {
     const { activityId } = event.pathParameters;
 
@@ -158,7 +159,7 @@ export const updateStatusOfActivityHandler = async (event) => {
   }
 };
 
-export const deleteActivity: ValidatedEventAPIGatewayProxyEvent<
+const deleteActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
   try {
@@ -175,23 +176,52 @@ export const deleteActivity: ValidatedEventAPIGatewayProxyEvent<
 };
 
 // @TODO export these
-export const getActivities = allowRoleWrapper(getActivitiesHandler);
-export const createActivity = allowRoleWrapper(createActivityHandler);
-export const getMyActivities = allowRoleWrapper(getMyActivitiesHandler);
-export const getTopActivities = allowRoleWrapper(getTopActivitiesHandler);
-export const getAllActivitiesByCompany = allowRoleWrapper(
-  getAllActivitiesByCompanyHandler
-);
-export const getMyStaleActivityByStatus = jwtRequiredWrapper(
-  getMyStaleActivityByStatusHandler
-);
-export const getEmployeeStaleActivityByStatus = allowRoleWrapper(
-  getEmployeeStaleActivityByStatusHandler,
-  RolesEnum.SALES_MANAGER_GROUP,
+export const getActivities = checkRolePermission(
+  getActivitiesHandler,
+  "ACTIVITY_READ_ALL"
 );
 
-export const updateActivity = allowRoleWrapper(updateActivityHandler);
-export const updateStatusOfActivity = allowRoleWrapper(
+export const getActivityById = checkRolePermission(
+  getActivityByIdHandler,
+  "ACTIVITY_READ"
+);
+
+export const createActivity = checkRolePermission(
+  createActivityHandler,
+  "ACTIVITY_CREATE"
+);
+export const getMyActivities = checkRolePermission(
+  getMyActivitiesHandler,
+  "ACTIVITY_READ"
+);
+export const getTopActivities = checkRolePermission(
+  getTopActivitiesHandler,
+  "ACTIVITY_READ"
+);
+export const getAllActivitiesByCompany = checkRolePermission(
+  getAllActivitiesByCompanyHandler,
+  "ACTIVITY_READ"
+);
+export const getMyStaleActivityByStatus = checkRolePermission(
+  getMyStaleActivityByStatusHandler,
+  "ACTIVITY_READ"
+);
+export const getEmployeeStaleActivityByStatus = checkRolePermission(
+  getEmployeeStaleActivityByStatusHandler,
+  "ACTIVITY_READ"
+);
+
+export const updateActivity = checkRolePermission(
+  updateActivityHandler,
+  "ACTIVITY_UPDATE"
+);
+
+export const updateStatusOfActivity = checkRolePermission(
   updateStatusOfActivityHandler,
-  RolesEnum.SALES_REP_GROUP
+  "ACTIVITY_UPDATE"
+);
+
+export const deleteActivity = checkRolePermission(
+  deleteActivityHandler,
+  "ACTIVITY_DELETE"
 );

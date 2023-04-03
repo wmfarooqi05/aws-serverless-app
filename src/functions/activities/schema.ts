@@ -193,7 +193,9 @@ const validateEmailDetails = async (details: IEMAIL_DETAILS) => {
     date: Joi.string().isoDate().required(), // must in case of is scheduled, decide for other cases
     body: Joi.string().required(),
     isDraft: Joi.boolean(),
-    timezone: Joi.string().required(),
+    timezone: Joi.string()
+      .required()
+      .valid(...moment.tz.names()),
   }).validateAsync(details);
 };
 

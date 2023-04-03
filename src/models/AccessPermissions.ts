@@ -56,7 +56,7 @@ export default class AccessPermissions extends Model {
           type: "boolean",
         },
         createPendingApproval: {
-          type: "boolean"
+          type: "boolean",
         },
         /** this will be a map like this
          *  {
@@ -98,19 +98,52 @@ const defaultPermissions: IAccessPermissions = {
   permissionKey: "COMPANIES_READ_ALL",
 };
 
+const defaultAllowedPermissions: IAccessPermissions = {
+  role: "SALES_REP_GROUP",
+  tableName: "COMPANIES",
+  permissionType: PermissionTypes.READ_ALL,
+  isAllowed: true,
+  createPendingApproval: true,
+  allowedEmployees: [],
+  permissionKey: "COMPANIES_READ_ALL",
+};
+
 export type PERMISSION_KEY =
   | "*"
   | "COMPANY_READ_ALL"
   | "COMPANY_READ"
   | "COMPANY_CREATE"
   | "COMPANY_UPDATE"
-  | "COMPANY_DELETE";
+  | "COMPANY_DELETE"
+  | "CONCERNED_PERSON_CREATE"
+  | "CONCERNED_PERSON_UPDATE"
+  | "CONCERNED_PERSON_DELETE"
+  | "NOTES_CREATE"
+  | "NOTES_UPDATE"
+  | "NOTES_DELETE"
+  | "ACTIVITY_READ_ALL"
+  | "ACTIVITY_READ"
+  | "ACTIVITY_CREATE"
+  | "ACTIVITY_UPDATE"
+  | "ACTIVITY_DELETE";
 
 export const accessPermissionsCacheMap: IAccessPermissionsCacheMap = {
   "*": defaultPermissions, // remove *
-  COMPANY_READ_ALL: defaultPermissions,
-  COMPANY_READ: defaultPermissions,
+  COMPANY_READ_ALL: defaultAllowedPermissions,
+  COMPANY_READ: defaultAllowedPermissions,
   COMPANY_CREATE: defaultPermissions,
   COMPANY_UPDATE: defaultPermissions,
   COMPANY_DELETE: defaultPermissions,
+  CONCERNED_PERSON_CREATE: defaultPermissions,
+  CONCERNED_PERSON_UPDATE: defaultPermissions,
+  CONCERNED_PERSON_DELETE: defaultPermissions,
+  NOTES_CREATE: defaultPermissions,
+  NOTES_UPDATE: defaultPermissions,
+  NOTES_DELETE: defaultPermissions,
+  // ACTIVITY
+  ACTIVITY_READ: defaultAllowedPermissions,
+  ACTIVITY_READ_ALL: defaultAllowedPermissions,
+  ACTIVITY_CREATE: defaultPermissions,
+  ACTIVITY_DELETE: defaultPermissions,
+  ACTIVITY_UPDATE: defaultPermissions,
 };

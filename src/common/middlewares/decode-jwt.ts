@@ -24,6 +24,7 @@ import {
   accessPermissionsCacheMap,
   PERMISSION_KEY,
 } from "@models/AccessPermissions";
+import { validateForSpecialPermission } from "./helper";
 
 export const decodeJWTMiddleware = () => {
   return {
@@ -95,6 +96,7 @@ export const jwtRequired = () => {
 };
 
 /**
+ * @deprecated
  * @param permissionKey Remove role and fetch the permissions and verify instead
  * @returns
  */
@@ -115,6 +117,48 @@ export const allowRoleAndAbove = (permissionKey: PERMISSION_KEY) => {
           message: "Current role is not authorized to access this data",
           statusCode: 403,
         });
+      }
+    },
+  };
+};
+
+export const getPermittedAndApprovalFlags = (permissionKey: PERMISSION_KEY) => {
+  return {
+    before: async ({ event }) => {
+      const { permitted, createPendingApproval } = await getPermittedRole(
+        event.employee[roleKey],
+        permissionKey
+      );
+      event.employee = {
+        ...event.employee,
+        permitted,
+        createPendingApproval,
+      };
+    },
+  };
+};
+
+export const validatePermissions = (
+  tableName: string = null,
+  urlParamKey: string = null,
+  employeeRelationKey: string = null
+) => {
+  return {
+    before: async ({ event }) => {
+      const { permitted, createPendingApproval } = event.employee;
+      if (!permitted) {
+        const specialPermission = await validateForSpecialPermission(
+          event,
+          tableName,
+          urlParamKey,
+          employeeRelationKey
+        );
+        if (!specialPermission && !createPendingApproval) {
+          return formatErrorResponse({
+            message: "Current role is not authorized to access this data",
+            statusCode: 403,
+          });
+        }
       }
     },
   };

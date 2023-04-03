@@ -4,7 +4,9 @@ import {
   allowRoleAndAbove,
   decodeJWTMiddleware,
   decodeJWTMiddlewareWebsocket,
+  getPermittedAndApprovalFlags,
   jwtRequired,
+  validatePermissions,
 } from "@common/middlewares/decode-jwt";
 import middy from "@middy/core";
 import { PERMISSION_KEY } from "@models/AccessPermissions";
@@ -24,10 +26,10 @@ export const jwtMRequiredWrapper = (func) => {
 
 /**
  * we have to use cognito authorizer with api gateway
- * @deprecated 
- * @param func 
- * @param key 
- * @returns 
+ * @deprecated
+ * @param func
+ * @param key
+ * @returns
  */
 export const allowMeWrapper = (func: any, key: string) => {
   // get employeeId from event[key]
@@ -57,12 +59,12 @@ export const allowMeOrRoleWrapper = (
  */
 export const allowRoleWrapper = (
   func: any,
-  role: number = RolesEnum.SALES_REP_GROUP,
+  role: number = RolesEnum.SALES_REP_GROUP
 ) => {
   return middy(func)
     .use(decodeJWTMiddleware())
     .use(jwtRequired())
-    .use(allowRoleAndAbove('*'));
+    .use(allowRoleAndAbove("*"));
 };
 
 /**
@@ -71,11 +73,18 @@ export const allowRoleWrapper = (
  * @param createPendingApproval In case of no permission, should it create pending approval instead or reject access?
  * @returns
  */
-export const checkRolePermission = (func: any, permissionKey: PERMISSION_KEY) => {
+export const checkRolePermission = (
+  func: any,
+  permissionKey: PERMISSION_KEY,
+  tableName: string = null,
+  urlParamKey: string = null,
+  employeeRelationKey: string = null
+) => {
   return middy(func)
     .use(decodeJWTMiddleware())
     .use(jwtRequired())
-    .use(allowRoleAndAbove(permissionKey));
+    .use(getPermittedAndApprovalFlags(permissionKey))
+    .use(validatePermissions(tableName, urlParamKey, employeeRelationKey));
 };
 
 export default jwtMiddlewareWrapper;
