@@ -45,7 +45,8 @@ export interface IReminder {
   status: SCHEDULED_STATUS;
   reminderTime: string;
   data: JSON;
-  activityId: string;
+  tableRowId: string;
+  tableName: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -75,11 +76,12 @@ export default class ReminderModel extends Model {
         status: { type: "string", default: ReminderStatus.PENDING },
         reminderTime: { type: "string" },
         data: { type: "object", default: {} },
-        activityId: { type: "string" },
+        tableRowId: { type: "string" },
+        tableName: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["activityId", "type", "reminderTime"],
+      required: ["type", "reminderTime"],
       additionalProperties: false,
     };
   }

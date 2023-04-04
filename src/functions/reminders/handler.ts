@@ -22,7 +22,7 @@ export const createReminder: ValidatedEventAPIGatewayProxyEvent<
   try {
     const newReminder = await container
       .resolve(ReminderService)
-      .ScheduleReminder(event.body);
+      .scheduleReminder(event.body);
     return formatJSONResponse(newReminder, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -90,74 +90,6 @@ export const deleteReminder: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-const updateReminderAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
-  IReminderModel
-> = async (event) => {
-  try {
-    // @TODO put auth guard
-    // Employee must be there
-    // Role guard of manager or above
-    const { reminderId } = event.pathParameters;
-    const reminder = await container
-      .resolve(ReminderService)
-      .updateReminderAssignedEmployee(reminderId, event?.employee?.sub, event.body);
-
-    return formatJSONResponse({ reminder }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
-  IReminderModel
-> = async (event) => {
-  try {
-    const { reminderId } = event.pathParameters;
-    const reminder = await container
-      .resolve(ReminderService)
-      .createConcernedPersons(reminderId, event?.employee?.sub, event.body);
-    return formatJSONResponse({ reminder }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
-  IReminderModel
-> = async (event) => {
-  try {
-    const { reminderId, concernedPersonId } = event.pathParameters;
-    const reminder = await container
-      .resolve(ReminderService)
-      .updateConcernedPerson(
-        reminderId,
-        concernedPersonId,
-        event?.employee?.sub,
-        event.body
-      );
-
-    return formatJSONResponse({ reminder }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
-  IReminderModel
-> = async (event) => {
-  try {
-    const { concernedPersonId, reminderId } = event.pathParameters;
-    // Add guard validation if required
-    const reminder = await container
-      .resolve(ReminderService)
-      .deleteConcernedPerson(reminderId, concernedPersonId);
-
-    return formatJSONResponse({ reminder }, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 export const dailyReminderCleanup = async () => {
   try {
     const reminders = await container
@@ -169,20 +101,60 @@ export const dailyReminderCleanup = async () => {
   }
 };
 
+export const updateScheduleReminder = async (event) => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .updateScheduleReminder(event.body);
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+export const deleteScheduleReminder = async (event) => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .deleteScheduleReminder(event.body);
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getSchedulerGroups = async (event) => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .getScheduleRemindersFromGroup(event.queryStringParameters || {});
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getSchedulers = async (event) => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .getScheduleRemindersFromGroup(event.queryStringParameters || {});
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const deleteAllReminders = async (event) => {
+  try {
+    const reminders = await container
+      .resolve(ReminderService)
+      .deleteAllReminders(event.queryStringParameters || {});
+    return formatJSONResponse({ reminders }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getReminders = middy(getRemindersHandler).use(
-  decodeJWTMiddleware()
-);
-export const updateReminderAssignedEmployee = middy(
-  updateReminderAssignedEmployeeHandler
-).use(decodeJWTMiddleware());
-
-export const createConcernedPersons = middy(createConcernedPersonsHandler).use(
-  decodeJWTMiddleware()
-);
-
-export const updateConcernedPerson = middy(updateConcernedPersonHandler).use(
-  decodeJWTMiddleware()
-);
-export const deleteConcernedPerson = middy(deleteConcernedPersonHandler).use(
   decodeJWTMiddleware()
 );

@@ -46,6 +46,12 @@ import {
   createReminder,
   deleteReminder,
   dailyReminderCleanup,
+  // schedulers
+  updateScheduleReminder,
+  getSchedulerGroups,
+  getSchedulers,
+  deleteScheduleReminder,
+  deleteAllReminders,
 } from "@functions/reminders";
 
 import {
@@ -181,4 +187,11 @@ export default {
   getNotificationById,
   getNotifications,
   updateNotification,
+
+  // schedulers
+  updateScheduleReminder,
+  getSchedulerGroups,
+  getSchedulers,
+  deleteScheduleReminder,
+  deleteAllReminders,
 };

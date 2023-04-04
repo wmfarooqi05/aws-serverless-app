@@ -41,7 +41,7 @@ export class WebSocketService implements IWebSocketService {
   }
 
   async handle(
-    employeeId: string = "28758dac-a6a2-4f90-96ed-0a42a37d3fb3",
+    employeeId: string,
     body: any,
     connectionId: string,
     routeKey: string
@@ -65,7 +65,12 @@ export class WebSocketService implements IWebSocketService {
           break;
 
         case "$disconnect":
-          console.log("$disconnect: ", connectionId);
+          console.log(
+            "$disconnect: ",
+            connectionId,
+            "employeeId: ",
+            employeeId
+          );
           await this.cacheService.deleteItem(employeeId);
           break;
 

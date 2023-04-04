@@ -235,14 +235,9 @@ export class ActivityService implements IActivityService {
       scheduled: details.isScheduled ? true : false,
       dueDate: payload.dueDate,
     };
-
+    let activity: IActivity = null;
     try {
-      const activity: IActivity = await ActivityModel.query().insert(
-        activityObj
-      );
-      // const activity: IActivity[] = await this.docClient
-      //   .get(this.TableName)
-      //   .insert(activityObj);
+      activity = await ActivityModel.query().insert(activityObj);
       const updatedDetailObject: IACTIVITY_DETAILS = await this.runSideJobs(
         activity
       );
@@ -250,6 +245,9 @@ export class ActivityService implements IActivityService {
         details: updatedDetailObject,
       });
     } catch (e) {
+      if (activity) {
+        return activity;
+      }
       if (e.name === "ForeignKeyViolationError") {
         // @TODO: check maybe employee doesn't exists
         throw new CustomError("Company doesn't exists", 404);
@@ -268,13 +266,25 @@ export class ActivityService implements IActivityService {
     // if (reminder.useDefault) {
     //   // Get From user's settings
     // } else
+    const reminders = [];
     if (reminder.overrides) {
-      return this.reminderService.scheduleReminders(
-        reminder.overrides,
-        dueDate,
-        originalRowId,
-        reminderTimeType
-      );
+      for (let i = 0; i < reminder.overrides.length; i++) {
+        const { minutes, method } = reminder.overrides[0];
+
+        const reminderTime = moment(dueDate)
+          .utc()
+          .subtract(minutes, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
+
+        const reminderObject = await this.reminderService.scheduleReminders(
+          `at(${reminderTime})`,
+          originalRowId,
+          ActivityModel.tableName,
+          reminderTimeType,
+          method,
+        );
+        reminders.push(reminderObject);
+      }
     }
   }
 
@@ -297,11 +307,6 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Object not found", 404);
     }
 
-    // @TODO add logic to update job
-    // if (updatedActivity.activityType !== ACTIVITY_TYPE.EMAIL) {
-    //   await this.runSideGoogleJob(updatedActivity);
-    // }
-
     return updatedActivity;
   }
 
@@ -319,19 +324,6 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Activity has already same status", 400);
     }
 
-    //@TODO add checks like if this employee can change, or his manager etc
-    // @TODO validate status type
-
-    // Before making it pending item, we need to write helper for mix normal and json key
-    // const isPermitted = true;
-    // if (!isPermitted) {
-    //   return this.createPendingActivity(
-    //     employee,
-    //     activityId,
-    //     PendingApprovalType.UPDATE,
-    //     payload
-    //   );
-    // } else {
     const addQuery = addJsonbObjectHelper(
       "statusHistory",
       this.docClient.knexClient,
@@ -375,31 +367,6 @@ export class ActivityService implements IActivityService {
       if (createdByIds) qb.whereIn("createdBy", createdByIds?.split(","));
     });
   }
-  // @TODO re-write with help of jwt payload,
-  // manager will be there and also role
-  // if role is above manager, he can see,
-  // else either employeeId === activityEmployeeId OR this employee's manager should be activity employee
-  // async checkEmployeeAuthorization(
-  //   requestingEmployeeId: string,
-  //   activityEmployeeId: string
-  // ) {
-  //   // @TODO add getEmployees who is allowed to see this company
-  //   const requestingEmployee: IEmployee = await this.docClient
-  //     .get(EMPLOYEES_TABLE_NAME)
-  //     .where({
-  //       id: requestingEmployeeId,
-  //     })[0];
-
-  //   if (
-  //     !(
-  //       activity.employeeId === employeeId ||
-  //       employeeManager.reportingManager === employeeId
-  //     )
-  //   ) {
-  //     throw new CustomError("Employee not allowed to access this data", 403);
-  //   }
-  // }
-
   async runSideJobs(activity: IActivity): Promise<IACTIVITY_DETAILS> {
     if (
       activity.activityType === ACTIVITY_TYPE.EMAIL ||

@@ -1,7 +1,10 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import { jwtMRequiredWrapper } from "@libs/middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper, {
+  checkRolePermission,
+  jwtMRequiredWrapper,
+} from "@libs/middlewares/jwtMiddleware";
 
 const colors = [
   "\x1b[36m%s\x1b[0m",
@@ -15,22 +18,10 @@ export const _webSocketHandler = async (event) => {
     body,
     requestContext: { connectionId, routeKey },
   } = event;
-  console.log(
-    colors[Math.floor(Math.random() * 5)],
-    "[Websocket] _webSocketHandler",
-    routeKey,
-    connectionId,
-    body
-  );
   try {
     const websocketResponse = await container
       .resolve(WebSocketService)
-      .handle(
-        event.employee?.sub,
-        body,
-        connectionId,
-        routeKey
-      );
+      .handle(event.employee?.sub, body, connectionId, routeKey);
     return formatJSONResponse(websocketResponse, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -60,8 +51,7 @@ export async function _getAllConnections() {
     return formatErrorResponse(e);
   }
 }
-// export const webSocketHandler =  _webSocketHandler;
 
-export const webSocketHandler = _webSocketHandler;
+export const webSocketHandler = jwtMiddlewareWrapper(_webSocketHandler);
 export const broadcastMessage = sendMessage;
 export const getAllConnections = _getAllConnections;

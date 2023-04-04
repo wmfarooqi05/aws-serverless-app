@@ -8,6 +8,13 @@ import {
   DeleteScheduleCommandInput,
   Target,
   CreateScheduleCommandOutput,
+  ListScheduleGroupsCommand,
+  ListScheduleGroupsCommandInput,
+  UpdateScheduleCommandInput,
+  UpdateScheduleCommand,
+  ListSchedulesCommandInput,
+  ListSchedulesCommand,
+  ListSchedulesCommandOutput,
 } from "@aws-sdk/client-scheduler";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import http from "http";
@@ -47,124 +54,109 @@ export class ReminderService implements IReminderService {
     });
   }
 
+  /** DEV Endpoints */
+  async scheduleReminder(body) {
+    const payload = JSON.parse(body);
+    const { schedulerExpression, tableRowId, tableName, type } = payload;
+    return this.scheduleReminders(
+      schedulerExpression,
+      tableRowId,
+      tableName,
+      ReminderTimeType.CUSTOM,
+      type
+    );
+  }
+  async updateScheduleReminder(body) {
+    const payload = JSON.parse(body);
+    const { Name, GroupName, dueDate } = payload;
+    return this.updateScheduledReminder(Name, GroupName, dueDate);
+  }
+  async deleteScheduleReminder(body) {
+    const payload = JSON.parse(body);
+    const { Name, GroupName } = payload;
+    return this.deleteScheduledReminder(Name, GroupName);
+  }
+  async getScheduleRemindersFromGroup(
+    body
+  ): Promise<ListSchedulesCommandOutput> {
+    const { GroupName, NextToken, MaxResults } = body;
+    return this.getAllSchedulers(
+      GroupName || process.env.REMINDER_SCHEDULER_GROUP_NAME,
+      NextToken,
+      MaxResults
+    );
+  }
+  async getScheduleReminderGroups(body) {
+    const { NamePrefix, NextToken, MaxResults } = body;
+    return this.getScheduleGroups(NamePrefix, NextToken, MaxResults);
+  }
+
+  async deleteAllReminders(body) {
+    let NextToken = null;
+    let GroupName = body.GroupName || process.env.REMINDER_SCHEDULER_GROUP_NAME;
+    do {
+      const resp = await this.getScheduleRemindersFromGroup({
+        GroupName,
+        NextToken,
+        MaxResults: 10,
+      });
+      NextToken = resp.NextToken;
+      for (let i = 0; i < resp.Schedules.length; i++) {
+        await this.sendFromSchedulerClient(
+          new DeleteScheduleCommand({
+            GroupName,
+            Name: resp.Schedules[i].Name,
+          })
+        );
+      }
+    } while (NextToken);
+  }
+
   // for internal service
   async scheduleReminders(
-    remindersPayload: IReminderInterface["overrides"],
-    dueDate: string,
-    activityId: string,
-    type: ReminderTimeType
+    schedulerExpression: string,
+    tableRowId: string,
+    tableName: string,
+    type: ReminderTimeType,
+    method: "popup" | "email",
+    reminderTime = null
   ) {
     const reminderResp = [];
     try {
-      for (let i = 0; i < remindersPayload.length; i++) {
-        const { minutes, method } = remindersPayload[0];
-        const reminderTime = moment(dueDate)
-          .utc()
-          .subtract(minutes, "minutes")
-          .format("YYYY-MM-DDTHH:mm:ss");
-        // 2022-11-01T11:00:00
-        // .format("YYYY-MM-DDTHH:mm:ssZ");
-        console.log("reminderTime", reminderTime);
-        const reminderObj: IReminder = await ReminderModel.query().insert({
-          activityId,
-          reminderTime,
-          type,
-        });
-        const data = {
-          activityId,
-          method,
-          dueDate,
-          type,
-          reminderId: reminderObj.id,
-        };
-        const awsEBSItem = await this.createEBSchedulerHelper(
-          reminderTime,
-          data
-        );
-        reminderResp.push(awsEBSItem);
+      const reminderObj: IReminder = await ReminderModel.query().insert({
+        tableRowId,
+        tableName,
+        reminderTime: schedulerExpression,
+        type,
+      });
+      const data = {
+        tableRowId,
+        tableName,
+        method,
+        schedulerExpression,
+        type,
+        reminderId: reminderObj.id,
+      };
+      const awsEBSItem = await this.createEBSchedulerHelper(
+        schedulerExpression,
+        data
+      );
+      reminderResp.push(awsEBSItem);
 
-        await ReminderModel.query().patchAndFetchById(reminderObj.id, {
-          executionArn: awsEBSItem.output.ScheduleArn,
-          reminderAwsId: awsEBSItem.awsEBSItemId,
-          reminderTime,
-          type,
-          data: { ...data, jobData: awsEBSItem },
-          status: awsEBSItem.output.$metadata.httpStatusCode.toString(),
-        });
-      }
+      await ReminderModel.query().patchAndFetchById(reminderObj.id, {
+        executionArn: awsEBSItem.output.ScheduleArn,
+        reminderAwsId: awsEBSItem.awsEBSItemId,
+        reminderTime: schedulerExpression,
+        type,
+        data: { ...data, jobData: awsEBSItem },
+        status: awsEBSItem.output.$metadata.httpStatusCode.toString(),
+      });
     } catch (e) {
       reminderResp.push(e);
     } finally {
       return reminderResp;
     }
   }
-
-  async createReminderObjects(
-    reminderItem: [
-      {
-        reminderId: string;
-        output: CreateScheduleCommandOutput;
-      }
-    ]
-  ) {
-    remindersItems.push({
-      activityId,
-      executionArn: reminderItem.output.ScheduleArn,
-      reminderAwsId: reminderItem.reminderId,
-      reminderTime: time,
-      reminderTimeType: ReminderTimeType.CUSTOM,
-      data,
-      status:
-        reminderItem.output.$metadata.httpStatusCode === 200
-          ? "SCHEDULED"
-          : "ERROR",
-      type: ReminderType.GENERAL,
-    });
-  }
-  // check if this is required?
-  async ScheduleReminder(body) {
-    const payload = JSON.parse(body);
-    const params: ReminderEBSchedulerPayload = {
-      reminderTime: payload.reminderTime,
-      name: `Reminder-${randomUUID()}`,
-      eventType: "reminder",
-      // We are going to store reminders logic in activity
-      // when creating activity, it will create reminders entries, with proper timings
-      // reminder module will only schedule reminder, no dealing with logic
-      // eventType: "ReminderType.Reminder_24H_Before",
-      data: { id: "123", name: "waleed", type: "alarm", ...payload },
-    };
-
-    const target: AWS.Scheduler.Target = {
-      RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
-      Arn: process.env.REMINDER_TARGET_LAMBDA!,
-      Input: JSON.stringify(params),
-    };
-
-    const input: CreateScheduleCommandInput = {
-      Name: params.name,
-      FlexibleTimeWindow: {
-        Mode: "OFF",
-      },
-      Target: target,
-      ScheduleExpression: `at("${params.reminderTime}")`,
-      GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
-      ClientToken: randomUUID(),
-    };
-
-    const command: CreateScheduleCommand = new CreateScheduleCommand(input);
-    return this.schedulerClient.send(command);
-  }
-
-  async CancelReminder() {}
-
-  async SendReminderEmail() {}
-
-  async SendReminderSMS() {}
-
-  async SendReminderWebPushNotification() {}
-
-  // Delete all reminders
   async dailyReminderCleanup() {
     const errorLogsPath = `logs/reminder-cleanup/${randomUUID()}.json`;
     const errorDoc: object[] = [];
@@ -215,17 +207,73 @@ export class ReminderService implements IReminderService {
       }
     }
   }
+  updateScheduledReminder(
+    Name: string,
+    ScheduleExpression: string,
+    GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME
+  ) {
+    const input: UpdateScheduleCommandInput = {
+      Name,
+      ScheduleExpression,
+      GroupName,
+      Target: undefined,
+      FlexibleTimeWindow: {
+        Mode: "OFF",
+      },
+    };
 
-  async deleteScheduledReminder(Name: string) {
+    const command = new UpdateScheduleCommand(input);
+    return this.sendFromSchedulerClient(command);
+  }
+  async deleteScheduledReminder(
+    Name: string,
+    GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME!
+  ) {
     const input: DeleteScheduleCommandInput = {
       Name,
-      GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
+      GroupName,
     };
 
     const command = new DeleteScheduleCommand(input);
 
-    return this.schedulerHelper(command);
+    return this.sendFromSchedulerClient(command);
   }
+
+  async getScheduleGroups(
+    NamePrefix = process.env.REMINDER_SCHEDULER_GROUP_NAME,
+    NextToken: string = null,
+    MaxResults: number = 20
+  ) {
+    const input: ListScheduleGroupsCommandInput = {
+      NamePrefix,
+      MaxResults,
+      NextToken,
+    };
+    const command = new ListScheduleGroupsCommand(input);
+    return this.sendFromSchedulerClient(command);
+  }
+
+  async getAllSchedulers(
+    GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME,
+    NextToken: string = null,
+    MaxResults: number = 20
+  ): Promise<ListSchedulesCommandOutput> {
+    const input: ListSchedulesCommandInput = {
+      GroupName,
+      // NamePrefix: "STRING_VALUE",
+      // State: "STRING_VALUE",
+      NextToken,
+      MaxResults,
+    };
+    const command = new ListSchedulesCommand(input);
+    return this.sendFromSchedulerClient(command);
+  }
+
+  async SendReminderEmail() {}
+
+  async SendReminderSMS() {}
+
+  async SendReminderWebPushNotification() {}
 
   async enqueueJobsForReminders() {
     /**
@@ -235,7 +283,7 @@ export class ReminderService implements IReminderService {
      */
   }
 
-  private async schedulerHelper(command) {
+  private async sendFromSchedulerClient(command): Promise<any> {
     try {
       return this.schedulerClient.send(command);
     } catch (error) {
@@ -254,12 +302,12 @@ export class ReminderService implements IReminderService {
   }
 
   private async createEBSchedulerHelper(
-    reminderTime: string,
+    schedulerExpression: string,
     data: any
   ): Promise<{ awsEBSItemId: string; output: CreateScheduleCommandOutput }> {
     const awsEBSItemId = randomUUID();
     const params = {
-      reminderTime,
+      schedulerExpression,
       name: `Reminder-${awsEBSItemId}`,
       eventType: "REMINDER",
       data,
@@ -276,28 +324,15 @@ export class ReminderService implements IReminderService {
         Mode: "OFF",
       },
       Target: target,
-      ScheduleExpression: `at(${reminderTime})`,
+      ScheduleExpression: schedulerExpression,
       GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
       ClientToken: awsEBSItemId,
     };
 
     const command: CreateScheduleCommand = new CreateScheduleCommand(input);
-    const output = await this.schedulerClient.send(command);
+    const output = await this.sendFromSchedulerClient(command);
 
     return { awsEBSItemId, output };
-  }
-
-  private async stopExecution(
-    Name: string,
-    GroupName: string,
-    ClientToken: string
-  ) {
-    const ebScheduler = new AWS.Scheduler({
-      region: process.env.AWS_SCHEDULER_REGION,
-    });
-    return ebScheduler
-      .deleteSchedule({ Name, GroupName, ClientToken })
-      .promise();
   }
 
   private getRegionFromArn(arn: string) {
@@ -306,22 +341,5 @@ export class ReminderService implements IReminderService {
     } catch (e) {
       console.log("Could not get region from ARN. ", e);
     }
-  }
-
-  /**
-   * Move this to S3 Helper Service
-   */
-  private async uploadToS3(Key: string, body: object) {
-    console.log("upload to s3");
-    const client: S3Client = new S3Client({
-      region: process.env.REGION,
-    });
-
-    const command: PutObjectCommand = new PutObjectCommand({
-      Bucket: process.env.DEPLOYMENT_BUCKET,
-      Key,
-      Body: JSON.stringify(body),
-    });
-    return client.send(command);
   }
 }

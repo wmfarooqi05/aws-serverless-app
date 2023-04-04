@@ -85,6 +85,72 @@ const dailyReminderCleanup = {
   ],
 };
 
+const updateScheduleReminder = {
+  handler: `${handlerPath(__dirname)}/handler.updateScheduleReminder`,
+  events: [
+    {
+      http: {
+        method: "put",
+        path: "scheduler",
+        cors: true,
+      },
+    },
+  ],
+};
+
+const deleteScheduleReminder = {
+  handler: `${handlerPath(__dirname)}/handler.deleteScheduleReminder`,
+  events: [
+    {
+      http: {
+        method: "delete",
+        path: "scheduler",
+        cors: true,
+      },
+    },
+  ],
+};
+
+const getSchedulerGroups = {
+  handler: `${handlerPath(__dirname)}/handler.getSchedulerGroups`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "scheduler-groups",
+        cors: true,
+      },
+    },
+  ],
+};
+
+const getSchedulers = {
+  handler: `${handlerPath(__dirname)}/handler.getSchedulers`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "schedulers",
+        cors: true,
+      },
+    },
+  ],
+};
+
+const deleteAllReminders = {
+  handler: `${handlerPath(__dirname)}/handler.deleteAllReminders`,
+  events: [
+    {
+      http: {
+        method: "delete",
+        path: "schedulers",
+        cors: true,
+      },
+    },
+  ],
+
+}
+
 export {
   getReminders,
   createReminder,
@@ -92,4 +158,11 @@ export {
   updateReminder,
   deleteReminder,
   dailyReminderCleanup,
+
+  // schedulers
+  updateScheduleReminder,
+  getSchedulerGroups,
+  getSchedulers,
+  deleteScheduleReminder,
+  deleteAllReminders,
 };
