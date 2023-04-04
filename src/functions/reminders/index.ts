@@ -1,6 +1,19 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
+const handleEBSchedulerLambdaInvoke = {
+  handler: `${handlerPath(__dirname)}/handler.handleEBSchedulerLambdaInvoke`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "reminder-handle",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const createReminder = {
   handler: `${handlerPath(__dirname)}/handler.createReminder`,
   events: [
@@ -113,15 +126,15 @@ const deleteScheduleReminder = {
 
 const getSchedulerGroups = {
   handler: `${handlerPath(__dirname)}/handler.getSchedulerGroups`,
-  events: [
-    {
-      http: {
-        method: "get",
-        path: "scheduler-groups",
-        cors: true,
-      },
-    },
-  ],
+  // events: [
+  //   {
+  //     http: {
+  //       method: "get",
+  //       path: "scheduler-groups",
+  //       cors: true,
+  //     },
+  //   },
+  // ],
 };
 
 const getSchedulers = {
@@ -148,10 +161,10 @@ const deleteAllReminders = {
       },
     },
   ],
-
-}
+};
 
 export {
+  handleEBSchedulerLambdaInvoke,
   getReminders,
   createReminder,
   getReminderById,

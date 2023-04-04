@@ -1,18 +1,10 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import jwtMiddlewareWrapper, {
-  checkRolePermission,
-  jwtMRequiredWrapper,
+import {
+  jwtWebsocketMiddlewareWrapper,
 } from "@libs/middlewares/jwtMiddleware";
 
-const colors = [
-  "\x1b[36m%s\x1b[0m",
-  "\x1b[32m",
-  "\x1b[33m",
-  "\x1b[34m",
-  "\x1b[35m",
-];
 export const _webSocketHandler = async (event) => {
   const {
     body,
@@ -52,6 +44,6 @@ export async function _getAllConnections() {
   }
 }
 
-export const webSocketHandler = jwtMiddlewareWrapper(_webSocketHandler);
+export const webSocketHandler = jwtWebsocketMiddlewareWrapper(_webSocketHandler);
 export const broadcastMessage = sendMessage;
 export const getAllConnections = _getAllConnections;

@@ -16,19 +16,19 @@ import {
   ListSchedulesCommand,
   ListSchedulesCommandOutput,
 } from "@aws-sdk/client-scheduler";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import http from "http";
 
 import { randomUUID } from "crypto";
 import ReminderModel, {
   IReminder,
   ReminderStatus,
   ReminderTimeType,
-  ReminderType,
 } from "src/models/Reminders";
 import moment from "moment-timezone";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import { IReminderInterface } from "@models/interfaces/Activity";
+import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
+import { CustomError } from "@helpers/custom-error";
+import { WebSocketService } from "@functions/websocket/service";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 
 export interface IReminderService {}
 
@@ -43,7 +43,9 @@ export interface ReminderEBSchedulerPayload {
 export class ReminderService implements IReminderService {
   schedulerClient: SchedulerClient = null;
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService
+    @inject(DatabaseService) private readonly docClient: DatabaseService,
+    @inject(WebSocketService)
+    private readonly websocketService: WebSocketService
   ) {
     this.initializeScheduler();
   }
@@ -55,15 +57,16 @@ export class ReminderService implements IReminderService {
   }
 
   /** DEV Endpoints */
-  async scheduleReminder(body) {
+  async scheduleReminder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
     const { schedulerExpression, tableRowId, tableName, type } = payload;
     return this.scheduleReminders(
       schedulerExpression,
+      employee.sub,
       tableRowId,
       tableName,
       ReminderTimeType.CUSTOM,
-      type
+      type || "popup"
     );
   }
   async updateScheduleReminder(body) {
@@ -113,13 +116,37 @@ export class ReminderService implements IReminderService {
   }
 
   // for internal service
+  async handleEBSchedulerInvoke(event: IEBSchedulerEventInput) {
+    console.log("scheduler event", event);
+    const { tableName, tableRowId } = event.data;
+    console.log("tableName", tableName, ", tableRowId", tableRowId);
+    if (tableName !== ReminderModel.tableName) {
+      throw new CustomError("No implementation found", 500);
+    }
+    const reminder: IReminder = await ReminderModel.query().findById(
+      tableRowId
+    );
+    console.log("reminder", reminder);
+    const { method } = reminder.data;
+    console.log("method", method);
+
+    // if (method === "popup") {
+    await this.websocketService.sendPayloadByEmployeeId(
+      reminder.createdBy,
+      reminder
+    );
+    // } else {
+    //   console.log("No implementation other than popup");
+    // }
+  }
+
   async scheduleReminders(
     schedulerExpression: string,
+    createdBy: string,
     tableRowId: string,
     tableName: string,
     type: ReminderTimeType,
-    method: "popup" | "email",
-    reminderTime = null
+    method: "popup" | "email"
   ) {
     const reminderResp = [];
     try {
@@ -128,28 +155,34 @@ export class ReminderService implements IReminderService {
         tableName,
         reminderTime: schedulerExpression,
         type,
+        createdBy,
+        data: { method, type },
       });
-      const data = {
-        tableRowId,
-        tableName,
-        method,
+      const awsEBSItemId = randomUUID();
+      const params: IEBSchedulerEventInput = {
         schedulerExpression,
-        type,
-        reminderId: reminderObj.id,
+        name: `Reminder-${awsEBSItemId}`,
+        idClientToken: awsEBSItemId,
+        eventType: "REMINDER",
+        data: {
+          tableName: ReminderModel.tableName,
+          tableRowId: reminderObj.id,
+          type,
+          method,
+        },
       };
-      const awsEBSItem = await this.createEBSchedulerHelper(
-        schedulerExpression,
-        data
-      );
-      reminderResp.push(awsEBSItem);
+
+      const output = await this.createEBSchedulerHelper(params);
+      reminderResp.push(output);
 
       await ReminderModel.query().patchAndFetchById(reminderObj.id, {
-        executionArn: awsEBSItem.output.ScheduleArn,
-        reminderAwsId: awsEBSItem.awsEBSItemId,
+        executionArn: output.ScheduleArn,
+        reminderAwsId: awsEBSItemId,
         reminderTime: schedulerExpression,
         type,
-        data: { ...data, jobData: awsEBSItem },
-        status: awsEBSItem.output.$metadata.httpStatusCode.toString(),
+        data: { ...data, jobData: output },
+        statusCode: output.$metadata.httpStatusCode.toString(),
+        status: ReminderStatus.SCHEDULED,
       });
     } catch (e) {
       reminderResp.push(e);
@@ -302,16 +335,8 @@ export class ReminderService implements IReminderService {
   }
 
   private async createEBSchedulerHelper(
-    schedulerExpression: string,
-    data: any
-  ): Promise<{ awsEBSItemId: string; output: CreateScheduleCommandOutput }> {
-    const awsEBSItemId = randomUUID();
-    const params = {
-      schedulerExpression,
-      name: `Reminder-${awsEBSItemId}`,
-      eventType: "REMINDER",
-      data,
-    };
+    params: IEBSchedulerEventInput
+  ): Promise<CreateScheduleCommandOutput> {
     const target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
       Arn: process.env.REMINDER_TARGET_LAMBDA!,
@@ -324,15 +349,15 @@ export class ReminderService implements IReminderService {
         Mode: "OFF",
       },
       Target: target,
-      ScheduleExpression: schedulerExpression,
+      ScheduleExpression: params.schedulerExpression,
       GroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME!,
-      ClientToken: awsEBSItemId,
+      ClientToken: params.idClientToken,
     };
 
     const command: CreateScheduleCommand = new CreateScheduleCommand(input);
     const output = await this.sendFromSchedulerClient(command);
 
-    return { awsEBSItemId, output };
+    return output;
   }
 
   private getRegionFromArn(arn: string) {

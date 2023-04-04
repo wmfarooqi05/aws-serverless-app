@@ -15,14 +15,24 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
+import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
 
-export const createReminder: ValidatedEventAPIGatewayProxyEvent<
+export const handleEBSchedulerLambdaInvoke = async (event) => {
+  try {
+    await container.resolve(ReminderService).handleEBSchedulerInvoke(event);
+    return formatJSONResponse({}, 201);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const createReminderHandler: ValidatedEventAPIGatewayProxyEvent<
   IReminderModel
 > = async (event) => {
   try {
     const newReminder = await container
       .resolve(ReminderService)
-      .scheduleReminder(event.body);
+      .scheduleReminder(event.employee, event.body);
     return formatJSONResponse(newReminder, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -157,4 +167,9 @@ export const deleteAllReminders = async (event) => {
 
 export const getReminders = middy(getRemindersHandler).use(
   decodeJWTMiddleware()
+);
+
+export const createReminder = checkRolePermission(
+  createReminderHandler,
+  "COMPANY_READ"
 );

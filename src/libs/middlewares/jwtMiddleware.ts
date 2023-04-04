@@ -16,12 +16,8 @@ const jwtMiddlewareWrapper = (func: any) => {
   return middy(func).use(decodeJWTMiddleware());
 };
 
-export const jwtRequiredWrapper = (func) => {
-  return middy(func).use(decodeJWTMiddleware()).use(jwtRequired());
-};
-
-export const jwtMRequiredWrapper = (func) => {
-  return middy(func).use(decodeJWTMiddlewareWebsocket()).use(jwtRequired());
+export const jwtWebsocketMiddlewareWrapper = (func: any) => {
+  return middy(func).use(decodeJWTMiddlewareWebsocket());
 };
 
 /**

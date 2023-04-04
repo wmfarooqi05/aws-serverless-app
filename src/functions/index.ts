@@ -43,6 +43,7 @@ import {
 } from "@functions/pending_approvals";
 
 import {
+  handleEBSchedulerLambdaInvoke,
   createReminder,
   deleteReminder,
   dailyReminderCleanup,
@@ -144,6 +145,7 @@ export default {
   approveOrRejectRequest,
 
   // Reminders
+  handleEBSchedulerLambdaInvoke,
   createReminder,
   deleteReminder,
   dailyReminderCleanup,

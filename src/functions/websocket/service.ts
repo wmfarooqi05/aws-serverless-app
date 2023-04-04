@@ -134,13 +134,11 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  async sendSimpleMessage(connectionId, payload) {
+  async sendSimpleMessage(connectionId: string, payload: Object) {
     console.log("[Websocket] sendSimpleMessage", connectionId, payload);
     const encodingPayload = JSON.stringify({
       ...payload,
       connectionId,
-      message: "new message",
-      type: "inbox",
     });
 
     const resEncodedMessage = new TextEncoder().encode(encodingPayload);
@@ -162,9 +160,6 @@ export class WebSocketService implements IWebSocketService {
       }
       console.log("command", command);
       // @TODO remove on Prod
-      const resp1 = await axios.get("https://www.google.com");
-      console.log("resp1", resp1.status);
-
       const resp = await this.apiGateway.send(command);
       console.log("resp?.$metadata", resp?.$metadata);
       return { ...resp.$metadata, connectionId };
@@ -192,6 +187,15 @@ export class WebSocketService implements IWebSocketService {
       return connectionPayload.connectionId;
     } catch (e) {
       console.error("getConnectionId, employeeId", employeeId, e);
+    }
+  }
+
+  async sendPayloadByEmployeeId(employeeId: string, payload: Object) {
+    console.log("employeeId", employeeId);
+    const connectionId = await this.getConnectionId(employeeId);
+    console.log("connectionId", connectionId);
+    if (connectionId) {
+      await this.sendSimpleMessage(connectionId, payload);
     }
   }
 

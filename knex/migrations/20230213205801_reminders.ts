@@ -37,11 +37,13 @@ export async function up(knex: Knex): Promise<void> {
         .enum("reminder_time_type", Object.values(ReminderTimeType))
         .defaultTo(ReminderTimeType.Reminder_1H_Before);
       table.string("type");
+      table.integer("status_code");
       table.string("status").defaultTo(ReminderStatus.PENDING);
       table.timestamp("reminder_time", { useTz: true }).notNullable();
       table.jsonb("data").defaultTo({});
       table.uuid("table_row_id").index();
       table.string("table_name");
+      table.uuid("created_by").notNullable();
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

@@ -47,6 +47,7 @@ export interface IReminder {
   data: JSON;
   tableRowId: string;
   tableName: string;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,11 +74,13 @@ export default class ReminderModel extends Model {
           default: ReminderTimeType.Reminder_24H_Before,
         },
         type: { type: "string", default: ReminderType.GENERAL },
+        statusCode: { type: "integer" },
         status: { type: "string", default: ReminderStatus.PENDING },
         reminderTime: { type: "string" },
         data: { type: "object", default: {} },
         tableRowId: { type: "string" },
         tableName: { type: "string" },
+        createdBy: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },

@@ -2,7 +2,6 @@ import "reflect-metadata";
 
 import {
   IPendingApprovalModel,
-  IPendingApprovalPaginated,
 } from "@models/PendingApproval";
 
 import {
@@ -11,19 +10,14 @@ import {
   ValidatedEventAPIGatewayProxyEvent,
 } from "@libs/api-gateway";
 import { PendingApprovalService } from "./service";
-import middy from "@middy/core";
-import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
 import {
-  allowRoleWrapper,
   checkRolePermission,
-  jwtRequiredWrapper,
 } from "@libs/middlewares/jwtMiddleware";
-import { RolesEnum } from "@models/interfaces/Employees";
 
 // @TODO only for testing
 export const sendWebSocketNotification: ValidatedEventAPIGatewayProxyEvent<
