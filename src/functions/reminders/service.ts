@@ -211,7 +211,8 @@ export class ReminderService implements IReminderService {
 
       await ReminderModel.query().patchAndFetchById(reminderObj.id, {
         executionArn: output.ScheduleArn,
-        reminderAwsId: awsEBSItemId,
+        reminderName: params.name,
+        reminderGroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME,
         reminderTime: schedulerExpression,
         type,
         data: { ...params.data, jobData: output },
@@ -334,6 +335,22 @@ export class ReminderService implements IReminderService {
     };
     const command = new ListSchedulesCommand(input);
     return this.sendFromSchedulerClient(command);
+  }
+
+  async findAndDeleteReminders(tableName: string, tableRowId: string) {
+    const reminders: IReminder[] = await ReminderModel.query().where({
+      tableName,
+      tableRowId,
+    });
+
+    const deletePromises = reminders.map((reminder: IReminder) => {
+      return this.deleteScheduledReminder(
+        reminder.reminderName,
+        reminder.reminderGroupName
+      );
+    });
+
+    return Promise.all(deletePromises);
   }
 
   async SendReminderEmail() {}

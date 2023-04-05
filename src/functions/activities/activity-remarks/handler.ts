@@ -13,11 +13,7 @@ import { ActivityRemarksService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import {
-  allowRoleWrapper,
-  checkRolePermission,
-} from "@middlewares/jwtMiddleware";
-import { RolesEnum } from "@models/interfaces/Employees";
+import { checkRolePermission } from "@middlewares/jwtMiddleware";
 
 // @TODO bring activity id in url params
 const addRemarksToActivityHandler: ValidatedEventAPIGatewayProxyEvent<
@@ -27,12 +23,7 @@ const addRemarksToActivityHandler: ValidatedEventAPIGatewayProxyEvent<
     const { activityId } = event.pathParameters;
     const newRemarks = await container
       .resolve(ActivityRemarksService)
-      .addRemarksToActivity(
-        "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
-        // event?.employee?.sub,
-        activityId,
-        event.body
-      );
+      .addRemarksToActivity(event.employee, activityId, event.body);
     return formatJSONResponse(newRemarks, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -47,8 +38,7 @@ const updateRemarksInActivityHandler: ValidatedEventAPIGatewayProxyEvent<
     const newRemarks = await container
       .resolve(ActivityRemarksService)
       .updateRemarksInActivity(
-        "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3", // @TODO replace with auth
-        // event?.employee?.sub,
+        event.employee,
         activityId,
         remarksId,
         event.body
@@ -67,7 +57,7 @@ const deleteRemarkFromActivityHandler: ValidatedEventAPIGatewayProxyEvent<
 
     const deletedRemark = await container
       .resolve(ActivityRemarksService)
-      .deleteRemarkFromActivity(activityId, remarksId);
+      .deleteRemarkFromActivity(event.employee, activityId, remarksId);
     return formatJSONResponse(deletedRemark, 201);
   } catch (e) {
     return formatErrorResponse(e);

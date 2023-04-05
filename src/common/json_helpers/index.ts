@@ -189,7 +189,7 @@ export const createKnexTransactionsWithPendingPayload = (
             finalQueries.push(
               knexClient(tableName).where("id", "=", tableRowId).del()
             );
-          } else  {
+          } else {
             simpleKeys = { ...simpleKeys, ...actionItem.payload };
 
             const field = Object.keys(actionItem.payload)[0];
@@ -533,6 +533,27 @@ export const getObjectType = (tableName: string, key: string) => {
       notes: "JSONB",
       tableRowId: "SIMPLE_KEY",
       tableName: "SIMPLE_KEY",
+    },
+    activities: {
+      id: "SIMPLE_KEY",
+      summary: "SIMPLE_KEY",
+      details: "SIMPLE_KEY",
+      companyId: "SIMPLE_KEY",
+      createdBy: "SIMPLE_KEY",
+      remarks: "JSONB",
+      concernedPersonDetails: "JSONB",
+      activityType: "SIMPLE_KEY",
+      priority: "SIMPLE_KEY",
+      scheduled: "SIMPLE_KEY",
+
+      status: "SIMPLE_KEY", // @TODO replace with status
+      statusHistory: "SIMPLE_KEY",
+      tags: "SIMPLE_KEY",
+      reminders: "SIMPLE_KEY",
+      dueDate: "SIMPLE_KEY",
+      createdAt: "SIMPLE_KEY",
+      updatedAt: "SIMPLE_KEY",
+      jobData: "SIMPLE_KEY",
     },
   };
 

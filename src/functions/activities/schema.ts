@@ -116,6 +116,15 @@ export const validateCreateActivity = async (
     dueDate: Joi.string().isoDate(),
     createdAt: Joi.string().isoDate(),
     updatedAt: Joi.string().isoDate(),
+    reminders: Joi.object({
+      useDefault: Joi.boolean(),
+      overrides: Joi.array().items(
+        Joi.object({
+          method: Joi.string().valid("email", "popup").required(),
+          minutes: Joi.number().integer().positive().required(),
+        })
+      ),
+    }).xor("useDefault", "overrides"),
   }).validateAsync(
     { ...payload, createdBy },
     {
@@ -138,6 +147,19 @@ export const validateUpdateActivity = async (
     activityId: Joi.string().guid().required(),
     employeeId: Joi.string().guid().required(),
     dueDate: Joi.string().isoDate(),
+    details: Joi.object(),
+    status: Joi.string().valid(...Object.keys(ACTIVITY_STATUS)),
+    title: Joi.string(),
+
+    reminders: Joi.object({
+      useDefault: Joi.boolean(),
+      overrides: Joi.array().items(
+        Joi.object({
+          method: Joi.string().valid("email", "popup").required(),
+          minutes: Joi.number().integer().positive().required(),
+        })
+      ),
+    }).xor("useDefault", "overrides"),
   })
     .min(1)
     .validateAsync(

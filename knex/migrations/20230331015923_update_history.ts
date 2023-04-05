@@ -12,8 +12,8 @@ export async function up(knex: Knex): Promise<void> {
       table.string("table_name");
       table.string("field");
       table.string("sub_field");
-      table.string("old_value");
-      table.string("new_value");
+      table.string("old_value", 4000);
+      table.string("new_value", 500);
       table.string("action_type").notNullable();
       table
         .uuid("updated_by")

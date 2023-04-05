@@ -338,6 +338,7 @@ export class CompanyService implements ICompanyService {
     const newPayload = {
       ...originalObject["concernedPersons"][index],
       ...payload,
+      updatedAt: moment().utc().format(),
     };
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
@@ -478,6 +479,7 @@ export class CompanyService implements ICompanyService {
     const notes = {
       ...originalObject["notes"][index],
       ...payload,
+      updatedAt: moment().utc().format(),
     };
 
     const { permitted, createPendingApproval } = employee;

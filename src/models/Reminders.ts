@@ -39,7 +39,8 @@ export type SCHEDULED_STATUS = "SCHEDULED" | "ERROR";
 export interface IReminder {
   id: string;
   executionArn: string;
-  reminderAwsId: string;
+  reminderName: string;
+  reminderGroupName: string;
   reminderTimeType: string;
   type: string;
   status: SCHEDULED_STATUS;
@@ -72,7 +73,8 @@ export default class ReminderModel extends Model {
       properties: {
         id: { type: "string" },
         executionArn: { type: "string" },
-        reminderAwsId: { type: "string" },
+        name: { type: "string" },
+        reminderGroupName: { type: "string" },
         reminderTimeType: {
           type: "string",
           default: ReminderTimeType.Reminder_24H_Before,

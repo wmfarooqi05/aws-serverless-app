@@ -37,7 +37,7 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import { addJsonbObjectHelper } from "@common/json_helpers";
+import { addJsonbObjectHelper, updateHistoryHelper } from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -48,10 +48,11 @@ import {
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
 import { ReminderTimeType } from "@models/Reminders";
-import {
-  checkManagerPermissions,
-} from "@functions/employees/helpers";
+import { checkManagerPermissions } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
+// import isEqual from "lodash.isequal";
+// import differenceWith from "lodash.differencewith";
+import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -253,49 +254,6 @@ export class ActivityService implements IActivityService {
     }
   }
 
-  async scheduleEb(
-    createdBy,
-    reminder: IReminderInterface,
-    dueDate: string,
-    originalRowId: any,
-    reminderTimeType: ReminderTimeType
-  ) {
-    try {
-      // if (reminder.useDefault) {
-      //   // Get From user's settings
-      // } else
-      const reminders = [];
-      if (reminder.overrides) {
-        for (let i = 0; i < reminder.overrides.length; i++) {
-          const { minutes, method } = reminder.overrides[0];
-
-          const reminderTime = moment(dueDate)
-            .utc()
-            .subtract(minutes, "minutes")
-            .format("YYYY-MM-DDTHH:mm:ss");
-
-          const reminderObject = await this.reminderService.scheduleReminders(
-            `at(${reminderTime})`,
-            reminderTime,
-            createdBy,
-            originalRowId,
-            ActivityModel.tableName,
-            reminderTimeType,
-            method
-          );
-          reminders.push(reminderObject);
-        }
-      }
-      return reminders;
-    } catch (e) {
-      return {
-        stack: e.stack,
-        message: e.message,
-        status: 500,
-      };
-    }
-  }
-
   /**
    * We do not need this endpoint
    * We will handle its params in their own endpoints
@@ -308,14 +266,37 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Due date has already passed", 400);
     }
 
-    // @TODO add validations for detail object
-    const updatedActivity: IActivity =
-      await ActivityModel.query().patchAndFetchById(activityId, payload);
-    if (!updatedActivity || Object.keys(updatedActivity).length === 0) {
-      throw new CustomError("Object not found", 404);
-    }
+    // const oldActivity: IActivity = await ActivityModel.query().findById(
+    //   activityId
+    // );
 
-    return updatedActivity;
+    // @TODO add validations for detail object
+    // payload.details.jobData = {};
+    // const updatedActivity: IActivity =
+    //   await ActivityModel.query().patchAndFetchById(activityId, payload);
+    // if (!updatedActivity || Object.keys(updatedActivity).length === 0) {
+    //   throw new CustomError("Object not found", 404);
+    // }
+    // // Due date updated,
+    // const updated = await this.runUpdateSideJobs(
+    //   employee.sub,
+    //   oldActivity,
+    //   payload
+    // );
+    // if (updated) {
+    //   // update again
+    // }
+    await updateHistoryHelper(
+      PendingApprovalType.UPDATE,
+      activityId,
+      employee.sub,
+      ActivityModel.tableName,
+      this.docClient.getKnexClient(),
+      payload
+    );
+
+    const activity = await ActivityModel.query().findById(activityId);
+    return { activity };
   }
 
   async updateStatusOfActivity(
@@ -404,7 +385,9 @@ export class ActivityService implements IActivityService {
     return activity.details;
   }
 
-  private async runSideGoogleJob(activity: IActivity): Promise<IActivity["details"]> {
+  private async runSideGoogleJob(
+    activity: IActivity
+  ): Promise<IActivity["details"]> {
     try {
       let response: GaxiosResponse<any> = null;
       if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
@@ -437,4 +420,175 @@ export class ActivityService implements IActivityService {
 
     return activity.details;
   }
+
+  private async scheduleEb(
+    createdBy,
+    reminder: IReminderInterface,
+    dueDate: string,
+    originalRowId: any,
+    reminderTimeType: ReminderTimeType
+  ) {
+    try {
+      // if (reminder.useDefault) {
+      //   // Get From user's settings
+      // } else
+      const reminders = [];
+      if (reminder.overrides) {
+        for (let i = 0; i < reminder.overrides.length; i++) {
+          const { minutes, method } = reminder.overrides[0];
+
+          const reminderTime = moment(dueDate)
+            .utc()
+            .subtract(minutes, "minutes")
+            .format("YYYY-MM-DDTHH:mm:ss");
+
+          const reminderObject = await this.reminderService.scheduleReminders(
+            `at(${reminderTime})`,
+            reminderTime,
+            createdBy,
+            originalRowId,
+            ActivityModel.tableName,
+            reminderTimeType,
+            method
+          );
+          reminders.push(reminderObject);
+        }
+      }
+      return reminders;
+    } catch (e) {
+      return {
+        stack: e.stack,
+        message: e.message,
+        status: 500,
+      };
+    }
+  }
+
+  // private async runUpdateSideJobs(
+  //   createdBy: string,
+  //   oldActivity: IActivity,
+  //   newPayload: any
+  // ): Promise<IACTIVITY_DETAILS> {
+  //   const { activityType } = oldActivity;
+  //   const isScheduled =
+  //     newPayload?.details?.isScheduled ?? oldActivity.details.isScheduled;
+  //   const isScheduledUpdated = isScheduled === oldActivity.details?.isScheduled;
+  //   const isDueDateUpdated = oldActivity.dueDate !== newPayload.dueDate;
+  //   const addedOrModified = differenceWith(
+  //     newPayload?.reminders?.overrides,
+  //     oldActivity.reminders.overrides,
+  //     isEqual
+  //   );
+
+  //   const isDetailUpdated = !isEqual(oldActivity.details, newPayload.isDetails);
+
+  //   if (
+  //     activityType === ACTIVITY_TYPE.EMAIL ||
+  //     activityType === ACTIVITY_TYPE.MEETING
+  //   ) {
+  //     // activity.details = await this.runSideGoogleJob(activity);
+  //   } else if (
+  //     (activityType === ACTIVITY_TYPE.TASK ||
+  //       activityType === ACTIVITY_TYPE.CALL) &&
+  //     (isScheduledUpdated ||
+  //       addedOrModified.length > 0 ||
+  //       isDetailUpdated ||
+  //       isDueDateUpdated)
+  //   ) {
+  //     // AWS EB Scheduler Case
+  //     if (!isScheduled) {
+  //       // delete reminder
+  //       await this.reminderService.findAndDeleteReminders(
+  //         ActivityModel.tableName,
+  //         oldActivity.id
+  //       );
+  //     } else if (addedOrModified) {
+  //       oldActivity.details.jobData = await this.updateScheduledEb(
+  //         createdBy,
+  //         newPayload.reminders,
+  //         newPayload.dueDate,
+  //         oldActivity.id,
+  //         ReminderTimeType.CUSTOM
+  //       );
+  //     }
+  //   }
+
+  //   return updatedActivity.details;
+  // }
+  // private async updateSideGoogleJob(activity: IActivity): Promise<IActivity["details"]> {
+  //   try {
+  //     let response: GaxiosResponse<any> = null;
+  //     if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
+  //       response =
+  //         await this.emailService.createAndSendEmailFromActivityPayload(
+  //           activity
+  //         );
+  //     } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
+  //       response = await this.calendarService.createGoogleMeetingFromActivity(
+  //         activity
+  //       );
+  //     }
+
+  //     activity.details.jobData = {
+  //       status: response?.status || 424,
+  //     };
+  //   } catch (e) {
+  //     activity.details.jobData = {
+  //       status: 500,
+  //     };
+  //     if (e.config && e.headers) {
+  //       activity.details.jobData.errorStack = formatGoogleErrorBody(e);
+  //     } else {
+  //       activity.details.jobData.errorStack = {
+  //         message: e.message,
+  //         stack: e.stack,
+  //       };
+  //     }
+  //   }
+
+  //   return activity.details;
+  // }
+
+  // private async updateScheduledEb(
+  //   createdBy,
+  //   reminder: IReminderInterface,
+  //   dueDate: string,
+  //   originalRowId: any,
+  //   reminderTimeType: ReminderTimeType
+  // ) {
+  //   try {
+  //     // if (reminder.useDefault) {
+  //     //   // Get From user's settings
+  //     // } else
+  //     const reminders = [];
+  //     if (reminder.overrides) {
+  //       for (let i = 0; i < reminder.overrides.length; i++) {
+  //         const { minutes, method } = reminder.overrides[0];
+
+  //         const reminderTime = moment(dueDate)
+  //           .utc()
+  //           .subtract(minutes, "minutes")
+  //           .format("YYYY-MM-DDTHH:mm:ss");
+
+  //         const reminderObject = await this.reminderService.scheduleReminders(
+  //           `at(${reminderTime})`,
+  //           reminderTime,
+  //           createdBy,
+  //           originalRowId,
+  //           ActivityModel.tableName,
+  //           reminderTimeType,
+  //           method
+  //         );
+  //         reminders.push(reminderObject);
+  //       }
+  //     }
+  //     return reminders;
+  //   } catch (e) {
+  //     return {
+  //       stack: e.stack,
+  //       message: e.message,
+  //       status: 500,
+  //     };
+  //   }
+  // }
 }
