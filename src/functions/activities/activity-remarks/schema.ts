@@ -2,7 +2,7 @@ import Joi from "joi";
 import {
   ACTIVITY_TYPE,
   IACTIVITY_DETAILS,
-  IPHONE_DETAILS,
+  ICALL_DETAILS,
   IEMAIL_DETAILS,
   IMEETING_DETAILS,
   ITASK_DETAILS,
@@ -56,7 +56,7 @@ const validateDetailPayload = async (
 ) => {
   switch (activityType) {
     case ACTIVITY_TYPE.CALL:
-      await validateCallDetails(details as IPHONE_DETAILS);
+      await validateCallDetails(details as ICALL_DETAILS);
       break;
     case ACTIVITY_TYPE.EMAIL:
       await validateEmailDetails(details as IEMAIL_DETAILS);
@@ -70,7 +70,7 @@ const validateDetailPayload = async (
   }
 };
 
-const validateCallDetails = async (details: IPHONE_DETAILS) => {
+const validateCallDetails = async (details: ICALL_DETAILS) => {
   console.log(details);
 };
 

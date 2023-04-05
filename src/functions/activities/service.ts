@@ -28,7 +28,7 @@ import {
   IReminderInterface,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
-import { ACTIVITIES_TABLE, ModuleTitles } from "src/models/commons";
+import { ACTIVITIES_TABLE } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
 import { injectable, inject } from "tsyringe";
@@ -38,8 +38,6 @@ import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import { addJsonbObjectHelper } from "@common/json_helpers";
-import { PendingApprovalService } from "@functions/pending_approvals/service";
-import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -49,10 +47,9 @@ import {
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
-import { IReminder, ReminderTimeType } from "@models/Reminders";
+import { ReminderTimeType } from "@models/Reminders";
 import {
   checkManagerPermissions,
-  getEmployeeFilter,
 } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 
@@ -79,8 +76,6 @@ export class ActivityService implements IActivityService {
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(PendingApprovalService)
-    private readonly pendingApprovalService: PendingApprovalService,
     // @TODO replace this with generic service (in case of adding multiple calendar service)
     @inject(GoogleCalendarService)
     private readonly calendarService: GoogleCalendarService,
@@ -239,6 +234,7 @@ export class ActivityService implements IActivityService {
     try {
       activity = await ActivityModel.query().insert(activityObj);
       const updatedDetailObject: IACTIVITY_DETAILS = await this.runSideJobs(
+        createdBy.sub,
         activity
       );
       return await ActivityModel.query().patchAndFetchById(activity.id, {
@@ -258,33 +254,45 @@ export class ActivityService implements IActivityService {
   }
 
   async scheduleEb(
+    createdBy,
     reminder: IReminderInterface,
     dueDate: string,
     originalRowId: any,
     reminderTimeType: ReminderTimeType
   ) {
-    // if (reminder.useDefault) {
-    //   // Get From user's settings
-    // } else
-    const reminders = [];
-    if (reminder.overrides) {
-      for (let i = 0; i < reminder.overrides.length; i++) {
-        const { minutes, method } = reminder.overrides[0];
+    try {
+      // if (reminder.useDefault) {
+      //   // Get From user's settings
+      // } else
+      const reminders = [];
+      if (reminder.overrides) {
+        for (let i = 0; i < reminder.overrides.length; i++) {
+          const { minutes, method } = reminder.overrides[0];
 
-        const reminderTime = moment(dueDate)
-          .utc()
-          .subtract(minutes, "minutes")
-          .format("YYYY-MM-DDTHH:mm:ss");
+          const reminderTime = moment(dueDate)
+            .utc()
+            .subtract(minutes, "minutes")
+            .format("YYYY-MM-DDTHH:mm:ss");
 
-        const reminderObject = await this.reminderService.scheduleReminders(
-          `at(${reminderTime})`,
-          originalRowId,
-          ActivityModel.tableName,
-          reminderTimeType,
-          method,
-        );
-        reminders.push(reminderObject);
+          const reminderObject = await this.reminderService.scheduleReminders(
+            `at(${reminderTime})`,
+            reminderTime,
+            createdBy,
+            originalRowId,
+            ActivityModel.tableName,
+            reminderTimeType,
+            method
+          );
+          reminders.push(reminderObject);
+        }
       }
+      return reminders;
+    } catch (e) {
+      return {
+        stack: e.stack,
+        message: e.message,
+        status: 500,
+      };
     }
   }
 
@@ -367,60 +375,66 @@ export class ActivityService implements IActivityService {
       if (createdByIds) qb.whereIn("createdBy", createdByIds?.split(","));
     });
   }
-  async runSideJobs(activity: IActivity): Promise<IACTIVITY_DETAILS> {
+
+  // Helper
+  private async runSideJobs(
+    createdBy: string,
+    activity: IActivity
+  ): Promise<IACTIVITY_DETAILS> {
     if (
       activity.activityType === ACTIVITY_TYPE.EMAIL ||
       activity.activityType === ACTIVITY_TYPE.MEETING
     ) {
-      try {
-        const resp = await this.runSideGoogleJob(activity);
-        activity.details.jobData = {
-          status: resp?.status || 424,
-        };
-      } catch (e) {
-        activity.details.jobData = {
-          status: 500,
-        };
-        if (e.config && e.headers) {
-          activity.details.jobData.errorStack = formatGoogleErrorBody(e);
-        } else {
-          activity.details.jobData.errorStack = {
-            message: e.message,
-            stack: e.stack,
-          };
-        }
-      }
+      activity.details = await this.runSideGoogleJob(activity);
     } else if (
       (activity.activityType === ACTIVITY_TYPE.TASK ||
         activity.activityType === ACTIVITY_TYPE.CALL) &&
       activity.details?.isScheduled
     ) {
-      try {
-        // AWS EB Scheduler Case
-        const response = await this.scheduleEb(
-          activity.reminders,
-          activity.dueDate,
-          activity.id,
-          ReminderTimeType.CUSTOM
-        );
-        activity[0].details.jobData = response;
-      } catch (e) {
-        activity[0].details.jobData = {
-          stack: e.stack,
-          message: e.message,
-          status: 500,
-        };
-      }
+      // AWS EB Scheduler Case
+      activity.details.jobData = await this.scheduleEb(
+        createdBy,
+        activity.reminders,
+        activity.dueDate,
+        activity.id,
+        ReminderTimeType.CUSTOM
+      );
     }
 
     return activity.details;
   }
 
-  async runSideGoogleJob(activity: IActivity): Promise<GaxiosResponse> {
-    if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
-      return this.emailService.createAndSendEmailFromActivityPayload(activity);
-    } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
-      return this.calendarService.createGoogleMeetingFromActivity(activity);
+  private async runSideGoogleJob(activity: IActivity): Promise<IActivity["details"]> {
+    try {
+      let response: GaxiosResponse<any> = null;
+      if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
+        response =
+          await this.emailService.createAndSendEmailFromActivityPayload(
+            activity
+          );
+      } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
+        response = await this.calendarService.createGoogleMeetingFromActivity(
+          activity
+        );
+      }
+
+      activity.details.jobData = {
+        status: response?.status || 424,
+      };
+    } catch (e) {
+      activity.details.jobData = {
+        status: 500,
+      };
+      if (e.config && e.headers) {
+        activity.details.jobData.errorStack = formatGoogleErrorBody(e);
+      } else {
+        activity.details.jobData.errorStack = {
+          message: e.message,
+          stack: e.stack,
+        };
+      }
     }
+
+    return activity.details;
   }
 }

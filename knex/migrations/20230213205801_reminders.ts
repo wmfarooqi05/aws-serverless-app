@@ -40,6 +40,8 @@ export async function up(knex: Knex): Promise<void> {
       table.integer("status_code");
       table.string("status").defaultTo(ReminderStatus.PENDING);
       table.timestamp("reminder_time", { useTz: true }).notNullable();
+      table.string("scheduler_expression");
+
       table.jsonb("data").defaultTo({});
       table.uuid("table_row_id").index();
       table.string("table_name");

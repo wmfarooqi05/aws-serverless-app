@@ -29,6 +29,8 @@ import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
 import { CustomError } from "@helpers/custom-error";
 import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { NotificationService } from "@functions/notifications/service";
+import { INotification } from "@models/Notification";
 
 export interface IReminderService {}
 
@@ -45,7 +47,9 @@ export class ReminderService implements IReminderService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(WebSocketService)
-    private readonly websocketService: WebSocketService
+    private readonly websocketService: WebSocketService,
+    @inject(NotificationService)
+    private readonly notificationService: NotificationService
   ) {
     this.initializeScheduler();
   }
@@ -57,11 +61,13 @@ export class ReminderService implements IReminderService {
   }
 
   /** DEV Endpoints */
-  async scheduleReminder(employee: IEmployeeJwt, body) {
+  async createReminder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
-    const { schedulerExpression, tableRowId, tableName, type } = payload;
+    const { schedulerExpression, reminderTime, tableRowId, tableName, type } =
+      payload;
     return this.scheduleReminders(
       schedulerExpression,
+      reminderTime,
       employee.sub,
       tableRowId,
       tableName,
@@ -119,18 +125,44 @@ export class ReminderService implements IReminderService {
   async handleEBSchedulerInvoke(event: IEBSchedulerEventInput) {
     console.log("scheduler event", event);
     const { tableName, tableRowId } = event.data;
-    console.log("tableName", tableName, ", tableRowId", tableRowId);
     if (tableName !== ReminderModel.tableName) {
       throw new CustomError("No implementation found", 500);
     }
-    const reminder: IReminder = await ReminderModel.query().findById(
-      tableRowId
-    );
+    const reminder: IReminder = await this.docClient
+      .getKnexClient()(tableName)
+      .where({ id: tableRowId })
+      .first();
+
+    if (!reminder) {
+      throw new CustomError(
+        `${tableName.toUpperCase()} item with Id: ${tableRowId} doesn't exists`,
+        404
+      );
+    }
     console.log("reminder", reminder);
-    const { method } = reminder.data;
-    console.log("method", method);
+    // const { method } = reminder.data;
 
     // if (method === "popup") {
+    const notification: INotification = {
+      title: `[${tableName.toUpperCase()}]: Notification`,
+      subtitle: `Scheduled at ${reminder.reminderTime}`,
+      senderEmployee: reminder.createdBy,
+      receiverEmployee: reminder.createdBy,
+      extraData: {
+        tableRowId: reminder.tableRowId,
+        tableName: reminder.tableName, // PENDING APPROVAL
+        reminderId: reminder.id,
+        // infoType: INFO_TYPE;
+        infoType: null, // @TODO it is same as title for now
+        senderEmployeeName: reminder.createdBy,
+        avatar: null,
+        reminderTime: reminder.reminderTime,
+      },
+      notificationType: "REMINDER_ALERT_NOTIFICATION",
+      readStatus: false,
+      isScheduled: false,
+    };
+    await this.notificationService.createNotification(notification);
     await this.websocketService.sendPayloadByEmployeeId(
       reminder.createdBy,
       reminder
@@ -142,6 +174,7 @@ export class ReminderService implements IReminderService {
 
   async scheduleReminders(
     schedulerExpression: string,
+    reminderTime: string,
     createdBy: string,
     tableRowId: string,
     tableName: string,
@@ -153,7 +186,8 @@ export class ReminderService implements IReminderService {
       const reminderObj: IReminder = await ReminderModel.query().insert({
         tableRowId,
         tableName,
-        reminderTime: schedulerExpression,
+        reminderTime,
+        schedulerExpression,
         type,
         createdBy,
         data: { method, type },
@@ -180,8 +214,8 @@ export class ReminderService implements IReminderService {
         reminderAwsId: awsEBSItemId,
         reminderTime: schedulerExpression,
         type,
-        data: { ...data, jobData: output },
-        statusCode: output.$metadata.httpStatusCode.toString(),
+        data: { ...params.data, jobData: output },
+        statusCode: output.$metadata.httpStatusCode,
         status: ReminderStatus.SCHEDULED,
       });
     } catch (e) {

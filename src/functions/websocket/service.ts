@@ -158,7 +158,6 @@ export class WebSocketService implements IWebSocketService {
           encodingPayload: JSON.parse(encodingPayload),
         };
       }
-      console.log("command", command);
       // @TODO remove on Prod
       const resp = await this.apiGateway.send(command);
       console.log("resp?.$metadata", resp?.$metadata);

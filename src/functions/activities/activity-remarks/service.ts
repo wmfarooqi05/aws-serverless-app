@@ -67,7 +67,7 @@ export class ActivityRemarksService implements IActivityRemarksServiceService {
     const payload = JSON.parse(body);
     await validateUpdateRemarks(employeeId, activityId, remarksId, payload);
 
-    const index = await validateJSONItemAndGetIndex(
+    const { index } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
       ActivityModel.tableName,
       activityId,
@@ -91,7 +91,7 @@ export class ActivityRemarksService implements IActivityRemarksServiceService {
   }
 
   async deleteRemarkFromActivity(activityId: string, remarksId: string) {
-    const index = await validateJSONItemAndGetIndex(
+    const { index } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
       ActivityModel.tableName,
       activityId,

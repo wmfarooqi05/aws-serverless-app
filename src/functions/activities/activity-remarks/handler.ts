@@ -13,7 +13,10 @@ import { ActivityRemarksService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
+import {
+  allowRoleWrapper,
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
 
 // @TODO bring activity id in url params
@@ -72,6 +75,16 @@ const deleteRemarkFromActivityHandler: ValidatedEventAPIGatewayProxyEvent<
 };
 
 // @TODO export these
-export const addRemarksToActivity = allowRoleWrapper(addRemarksToActivityHandler);
-export const deleteRemarkFromActivity = allowRoleWrapper(deleteRemarkFromActivityHandler);
-export const updateRemarksInActivity = allowRoleWrapper(updateRemarksInActivityHandler);
+export const addRemarksToActivity = checkRolePermission(
+  addRemarksToActivityHandler,
+  "ACTIVITY_UPDATE"
+);
+export const deleteRemarkFromActivity = checkRolePermission(
+  deleteRemarkFromActivityHandler,
+  "ACTIVITY_UPDATE"
+);
+
+export const updateRemarksInActivity = checkRolePermission(
+  updateRemarksInActivityHandler,
+  "ACTIVITY_UPDATE"
+);

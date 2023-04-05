@@ -44,7 +44,11 @@ export interface IReminder {
   type: string;
   status: SCHEDULED_STATUS;
   reminderTime: string;
-  data: JSON;
+  data: {
+    method?: string;
+    type?: string;
+    jobData?: JSON;
+  };
   tableRowId: string;
   tableName: string;
   createdBy: string;
@@ -77,6 +81,7 @@ export default class ReminderModel extends Model {
         statusCode: { type: "integer" },
         status: { type: "string", default: ReminderStatus.PENDING },
         reminderTime: { type: "string" },
+        schedulerExpression: { type: "string" },
         data: { type: "object", default: {} },
         tableRowId: { type: "string" },
         tableName: { type: "string" },

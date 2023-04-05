@@ -2,16 +2,7 @@
 import { handlerPath } from "@libs/handler-resolver";
 
 const handleEBSchedulerLambdaInvoke = {
-  handler: `${handlerPath(__dirname)}/handler.handleEBSchedulerLambdaInvoke`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "reminder-handle",
-        cors: true,
-      },
-    },
-  ],
+  handler: `${handlerPath(__dirname)}/handler.handleEBSchedulerLambdaInvoke`
 };
 
 const createReminder = {

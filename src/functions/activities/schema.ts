@@ -4,11 +4,12 @@ import {
   ACTIVITY_STATUS,
   IActivity,
   IACTIVITY_DETAILS,
-  IPHONE_DETAILS,
+  ICALL_DETAILS,
   IEMAIL_DETAILS,
   IMEETING_DETAILS,
   ITASK_DETAILS,
   ACTIVITY_PRIORITY,
+  CALL_TYPE,
 } from "src/models/interfaces/Activity";
 import ActivityModel from "src/models/Activity";
 import { getPaginatedJoiKeys } from "src/common/schema";
@@ -165,7 +166,7 @@ const validateDetailPayload = async (
 ) => {
   switch (activityType) {
     case ACTIVITY_TYPE.CALL:
-      await validateCallDetails(details as IPHONE_DETAILS);
+      await validateCallDetails(details as ICALL_DETAILS);
       break;
     case ACTIVITY_TYPE.EMAIL:
       await validateEmailDetails(details as IEMAIL_DETAILS);
@@ -179,8 +180,54 @@ const validateDetailPayload = async (
   }
 };
 
-const validateCallDetails = async (details: IPHONE_DETAILS) => {
-  console.log(details);
+const validateCallDetails = async (details: ICALL_DETAILS) => {
+  await Joi.object({
+    callType: Joi.string()
+      .valid(...Object.keys(CALL_TYPE))
+      .required(),
+    callDuration: Joi.when("callType", {
+      is: CALL_TYPE.MISSED,
+      then: Joi.not().required(),
+      otherwise: Joi.when("isScheduled", {
+        is: true,
+        then: Joi.not().required(),
+        otherwise: Joi.number().min(0).required(),
+      }),
+    }),
+    phoneNumber: Joi.string().required(),
+    date: Joi.date().required(),
+    callAgenda: Joi.when("callType", {
+      is: CALL_TYPE.MISSED,
+      then: Joi.not().required(),
+      otherwise: Joi.string().required(),
+    }),
+
+    callResult: Joi.when("callType", {
+      is: CALL_TYPE.MISSED,
+      then: Joi.not().required(),
+      otherwise: Joi.when("isScheduled", {
+        is: true,
+        then: Joi.not().required(),
+        otherwise: Joi.string().required(),
+      }),
+    }),
+    description: Joi.when("callType", {
+      is: CALL_TYPE.MISSED,
+      then: Joi.not().required(),
+      otherwise: Joi.string().required(),
+    }),
+    callStartTime: Joi.string().required(),
+    callEndTime: Joi.when("callType", {
+      is: CALL_TYPE.MISSED,
+      then: Joi.not().required(),
+      otherwise: Joi.when("isScheduled", {
+        is: true,
+        then: Joi.not().required(),
+        otherwise: Joi.string().required(),
+      }),
+    }),
+    isScheduled: Joi.boolean().required(),
+  });
 };
 
 const validateEmailDetails = async (details: IEMAIL_DETAILS) => {
@@ -231,7 +278,14 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
 };
 
 const validateTaskDetails = async (details: ITASK_DETAILS) => {
-  console.log(details);
+  await Joi.object({
+    dueDate: Joi.string().isoDate(),
+    status: Joi.string().required(),
+    title: Joi.string().required(),
+    summary: Joi.string(),
+    description: Joi.boolean().required(),
+    isScheduled: Joi.string().required(),
+  }).validateAsync(details);
 };
 
 const getStaleActivities = (): Joi.ObjectSchema => {

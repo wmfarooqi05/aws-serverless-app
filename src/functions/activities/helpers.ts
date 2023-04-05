@@ -8,7 +8,10 @@ import {
   ACTIVITY_TYPE,
   IACTIVITY_DETAILS,
   IEMAIL_DETAILS,
+  ICALL_DETAILS,
   IStatusHistory,
+  ITASK_DETAILS,
+  CALL_TYPE,
 } from "@models/interfaces/Activity";
 import { IEmployee } from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
@@ -62,10 +65,6 @@ export const createEmailPayload = (
   };
 };
 
-export const createCallPayload = (payload) => {
-  return payload ? payload : {};
-};
-
 export const createMeetingPayload = (payload) => {
   const {
     summary,
@@ -105,6 +104,20 @@ export const createMeetingPayload = (payload) => {
 };
 
 export const createTaskPayload = (payload) => {
+  const { dueDate, status, title, summary, description, isScheduled } =
+    payload as ITASK_DETAILS;
+
+  return {
+    dueDate,
+    status,
+    title,
+    summary,
+    description,
+    isScheduled,
+  };
+};
+
+export const createCallPayload = (payload) => {
   return payload ? payload : {};
 };
 

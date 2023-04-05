@@ -32,7 +32,7 @@ const createReminderHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const newReminder = await container
       .resolve(ReminderService)
-      .scheduleReminder(event.employee, event.body);
+      .createReminder(event.employee, event.body);
     return formatJSONResponse(newReminder, 201);
   } catch (e) {
     return formatErrorResponse(e);

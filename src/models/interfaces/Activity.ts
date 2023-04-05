@@ -159,7 +159,7 @@ export interface ITASK_DETAILS {
   isScheduled: boolean;
 }
 
-export interface IPHONE_DETAILS {
+export interface ICALL_DETAILS {
   callType: CALL_TYPE;
   callDuration: number;
   phoneNumber: string;
@@ -173,7 +173,7 @@ export interface IPHONE_DETAILS {
 }
 
 export type IACTIVITY_DETAILS =
-  | IPHONE_DETAILS
+  | ICALL_DETAILS
   | IEMAIL_DETAILS
   | IMEETING_DETAILS
   | ITASK_DETAILS;
