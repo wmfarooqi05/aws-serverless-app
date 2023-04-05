@@ -37,15 +37,12 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import {
-  updateHistoryHelper,
-} from "@common/json_helpers";
+import { updateHistoryHelper } from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
   // addStaleActivityFilters,
   createDetailsPayload,
-  createStatusHistory,
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
@@ -225,8 +222,6 @@ export class ActivityService implements IActivityService {
       concernedPersonDetails: [payload.concernedPersonDetails],
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
-      // @TODO remove this
-      statusHistory: [createStatusHistory(status, createdBy.sub)],
       tags: sortedTags(payload.tags),
       reminders: payload.reminders || {
         overrides: [{ method: "popup", minutes: 15 }],
@@ -234,6 +229,11 @@ export class ActivityService implements IActivityService {
       scheduled: details.isScheduled ? true : false,
       dueDate: payload.dueDate,
     };
+    activityObj.statusShort = this.getStatusShort(activityObj.status);
+    if (activityObj.details?.isScheduled) {
+      activityObj.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
+    }
+
     let activity: IActivity = null;
     try {
       activity = await ActivityModel.query().insert(activityObj);

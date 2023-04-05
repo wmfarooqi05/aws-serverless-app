@@ -84,11 +84,12 @@ export default class ActivityModel extends Model {
       "tags",
     ];
   }
-  $beforeInsert() {}
+
+  async $beforeInsert() {}
 
   async $beforeUpdate(opt, queryContext) {
     console.log("afterupdate");
-    await super.$afterUpdate(opt, queryContext);
+    await super.$beforeUpdate(opt, queryContext);
 
     const payload = this.toJSON();
     this.statusShort = this.getStatusShort(payload.status);
