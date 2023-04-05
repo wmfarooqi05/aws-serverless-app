@@ -42,7 +42,7 @@ export default class ActivityModel extends Model {
         statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
         reminders: { type: "object", default: JSON.stringify({}) }, // @TODO move to reminders table
-        scheduled: { type:"boolean" },
+        scheduled: { type: "boolean" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
@@ -81,16 +81,41 @@ export default class ActivityModel extends Model {
       "concernedPersonDetails",
       "reminders",
       "statusHistory",
-      "tags"
+      "tags",
     ];
   }
-  // $beforeInsert() {
-  //   this.createdAt = new Date();
-  // }
+  $beforeInsert() {}
 
-  // $beforeUpdate() {
-  //   this.updatedAt = new Date();
-  // }
+  async $beforeUpdate(opt, queryContext) {
+    console.log("afterupdate");
+    await super.$afterUpdate(opt, queryContext);
+
+    const payload = this.toJSON();
+    this.statusShort = this.getStatusShort(payload.status);
+
+    if (payload.details?.isScheduled) {
+      this.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
+    }
+  }
+
+  getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
+    switch (status) {
+      case ACTIVITY_STATUS.COMPLETED:
+        return ACTIVITY_STATUS_SHORT.CLOSED;
+      case ACTIVITY_STATUS.DEFERRED:
+        return ACTIVITY_STATUS_SHORT.CLOSED;
+      case ACTIVITY_STATUS.IN_PROGRESS:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.NEED_APPROVAL:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.NOT_STARTED:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.WAITING_FOR_SOMEONE_ELSE:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      default:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+    }
+  }
 }
 
 export type IActivityModel = ModelObject<ActivityModel>;

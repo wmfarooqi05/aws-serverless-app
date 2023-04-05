@@ -37,7 +37,9 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import { addJsonbObjectHelper, updateHistoryHelper } from "@common/json_helpers";
+import {
+  updateHistoryHelper,
+} from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -53,6 +55,7 @@ import { getPaginateClauseObject } from "@common/query";
 // import isEqual from "lodash.isequal";
 // import differenceWith from "lodash.differencewith";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
+import UpdateHistoryModel from "@models/UpdateHistory";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -266,6 +269,13 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Due date has already passed", 400);
     }
 
+    // if (payload.status) {
+    //   payload.statusShort = this.getStatusShort(payload.status);
+    // }
+
+    // if (payload.details?.isScheduled) {
+    //   payload.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
+    // }
     // const oldActivity: IActivity = await ActivityModel.query().findById(
     //   activityId
     // );
@@ -299,13 +309,34 @@ export class ActivityService implements IActivityService {
     return { activity };
   }
 
+  getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
+    switch (status) {
+      case ACTIVITY_STATUS.COMPLETED:
+        return ACTIVITY_STATUS_SHORT.CLOSED;
+      case ACTIVITY_STATUS.DEFERRED:
+        return ACTIVITY_STATUS_SHORT.CLOSED;
+      case ACTIVITY_STATUS.IN_PROGRESS:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.NEED_APPROVAL:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.NOT_STARTED:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.WAITING_FOR_SOMEONE_ELSE:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+      default:
+        return ACTIVITY_STATUS_SHORT.OPEN;
+    }
+  }
+
   async updateStatusOfActivity(
     employee: IEmployeeJwt,
     activityId: string,
     status: string
   ) {
     await validateUpdateStatus(employee.sub, activityId, status);
-    const activity = await ActivityModel.query().findById(activityId);
+    const activity: IActivity = await ActivityModel.query().findById(
+      activityId
+    );
 
     if (!activity) throw new CustomError("Activity not found", 404);
 
@@ -313,16 +344,25 @@ export class ActivityService implements IActivityService {
       throw new CustomError("Activity has already same status", 400);
     }
 
-    const addQuery = addJsonbObjectHelper(
-      "statusHistory",
-      this.docClient.knexClient,
-      createStatusHistory(status, employee.sub)
-    );
-    return ActivityModel.query().patchAndFetchById(activityId, {
-      ...addQuery,
-      status,
+    let updatedActivity: IActivity = null;
+    await ActivityModel.transaction(async (trx) => {
+      updatedActivity = await ActivityModel.query(trx).patchAndFetchById(
+        activityId,
+        {
+          status,
+        }
+      );
+      await UpdateHistoryModel.query(trx).insert({
+        tableName: ActivityModel.tableName,
+        tableRowId: activity.id,
+        actionType: PendingApprovalType.UPDATE,
+        updatedBy: employee.sub,
+        field: "status",
+        newValue: status,
+        oldValue: activity?.status,
+      });
     });
-    // }
+    return updatedActivity;
   }
 
   async deleteActivity(id: string): Promise<any> {
@@ -464,90 +504,92 @@ export class ActivityService implements IActivityService {
     }
   }
 
-  // private async runUpdateSideJobs(
-  //   createdBy: string,
-  //   oldActivity: IActivity,
-  //   newPayload: any
-  // ): Promise<IACTIVITY_DETAILS> {
-  //   const { activityType } = oldActivity;
-  //   const isScheduled =
-  //     newPayload?.details?.isScheduled ?? oldActivity.details.isScheduled;
-  //   const isScheduledUpdated = isScheduled === oldActivity.details?.isScheduled;
-  //   const isDueDateUpdated = oldActivity.dueDate !== newPayload.dueDate;
-  //   const addedOrModified = differenceWith(
-  //     newPayload?.reminders?.overrides,
-  //     oldActivity.reminders.overrides,
-  //     isEqual
-  //   );
+  private async runUpdateSideJobs(
+    createdBy: string,
+    oldActivity: IActivity,
+    newPayload: any
+  ): Promise<IACTIVITY_DETAILS> {
+    const { activityType } = oldActivity;
+    const isScheduled =
+      newPayload?.details?.isScheduled ?? oldActivity.details.isScheduled;
+    const isScheduledUpdated = isScheduled === oldActivity.details?.isScheduled;
+    const isDueDateUpdated = oldActivity.dueDate !== newPayload.dueDate;
+    const addedOrModified = differenceWith(
+      newPayload?.reminders?.overrides,
+      oldActivity.reminders.overrides,
+      isEqual
+    );
 
-  //   const isDetailUpdated = !isEqual(oldActivity.details, newPayload.isDetails);
+    const isDetailUpdated = !isEqual(oldActivity.details, newPayload.isDetails);
 
-  //   if (
-  //     activityType === ACTIVITY_TYPE.EMAIL ||
-  //     activityType === ACTIVITY_TYPE.MEETING
-  //   ) {
-  //     // activity.details = await this.runSideGoogleJob(activity);
-  //   } else if (
-  //     (activityType === ACTIVITY_TYPE.TASK ||
-  //       activityType === ACTIVITY_TYPE.CALL) &&
-  //     (isScheduledUpdated ||
-  //       addedOrModified.length > 0 ||
-  //       isDetailUpdated ||
-  //       isDueDateUpdated)
-  //   ) {
-  //     // AWS EB Scheduler Case
-  //     if (!isScheduled) {
-  //       // delete reminder
-  //       await this.reminderService.findAndDeleteReminders(
-  //         ActivityModel.tableName,
-  //         oldActivity.id
-  //       );
-  //     } else if (addedOrModified) {
-  //       oldActivity.details.jobData = await this.updateScheduledEb(
-  //         createdBy,
-  //         newPayload.reminders,
-  //         newPayload.dueDate,
-  //         oldActivity.id,
-  //         ReminderTimeType.CUSTOM
-  //       );
-  //     }
-  //   }
+    if (
+      activityType === ACTIVITY_TYPE.EMAIL ||
+      activityType === ACTIVITY_TYPE.MEETING
+    ) {
+      // activity.details = await this.runSideGoogleJob(activity);
+    } else if (
+      (activityType === ACTIVITY_TYPE.TASK ||
+        activityType === ACTIVITY_TYPE.CALL) &&
+      (isScheduledUpdated ||
+        addedOrModified.length > 0 ||
+        isDetailUpdated ||
+        isDueDateUpdated)
+    ) {
+      // AWS EB Scheduler Case
+      if (!isScheduled) {
+        // delete reminder
+        await this.reminderService.findAndDeleteReminders(
+          ActivityModel.tableName,
+          oldActivity.id
+        );
+      } else if (addedOrModified) {
+        oldActivity.details.jobData = await this.updateScheduledEb(
+          createdBy,
+          newPayload.reminders,
+          newPayload.dueDate,
+          oldActivity.id,
+          ReminderTimeType.CUSTOM
+        );
+      }
+    }
 
-  //   return updatedActivity.details;
-  // }
-  // private async updateSideGoogleJob(activity: IActivity): Promise<IActivity["details"]> {
-  //   try {
-  //     let response: GaxiosResponse<any> = null;
-  //     if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
-  //       response =
-  //         await this.emailService.createAndSendEmailFromActivityPayload(
-  //           activity
-  //         );
-  //     } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
-  //       response = await this.calendarService.createGoogleMeetingFromActivity(
-  //         activity
-  //       );
-  //     }
+    return updatedActivity.details;
+  }
+  private async updateSideGoogleJob(
+    activity: IActivity
+  ): Promise<IActivity["details"]> {
+    try {
+      let response: GaxiosResponse<any> = null;
+      if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
+        response =
+          await this.emailService.createAndSendEmailFromActivityPayload(
+            activity
+          );
+      } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
+        response = await this.calendarService.createGoogleMeetingFromActivity(
+          activity
+        );
+      }
 
-  //     activity.details.jobData = {
-  //       status: response?.status || 424,
-  //     };
-  //   } catch (e) {
-  //     activity.details.jobData = {
-  //       status: 500,
-  //     };
-  //     if (e.config && e.headers) {
-  //       activity.details.jobData.errorStack = formatGoogleErrorBody(e);
-  //     } else {
-  //       activity.details.jobData.errorStack = {
-  //         message: e.message,
-  //         stack: e.stack,
-  //       };
-  //     }
-  //   }
+      activity.details.jobData = {
+        status: response?.status || 424,
+      };
+    } catch (e) {
+      activity.details.jobData = {
+        status: 500,
+      };
+      if (e.config && e.headers) {
+        activity.details.jobData.errorStack = formatGoogleErrorBody(e);
+      } else {
+        activity.details.jobData.errorStack = {
+          message: e.message,
+          stack: e.stack,
+        };
+      }
+    }
 
-  //   return activity.details;
-  // }
+    return activity.details;
+  }
 
   // private async updateScheduledEb(
   //   createdBy,

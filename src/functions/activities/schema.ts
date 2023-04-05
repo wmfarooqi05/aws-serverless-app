@@ -148,7 +148,6 @@ export const validateUpdateActivity = async (
     employeeId: Joi.string().guid().required(),
     dueDate: Joi.string().isoDate(),
     details: Joi.object(),
-    status: Joi.string().valid(...Object.keys(ACTIVITY_STATUS)),
     title: Joi.string(),
 
     reminders: Joi.object({

@@ -21,9 +21,10 @@ export default class UpdateHistoryModel extends Model {
         tableName: { type: "string" },
         field: { type: "string" },
         subField: { type: "string" },
-        old_value: { type: "string" },
-        new_value: { type: "string" }, // no idea if supporting this two
+        oldValue: { type: "string" },
+        newValue: { type: "string" }, // no idea if supporting this two
         actionType: { type: "string" },
+        updatedBy: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
