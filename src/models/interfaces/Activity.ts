@@ -150,7 +150,6 @@ export interface IMEETING_DETAILS {
 }
 
 export interface ITASK_DETAILS {
-  dueDate: string;
   status: string;
   title: string;
   summary: string;

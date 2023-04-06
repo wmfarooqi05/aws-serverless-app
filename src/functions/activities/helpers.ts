@@ -109,11 +109,10 @@ export const createMeetingPayload = (payload) => {
 };
 
 export const createTaskPayload = (payload) => {
-  const { dueDate, status, title, summary, description, isScheduled } =
+  const { status, title, summary, description, isScheduled } =
     payload as ITASK_DETAILS;
 
   return {
-    dueDate,
     status,
     title,
     summary,

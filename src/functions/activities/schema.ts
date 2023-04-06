@@ -300,7 +300,6 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
 
 const validateTaskDetails = async (details: ITASK_DETAILS) => {
   await Joi.object({
-    dueDate: Joi.string().isoDate(),
     status: Joi.string().required(),
     title: Joi.string().required(),
     summary: Joi.string(),
