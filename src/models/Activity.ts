@@ -39,7 +39,6 @@ export default class ActivityModel extends Model {
         priority: { type: "string", default: ACTIVITY_PRIORITY.NORMAL },
         status: { type: "string", default: ACTIVITY_STATUS.NOT_STARTED }, // will turn false after scheduled work is done
         statusShort: { type: "string", default: ACTIVITY_STATUS_SHORT.OPEN },
-        statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
         reminders: { type: "object", default: JSON.stringify({}) }, // @TODO move to reminders table
         createdAt: { type: "string" },
@@ -79,7 +78,6 @@ export default class ActivityModel extends Model {
       "remarks",
       "concernedPersonDetails",
       "reminders",
-      "statusHistory",
       "tags",
     ];
   }
@@ -87,7 +85,7 @@ export default class ActivityModel extends Model {
   async $beforeInsert() {}
 
   async $beforeUpdate(opt, queryContext) {
-    console.log("afterupdate", this.statusHistory);
+    console.log("afterupdate");
     await super.$beforeUpdate(opt, queryContext);
 
     const payload = this.toJSON();

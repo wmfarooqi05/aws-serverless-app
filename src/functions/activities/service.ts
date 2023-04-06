@@ -231,7 +231,6 @@ export class ActivityService implements IActivityService {
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
       // @TODO remove this
-      statusHistory: [createStatusHistory(status, createdBy.sub)],
       tags: sortedTags(payload.tags),
       reminders: payload.reminders || {
         overrides: [{ method: "popup", minutes: 15 }],
@@ -352,18 +351,12 @@ export class ActivityService implements IActivityService {
     if (activity?.status === status) {
       throw new CustomError("Activity has already same status", 400);
     }
-    const addQuery = addJsonbObjectHelper(
-      "statusHistory",
-      this.docClient.knexClient,
-      createStatusHistory(status, employee.sub)
-    );
 
     let updatedActivity: IActivity = null;
     await ActivityModel.transaction(async (trx) => {
       updatedActivity = await ActivityModel.query(trx).patchAndFetchById(
         activityId,
         {
-          ...addQuery,
           status,
         }
       );

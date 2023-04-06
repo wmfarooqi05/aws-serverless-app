@@ -74,7 +74,6 @@ export interface IActivity {
 
   status: ACTIVITY_STATUS; // @TODO replace with status
   statusShort: ACTIVITY_STATUS_SHORT;
-  statusHistory: IStatusHistory[];
   tags: string[];
   reminders?: IReminderInterface;
   dueDate: string;
