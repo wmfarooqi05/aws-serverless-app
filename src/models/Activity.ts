@@ -42,7 +42,6 @@ export default class ActivityModel extends Model {
         statusHistory: { type: "array", default: JSON.stringify([]) },
         tags: { type: "array", default: JSON.stringify([]) }, // Move to table taggedActivities
         reminders: { type: "object", default: JSON.stringify({}) }, // @TODO move to reminders table
-        scheduled: { type: "boolean" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
@@ -88,7 +87,7 @@ export default class ActivityModel extends Model {
   async $beforeInsert() {}
 
   async $beforeUpdate(opt, queryContext) {
-    console.log("afterupdate");
+    console.log("afterupdate", this.statusHistory);
     await super.$beforeUpdate(opt, queryContext);
 
     const payload = this.toJSON();

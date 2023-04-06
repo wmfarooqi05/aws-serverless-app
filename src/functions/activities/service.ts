@@ -37,17 +37,25 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import { updateHistoryHelper } from "@common/json_helpers";
+import {
+  addJsonbObjectHelper,
+  updateHistoryHelper,
+} from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
+  attachManagerRestrictions,
   // addStaleActivityFilters,
   createDetailsPayload,
+  createStatusHistory,
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
 import { ReminderTimeType } from "@models/Reminders";
-import { checkManagerPermissions } from "@functions/employees/helpers";
+import {
+  checkManagerPermissions,
+  getEmployeeFilter,
+} from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 // import isEqual from "lodash.isequal";
 // import differenceWith from "lodash.differencewith";
@@ -222,11 +230,12 @@ export class ActivityService implements IActivityService {
       concernedPersonDetails: [payload.concernedPersonDetails],
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
+      // @TODO remove this
+      statusHistory: [createStatusHistory(status, createdBy.sub)],
       tags: sortedTags(payload.tags),
       reminders: payload.reminders || {
         overrides: [{ method: "popup", minutes: 15 }],
       },
-      scheduled: details.isScheduled ? true : false,
       dueDate: payload.dueDate,
     };
     activityObj.statusShort = this.getStatusShort(activityObj.status);
@@ -343,12 +352,18 @@ export class ActivityService implements IActivityService {
     if (activity?.status === status) {
       throw new CustomError("Activity has already same status", 400);
     }
+    const addQuery = addJsonbObjectHelper(
+      "statusHistory",
+      this.docClient.knexClient,
+      createStatusHistory(status, employee.sub)
+    );
 
     let updatedActivity: IActivity = null;
     await ActivityModel.transaction(async (trx) => {
       updatedActivity = await ActivityModel.query(trx).patchAndFetchById(
         activityId,
         {
+          ...addQuery,
           status,
         }
       );
@@ -375,26 +390,69 @@ export class ActivityService implements IActivityService {
   }
 
   async getMyStaleActivities(employee: IEmployeeJwt, body: any) {
-    await validateGetMyStaleActivities(body);
-    return this.docClient.get(this.TableName).modify(function (qb) {
-      qb = addStaleActivityFilters(qb, body);
-      qb.where({ createdBy: employee.sub });
-    });
+    // await validateGetMyStaleActivities(body);
+
+    // const knex = this.docClient.getKnexClient();
+    // return knex("update_history as u")
+    //   .distinctOn("u.table_row_id")
+    //   .select("u.table_row_id")
+    //   .where("u.table_name", "activities")
+    //   .where("u.field", "status")
+    //   // // .where("u.updated_at", "<=", knex.raw("now() - interval '10 days')"))
+    //   .orderBy("u.table_row_id")
+    //   .orderBy("u.updated_at", "desc");
+    // return knex(`${this.TableName} as a`)
+    //   .modify(function (subquery) {
+    //     subquery
+    //       .whereIn("a.id", function () {
+    //         this.distinctOn("u.table_row_id")
+    //           .select("u.table_row_id")
+    //           .from("update_history as u")
+    //           .where("u.table_name", "activities")
+    //           .where("u.field", "status")
+    //           .orderBy("u.table_row_id")
+    //           .orderBy("u.updated_at", "desc")
+    //         // .orderBy(['u.table_row_id', { column: 'u.updated_at', order: 'desc' }])
+    //         // .where('u.updated_at', '<=', knex.raw("now() - interval '10 days')"))
+    //         // .orderBy('u.updated_at','desc')
+    //       })
+    //       .whereIn("a.status", ["IN_PROGRESS", "WAITING_FOR_SOMEONE_ELSE"])
+    //       .whereIn("a.priority", ["NORMAL"]);
+    //   })
+    //   .select(['id', 'status', 'status_short']);
+
+    return this.docClient
+      .get(`${this.TableName} as a`)
+      .modify(function (qb) {
+        qb = addStaleActivityFilters(qb, body);
+        qb.where("a.createdBy", employee.sub);
+      })
+      .paginate(getPaginateClauseObject(body));
   }
 
   async getEmployeeStaleActivityByStatus(manager: IEmployeeJwt, body: any) {
     await validateGetEmployeeStaleActivities(body);
-    const { createdByIds } = body;
-    const _a = createdByIds?.split(",");
-    const employees: IEmployee[] = await EmployeeModel.query().findByIds(_a);
+    const createdByIds = body?.createdByIds?.split(",");
+    if (createdByIds) {
+      const employees: IEmployee[] = await EmployeeModel.query().findByIds(
+        createdByIds
+      );
 
-    // @TODO add validation for manager permissions
-    employees.map((employee) => checkManagerPermissions(manager, employee));
+      // @TODO add validation for manager permissions
+      employees.map((employee) => checkManagerPermissions(manager, employee));
+    }
 
-    return this.docClient.get(this.TableName).modify(function (qb) {
-      qb = addStaleActivityFilters(qb, body);
-      if (createdByIds) qb.whereIn("createdBy", createdByIds?.split(","));
-    });
+    return this.docClient
+      .get(`${this.TableName} as a`)
+      .modify(function (qb) {
+        qb = addStaleActivityFilters(qb, body);
+        if (body?.createdByIds?.split(",").length > 0) {
+          qb.whereIn("a.createdBy", createdByIds);
+        } else {
+          qb = attachManagerRestrictions(qb, manager, "a.createdBy");
+        }
+      })
+      .paginate(getPaginateClauseObject(body));
   }
 
   // Helper

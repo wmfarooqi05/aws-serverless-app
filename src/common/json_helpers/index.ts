@@ -342,54 +342,6 @@ export const convertToWhereInValue = (value: string): string => {
     .join(",");
 };
 
-export const addJsonbObjectQueryHelper = (
-  key: string,
-  knexClient: Knex,
-  item: any
-): Object => {
-  const id = item.id ?? randomUUID();
-  const keySnakeCase = key
-    .split(/(?=[A-Z])/)
-    .join("_")
-    .toLowerCase();
-
-  const itemWithArray = JSON.stringify([{ ...item, id }]);
-  const singleItem = JSON.stringify({ ...item, id });
-
-  return `${keySnakeCase} || :${singleItem}::jsonb`;
-};
-
-export const updateJsonbObjectQueryHelper = (
-  originalItem: object[],
-  jsonbItemKey: string,
-  jsonbItemId: string,
-  newJsonbItem: any,
-  knexClient: Knex
-) => {
-  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
-  const keySnakeCase = jsonbItemKey
-    .split(/(?=[A-Z])/)
-    .join("_")
-    .toLowerCase();
-  return `jsonb_set(${keySnakeCase}, '{${index}}', '${JSON.stringify(
-    newJsonbItem
-  )}', true)`;
-};
-
-export const deleteJsonbObjectQueryHelper = (
-  originalItem: object[],
-  jsonbItemKey: string,
-  jsonbItemId: any,
-  knexClient: Knex
-) => {
-  const index = findIndexFromJSONBArray(originalItem, jsonbItemId);
-  const keySnakeCase = jsonbItemKey
-    .split(/(?=[A-Z])/)
-    .join("_")
-    .toLowerCase();
-  return `${keySnakeCase} - ${index}`;
-};
-
 export const transformJSONKeys = (payload: any | null) => {
   if (!payload) return null;
   Object.keys(payload).forEach((x) => {
@@ -544,10 +496,8 @@ export const getObjectType = (tableName: string, key: string) => {
       concernedPersonDetails: "JSONB",
       activityType: "SIMPLE_KEY",
       priority: "SIMPLE_KEY",
-      scheduled: "SIMPLE_KEY",
 
-      status: "SIMPLE_KEY", // @TODO replace with status
-      statusHistory: "SIMPLE_KEY",
+      status: "SIMPLE_KEY",
       tags: "SIMPLE_KEY",
       reminders: "SIMPLE_KEY",
       dueDate: "SIMPLE_KEY",

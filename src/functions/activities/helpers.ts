@@ -1,3 +1,4 @@
+import { throwUnAuthorizedError } from "@common/errors";
 import {
   getOrderByItems,
   getPaginateClauseObject,
@@ -13,7 +14,11 @@ import {
   ITASK_DETAILS,
   CALL_TYPE,
 } from "@models/interfaces/Activity";
-import { IEmployee } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
 import { calendar_v3 } from "googleapis";
 import { Knex } from "knex";
@@ -168,8 +173,6 @@ export const addFiltersToQueryBuilder = (queryBuilder, body) => {
   }
 
   queryBuilder.orderBy(...getOrderByItems(body));
-  queryBuilder.paginate(getPaginateClauseObject(body));
-
   return queryBuilder;
 };
 
@@ -179,28 +182,60 @@ export const addStaleActivityFilters = (
 ): Knex.QueryBuilder<any, any> => {
   const { statuses, daysAgo, priorities, activityTypes } = body;
   const days = daysAgo ? parseInt(daysAgo) : 7;
-  const daysAgoCount = moment()
-    .subtract(days, "days")
-    .startOf("day")
-    .utc()
-    .format();
+
+  qb.whereIn("a.id", function () {
+    this.distinctOn("u.table_row_id")
+      .select("u.table_row_id")
+      .from("update_history as u")
+      .where("u.table_name", "activities")
+      .where("u.field", "status")
+      .where(
+        "u.updated_at",
+        "<=",
+        qb.client.raw(`now() - interval '${days} days'`)
+      )
+      .orderBy("u.table_row_id")
+      .orderBy("u.updated_at", "desc");
+  });
+
+  qb.select("a.*");
 
   if (statuses) {
-    qb.whereIn("status", statuses?.split(","));
+    qb.whereIn("a.status", statuses?.split(","));
   }
   if (priorities) {
-    qb.whereIn("priority", priorities?.split(","));
+    qb.whereIn("a.priority", priorities?.split(","));
   }
   if (activityTypes) {
-    qb.whereIn("activity_type", activityTypes?.split(","));
+    qb.whereIn("a.activity_type", activityTypes?.split(","));
   }
-  qb.whereRaw(
-    `(((status_history->>-1)::jsonb)->>'updatedAt')::timestamp < ?`,
-    daysAgoCount
-  );
-  qb.orderByRaw(
-    "(((status_history->> -1)::jsonb)->>'updatedAt')::timestamp DESC"
-  );
-  qb.paginate(getPaginateClauseObject(body));
+  return qb;
+};
+
+export const attachManagerRestrictions = (
+  qb: Knex.QueryBuilder<any, any>,
+  employee: IEmployeeJwt,
+  employeeIdKey: string
+): Knex.QueryBuilder<any, any> => {
+  switch (RolesEnum[employee["cognito:groups"][0]]) {
+    case RolesEnum.SALES_REP_GROUP:
+      throwUnAuthorizedError();
+    case RolesEnum.SALES_MANAGER_GROUP:
+      qb.rightJoin("employees as e", "a.created_by", "=", "e.id");
+      // qb.select("e.reporting_manager", "e.team_id");
+      qb.where(function () {
+        this.where("e.reporting_manager", employee.sub).orWhere(
+          employeeIdKey,
+          employee.sub
+        );
+      });
+      break;
+    case RolesEnum.REGIONAL_MANAGER_GROUP:
+      qb.join("employees as e", "a.created_by", "=", "e.id");
+      // qb.select("e.team_id", "e.reporting_manager");
+      qb.where("e.team_id", employee.teamId);
+      break;
+  }
+
   return qb;
 };

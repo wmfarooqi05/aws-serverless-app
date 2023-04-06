@@ -13,9 +13,7 @@ import { ActivityService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "tsyringe";
-import {
-  checkRolePermission,
-} from "@middlewares/jwtMiddleware";
+import { checkRolePermission } from "@middlewares/jwtMiddleware";
 
 const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
@@ -98,7 +96,7 @@ const getMyStaleActivityByStatusHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getMyStaleActivities(event?.employee, event.queryStringParameters);
+      .getMyStaleActivities(event?.employee, event.queryStringParameters || {});
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -111,7 +109,7 @@ const getEmployeeStaleActivityByStatusHandler = async (event) => {
       .resolve(ActivityService)
       .getEmployeeStaleActivityByStatus(
         event?.employee,
-        event.queryStringParameters
+        event.queryStringParameters || {}
       );
     return formatJSONResponse(activities, 200);
   } catch (e) {

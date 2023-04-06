@@ -71,10 +71,10 @@ export interface IActivity {
   concernedPersonDetails: IConcernedPerson[];
   activityType: ACTIVITY_TYPE;
   priority: ACTIVITY_PRIORITY;
-  scheduled: boolean;
 
   status: ACTIVITY_STATUS; // @TODO replace with status
   statusShort: ACTIVITY_STATUS_SHORT;
+  statusHistory: IStatusHistory[];
   tags: string[];
   reminders?: IReminderInterface;
   dueDate: string;
