@@ -157,10 +157,10 @@ export const createKnexTransactionsWithPendingPayload = (
   knexClient: Knex,
   tableName: string,
   updatedBy: string
-) => {
+): Knex.QueryBuilder[] => {
   if (!actionItems) return null;
   let simpleKeys = {};
-  const finalQueries = [];
+  const finalQueries: Knex.QueryBuilder[] = [];
   actionItems.forEach(
     (
       actionItem: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD
@@ -416,7 +416,7 @@ export const convertPayloadToArray = (
   } as PayloadType;
 };
 
-export const updateHistoryHelper = async (
+export const createUpdateQueries = async (
   actionType: PendingApprovalType,
   tableRowId: string,
   updatedBy: string,
@@ -447,7 +447,7 @@ export const updateHistoryHelper = async (
     );
   }
 
-  const finalQueries = createKnexTransactionsWithPendingPayload(
+  return createKnexTransactionsWithPendingPayload(
     tableRowId,
     actionsRequired,
     actionType,
@@ -456,7 +456,36 @@ export const updateHistoryHelper = async (
     tableName,
     updatedBy
   );
+};
 
+export const updateHistoryHelper = async (
+  actionType: PendingApprovalType,
+  tableRowId: string,
+  updatedBy: string,
+  tableName: string,
+  knexClient: Knex,
+  payload: object = null,
+  jsonActionType: string = null,
+  jsonbItemId: string = null
+): Promise<any[]> => {
+  const finalQueries = await createUpdateQueries(
+    actionType,
+    tableRowId,
+    updatedBy,
+    tableName,
+    knexClient,
+    payload,
+    jsonActionType,
+    jsonbItemId
+  );
+
+  return transactionHelper(finalQueries, knexClient);
+};
+
+export const transactionHelper = async (
+  finalQueries: Knex.QueryBuilder<any, any>[],
+  knexClient: Knex
+): Promise<any[]> => {
   // Executing all queries as a single transaction
   const responses = await knexClient.transaction(async (trx) => {
     const updatePromises = finalQueries.map((finalQuery) =>

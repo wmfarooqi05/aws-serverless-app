@@ -108,12 +108,10 @@ export const createMeetingPayload = (payload) => {
   return event;
 };
 
-export const createTaskPayload = (payload) => {
-  const { status, title, summary, description, isScheduled } =
-    payload as ITASK_DETAILS;
+export const createTaskPayload = (payload = {}) => {
+  const { title, summary, description, isScheduled } = payload as ITASK_DETAILS;
 
   return {
-    status,
     title,
     summary,
     description,

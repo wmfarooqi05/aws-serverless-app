@@ -39,6 +39,7 @@ import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import {
   addJsonbObjectHelper,
+  createUpdateQueries,
   updateHistoryHelper,
 } from "@common/json_helpers";
 import {
@@ -51,16 +52,17 @@ import {
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
-import { ReminderTimeType } from "@models/Reminders";
+import { ReminderTimeType, ReminderTimeTypeMap } from "@models/Reminders";
 import {
   checkManagerPermissions,
   getEmployeeFilter,
 } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
-// import isEqual from "lodash.isequal";
-// import differenceWith from "lodash.differencewith";
+import isEqual from "lodash.isequal";
+import differenceWith from "lodash.differencewith";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
+import intersectionWith from "lodash.intersectionwith";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -220,7 +222,6 @@ export class ActivityService implements IActivityService {
       payload.details
     );
 
-    const status = payload.status ?? ACTIVITY_STATUS.NOT_STARTED;
     // @TODO add validations for detail object
     const activityObj: IActivity = {
       summary: payload.summary,
@@ -236,6 +237,7 @@ export class ActivityService implements IActivityService {
         overrides: [{ method: "popup", minutes: 15 }],
       },
       dueDate: payload.dueDate,
+      status: payload.status ?? ACTIVITY_STATUS.NOT_STARTED,
     };
     activityObj.statusShort = this.getStatusShort(activityObj.status);
     if (activityObj.details?.isScheduled) {
@@ -284,9 +286,9 @@ export class ActivityService implements IActivityService {
     // if (payload.details?.isScheduled) {
     //   payload.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
     // }
-    // const oldActivity: IActivity = await ActivityModel.query().findById(
-    //   activityId
-    // );
+    const oldActivity: IActivity = await ActivityModel.query().findById(
+      activityId
+    );
 
     // @TODO add validations for detail object
     // payload.details.jobData = {};
@@ -296,25 +298,35 @@ export class ActivityService implements IActivityService {
     //   throw new CustomError("Object not found", 404);
     // }
     // // Due date updated,
-    // const updated = await this.runUpdateSideJobs(
-    //   employee.sub,
-    //   oldActivity,
-    //   payload
-    // );
-    // if (updated) {
-    //   // update again
-    // }
-    await updateHistoryHelper(
-      PendingApprovalType.UPDATE,
-      activityId,
-      employee.sub,
-      ActivityModel.tableName,
-      this.docClient.getKnexClient(),
-      payload
-    );
+    return this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const finalQueries = await createUpdateQueries(
+          PendingApprovalType.UPDATE,
+          activityId,
+          employee.sub,
+          ActivityModel.tableName,
+          this.docClient.getKnexClient(),
+          payload
+        );
+        finalQueries.map(
+          async (finalQuery) => await trx.raw(finalQuery.toString())
+        );
+        await this.runUpdateSideJobs(oldActivity, payload, employee);
 
-    const activity = await ActivityModel.query().findById(activityId);
-    return { activity };
+        // If everything is successful, commit the transaction
+        await trx.commit();
+        return {
+          activity: {
+            ...oldActivity,
+            ...payload,
+          },
+        };
+      } catch (error) {
+        // If there's any error, rollback the transaction
+        await trx.rollback();
+        throw new CustomError(error.message, error.statusCode);
+      }
+    });
   }
 
   getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
@@ -468,8 +480,7 @@ export class ActivityService implements IActivityService {
         createdBy,
         activity.reminders,
         activity.dueDate,
-        activity.id,
-        ReminderTimeType.CUSTOM
+        activity.id
       );
     }
 
@@ -516,8 +527,7 @@ export class ActivityService implements IActivityService {
     createdBy,
     reminder: IReminderInterface,
     dueDate: string,
-    originalRowId: any,
-    reminderTimeType: ReminderTimeType
+    originalRowId: any
   ) {
     try {
       // if (reminder.useDefault) {
@@ -528,18 +538,12 @@ export class ActivityService implements IActivityService {
         for (let i = 0; i < reminder.overrides.length; i++) {
           const { minutes, method } = reminder.overrides[0];
 
-          const reminderTime = moment(dueDate)
-            .utc()
-            .subtract(minutes, "minutes")
-            .format("YYYY-MM-DDTHH:mm:ss");
-
           const reminderObject = await this.reminderService.scheduleReminders(
-            `at(${reminderTime})`,
-            reminderTime,
+            dueDate,
+            minutes,
             createdBy,
             originalRowId,
             ActivityModel.tableName,
-            reminderTimeType,
             method
           );
           reminders.push(reminderObject);
@@ -555,57 +559,38 @@ export class ActivityService implements IActivityService {
     }
   }
 
+  /**
+   *
+   * @param createdBy
+   * @param oldActivity
+   * @param newPayload
+   * @returns
+   */
   private async runUpdateSideJobs(
-    createdBy: string,
     oldActivity: IActivity,
-    newPayload: any
-  ): Promise<IACTIVITY_DETAILS> {
+    newPayload: any,
+    createdBy: IEmployeeJwt
+  ): Promise<void> {
+    // We only have to worry about dueDate, isScheduled and reminders
     const { activityType } = oldActivity;
-    const isScheduled =
-      newPayload?.details?.isScheduled ?? oldActivity.details.isScheduled;
-    const isScheduledUpdated = isScheduled === oldActivity.details?.isScheduled;
-    const isDueDateUpdated = oldActivity.dueDate !== newPayload.dueDate;
-    const addedOrModified = differenceWith(
-      newPayload?.reminders?.overrides,
-      oldActivity.reminders.overrides,
-      isEqual
-    );
-
-    const isDetailUpdated = !isEqual(oldActivity.details, newPayload.isDetails);
-
     if (
       activityType === ACTIVITY_TYPE.EMAIL ||
       activityType === ACTIVITY_TYPE.MEETING
     ) {
       // activity.details = await this.runSideGoogleJob(activity);
     } else if (
-      (activityType === ACTIVITY_TYPE.TASK ||
-        activityType === ACTIVITY_TYPE.CALL) &&
-      (isScheduledUpdated ||
-        addedOrModified.length > 0 ||
-        isDetailUpdated ||
-        isDueDateUpdated)
+      activityType === ACTIVITY_TYPE.TASK ||
+      activityType === ACTIVITY_TYPE.CALL
     ) {
-      // AWS EB Scheduler Case
-      if (!isScheduled) {
-        // delete reminder
-        await this.reminderService.findAndDeleteReminders(
-          ActivityModel.tableName,
-          oldActivity.id
-        );
-      } else if (addedOrModified) {
-        oldActivity.details.jobData = await this.updateScheduledEb(
-          createdBy,
-          newPayload.reminders,
-          newPayload.dueDate,
-          oldActivity.id,
-          ReminderTimeType.CUSTOM
-        );
-      }
+      await this.reminderService.reminderUpdateHelper(
+        ActivityModel.tableName,
+        oldActivity,
+        newPayload,
+        createdBy
+      );
     }
-
-    return updatedActivity.details;
   }
+
   private async updateSideGoogleJob(
     activity: IActivity
   ): Promise<IActivity["details"]> {

@@ -22,6 +22,7 @@ import ReminderModel, {
   IReminder,
   ReminderStatus,
   ReminderTimeType,
+  ReminderTimeTypeMap,
 } from "src/models/Reminders";
 import moment from "moment-timezone";
 import { DatabaseService } from "@libs/database/database-service-objection";
@@ -31,6 +32,7 @@ import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
+import { IReminderInterface } from "@models/interfaces/Activity";
 
 export interface IReminderService {}
 
@@ -63,27 +65,35 @@ export class ReminderService implements IReminderService {
   /** DEV Endpoints */
   async createReminder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
-    const { schedulerExpression, reminderTime, tableRowId, tableName, type } =
-      payload;
+    const { dueDate, minutes, tableRowId, tableName, type } = payload;
     return this.scheduleReminders(
-      schedulerExpression,
-      reminderTime,
+      dueDate,
+      minutes,
       employee.sub,
       tableRowId,
       tableName,
-      ReminderTimeType.CUSTOM,
       type || "popup"
     );
   }
+  /**
+   * Endpoint
+   * @param body
+   * @returns
+   */
   async updateScheduleReminder(body) {
     const payload = JSON.parse(body);
     const { Name, GroupName, dueDate } = payload;
-    return this.updateScheduledReminder(Name, GroupName, dueDate);
+    return this.updateEBScheduledItem(Name, GroupName, dueDate);
   }
+  /**
+   * Endpoint
+   * @param body
+   * @returns
+   */
   async deleteScheduleReminder(body) {
     const payload = JSON.parse(body);
     const { Name, GroupName } = payload;
-    return this.deleteScheduledReminder(Name, GroupName);
+    return this.deleteEBScheduledItem(Name, GroupName);
   }
   async getScheduleRemindersFromGroup(
     body
@@ -111,7 +121,7 @@ export class ReminderService implements IReminderService {
       });
       NextToken = resp.NextToken;
       for (let i = 0; i < resp.Schedules.length; i++) {
-        await this.sendFromSchedulerClient(
+        await this.sendEBCommand(
           new DeleteScheduleCommand({
             GroupName,
             Name: resp.Schedules[i].Name,
@@ -173,14 +183,20 @@ export class ReminderService implements IReminderService {
   }
 
   async scheduleReminders(
-    schedulerExpression: string,
-    reminderTime: string,
+    dueDate: string,
+    minutes: number,
     createdBy: string,
     tableRowId: string,
     tableName: string,
-    type: ReminderTimeType,
     method: "popup" | "email"
   ) {
+    const type = ReminderTimeTypeMap[minutes] ?? ReminderTimeType.CUSTOM;
+
+    const reminderTime = moment(dueDate)
+      .utc()
+      .subtract(minutes, "minutes")
+      .format("YYYY-MM-DDTHH:mm:ss");
+    const schedulerExpression = `at(${reminderTime})`;
     const reminderResp = [];
     try {
       const reminderObj: IReminder = await ReminderModel.query().insert({
@@ -188,9 +204,10 @@ export class ReminderService implements IReminderService {
         tableName,
         reminderTime,
         schedulerExpression,
-        type,
+        method,
         createdBy,
-        data: { method, type },
+        minutesDiff: minutes,
+        // data: {},
       });
       const awsEBSItemId = randomUUID();
       const params: IEBSchedulerEventInput = {
@@ -238,7 +255,7 @@ export class ReminderService implements IReminderService {
         ])
         .andWhere("reminderTime", "<", moment().utc().format());
       const reminderDeleteArr = reminders.map((x: IReminder) =>
-        this.deleteScheduledReminder(x.reminderAwsId)
+        this.deleteEBScheduledItem(x.reminderName, x.reminderGroupName)
       );
       const settledPromises = await Promise.allSettled(reminderDeleteArr);
       errorDoc[errorIndex++] = settledPromises.map((x, i) => {
@@ -275,7 +292,7 @@ export class ReminderService implements IReminderService {
       }
     }
   }
-  updateScheduledReminder(
+  updateEBScheduledItem(
     Name: string,
     ScheduleExpression: string,
     GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME
@@ -291,9 +308,9 @@ export class ReminderService implements IReminderService {
     };
 
     const command = new UpdateScheduleCommand(input);
-    return this.sendFromSchedulerClient(command);
+    return this.sendEBCommand(command);
   }
-  async deleteScheduledReminder(
+  async deleteEBScheduledItem(
     Name: string,
     GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME!
   ) {
@@ -304,7 +321,7 @@ export class ReminderService implements IReminderService {
 
     const command = new DeleteScheduleCommand(input);
 
-    return this.sendFromSchedulerClient(command);
+    return this.sendEBCommand(command);
   }
 
   async getScheduleGroups(
@@ -318,7 +335,7 @@ export class ReminderService implements IReminderService {
       NextToken,
     };
     const command = new ListScheduleGroupsCommand(input);
-    return this.sendFromSchedulerClient(command);
+    return this.sendEBCommand(command);
   }
 
   async getAllSchedulers(
@@ -334,7 +351,113 @@ export class ReminderService implements IReminderService {
       MaxResults,
     };
     const command = new ListSchedulesCommand(input);
-    return this.sendFromSchedulerClient(command);
+    return this.sendEBCommand(command);
+  }
+
+  async findAndUpdateReminders(tableName: string, tableRowId: string) {
+    const reminders: IReminder[] = await ReminderModel.query().where({
+      tableName,
+      tableRowId,
+    });
+
+    const deletePromises = reminders.map((reminder: IReminder) => {
+      return this.deleteEBScheduledItem(
+        reminder.reminderName,
+        reminder.reminderGroupName
+      );
+    });
+
+    return Promise.all(deletePromises);
+  }
+
+  async reminderUpdateHelper(
+    tableName: string,
+    oldRowData: any,
+    updatePayload: any,
+    createdBy: IEmployeeJwt
+  ) {
+    const isScheduled =
+      updatePayload?.details?.isScheduled ?? oldRowData.details.isScheduled;
+    const isScheduledUpdated = isScheduled !== oldRowData.details?.isScheduled;
+
+    if (isScheduledUpdated && !isScheduled) {
+      // delete reminder
+      await this.findAndDeleteReminders(tableName, oldRowData.id);
+    } else {
+      const newReminderOverrides: IReminderInterface["overrides"] =
+        updatePayload.reminders?.overrides;
+      const isDueDateUpdated = oldRowData.dueDate !== updatePayload.dueDate;
+      const currentDueDate = isDueDateUpdated
+        ? updatePayload.dueDate
+        : oldRowData.dueDate;
+
+      const oldReminders: IReminderInterface["overrides"] =
+        oldRowData.reminders.overrides;
+      const remindersToBeRemoved: IReminder[] = [];
+      const remindersToBeAdded: Promise<any>[] = [];
+      const remindersToBeUpdated: {
+        id: string;
+        dueDate: string;
+        minutes: number;
+        method: "popup" | "email";
+        reminderName: string;
+        reminderGroupName: string;
+      }[] = [];
+      if (Array.isArray(newReminderOverrides)) {
+        const reminders: IReminder[] = ReminderModel.query().where({
+          tableName,
+          tableRowId: oldRowData.id,
+        });
+
+        oldReminders.forEach((oldReminder) => {
+          const existing = newReminderOverrides?.find(
+            (x) => x.minutes === oldReminder.minutes
+          );
+          const reminderObj: IReminder = reminders.find(
+            (x) => x.minutesDiff === oldReminder.minutes
+          );
+          if (existing) {
+            if (existing.method !== oldReminder.method || isDueDateUpdated) {
+              remindersToBeUpdated.push({
+                id: reminderObj.id,
+                dueDate: currentDueDate,
+                minutes: reminderObj.minutesDiff,
+                method: existing.method ?? oldReminder.method,
+                reminderGroupName: reminderObj.reminderGroupName,
+                reminderName: reminderObj.reminderName,
+              });
+            }
+          } else {
+            if (reminderObj) remindersToBeRemoved.push(reminderObj);
+          }
+        });
+        newReminderOverrides.map((newReminder) => {
+          const { method, minutes } = newReminder;
+          const found = oldReminders.find(
+            (x) => x.minutes === newReminder.minutes
+          );
+          if (!found) {
+            //currentDueDate
+            remindersToBeAdded.push(
+              this.scheduleReminders(
+                currentDueDate,
+                minutes,
+                createdBy.sub,
+                oldRowData.id,
+                tableName,
+                method
+              )
+            );
+          }
+        });
+
+        await Promise.all([
+          this.deleteReminders(remindersToBeRemoved),
+          this.updateReminders(remindersToBeUpdated),
+          ...remindersToBeAdded,
+        ]);
+      }
+    }
   }
 
   async findAndDeleteReminders(tableName: string, tableRowId: string) {
@@ -342,15 +465,77 @@ export class ReminderService implements IReminderService {
       tableName,
       tableRowId,
     });
+    await this.deleteReminders(reminders);
+  }
 
-    const deletePromises = reminders.map((reminder: IReminder) => {
-      return this.deleteScheduledReminder(
-        reminder.reminderName,
-        reminder.reminderGroupName
-      );
+  async updateReminders(
+    reminders: {
+      id: string;
+      dueDate: string;
+      minutes: number;
+      method: "popup" | "email";
+      reminderName: string;
+      reminderGroupName: string;
+    }[]
+  ): Promise<any> {
+    const ebPromises: Promise<any>[] = [];
+    this.docClient.getKnexClient().transaction(async (trx) => {
+      const dbQueries = reminders.map((reminder) => {
+        const {
+          id,
+          dueDate,
+          minutes,
+          method,
+          reminderGroupName,
+          reminderName,
+        } = reminder;
+        const reminderTimeType =
+          ReminderTimeTypeMap[minutes] ?? ReminderTimeType.CUSTOM;
+
+        const reminderTime = moment(dueDate)
+          .utc()
+          .subtract(minutes, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
+        const schedulerExpression = `at(${reminderTime})`;
+
+        ebPromises.push(
+          this.updateEBScheduledItem(reminderName, reminderGroupName)
+        );
+        return ReminderModel.query(trx).patchAndFetchById(id, {
+          reminderTime,
+          minutesDiff: minutes,
+          reminderTimeType,
+          method,
+          schedulerExpression,
+        });
+      });
+      await Promise.all(dbQueries);
     });
 
-    return Promise.all(deletePromises);
+    // As it is only update reminder query, we are not making sure if it was updated first in
+    // db or not
+    await Promise.all(ebPromises);
+  }
+
+  async deleteReminders(reminders: IReminder[]) {
+    const deleteEBPromises: Promise<any>[] = reminders.map(
+      (reminder: IReminder) => {
+        return this.deleteEBScheduledItem(
+          reminder.reminderName,
+          reminder.reminderGroupName
+        );
+      }
+    );
+
+    const deleteReminderPromise = ReminderModel.query()
+      .whereIn(
+        "id",
+        reminders.map((x) => x.id)
+      )
+      .del();
+
+    await Promise.resolve(deleteReminderPromise);
+    await Promise.all(deleteEBPromises);
   }
 
   async SendReminderEmail() {}
@@ -367,7 +552,7 @@ export class ReminderService implements IReminderService {
      */
   }
 
-  private async sendFromSchedulerClient(command): Promise<any> {
+  private async sendEBCommand(command): Promise<any> {
     try {
       return this.schedulerClient.send(command);
     } catch (error) {
@@ -406,16 +591,8 @@ export class ReminderService implements IReminderService {
     };
 
     const command: CreateScheduleCommand = new CreateScheduleCommand(input);
-    const output = await this.sendFromSchedulerClient(command);
+    const output = await this.sendEBCommand(command);
 
     return output;
-  }
-
-  private getRegionFromArn(arn: string) {
-    try {
-      return arn.split(":")[3];
-    } catch (e) {
-      console.log("Could not get region from ARN. ", e);
-    }
   }
 }

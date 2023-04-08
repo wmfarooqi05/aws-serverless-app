@@ -185,23 +185,19 @@ const validateDetailPayload = async (
   activityType: ACTIVITY_TYPE,
   details: IACTIVITY_DETAILS
 ) => {
-  switch (activityType) {
-    case ACTIVITY_TYPE.CALL:
-      await validateCallDetails(details as ICALL_DETAILS);
-      break;
-    case ACTIVITY_TYPE.EMAIL:
-      await validateEmailDetails(details as IEMAIL_DETAILS);
-      break;
-    case ACTIVITY_TYPE.MEETING:
-      await validateMeetingDetails(details as IMEETING_DETAILS);
-      break;
-    case ACTIVITY_TYPE.TASK:
-      await validateTaskDetails(details as ITASK_DETAILS);
-      break;
+  if (activityType === ACTIVITY_TYPE.CALL) {
+    await validateCallDetails(details as ICALL_DETAILS);
+  } else if (activityType === ACTIVITY_TYPE.EMAIL) {
+    await validateEmailDetails(details as IEMAIL_DETAILS);
+  } else if (activityType === ACTIVITY_TYPE.MEETING) {
+    await validateMeetingDetails(details as IMEETING_DETAILS);
+  } else if (activityType === ACTIVITY_TYPE.TASK) {
+    await validateTaskDetails(details as ITASK_DETAILS);
   }
+  console.log("validateDetailPayload");
 };
 
-const validateCallDetails = async (details: ICALL_DETAILS) => {
+const validateCallDetails = async (details: ICALL_DETAILS = {}) => {
   await Joi.object({
     callType: Joi.string()
       .valid(...Object.keys(CALL_TYPE))
@@ -248,10 +244,10 @@ const validateCallDetails = async (details: ICALL_DETAILS) => {
       }),
     }),
     isScheduled: Joi.boolean().required(),
-  });
+  }).validateAsync(details);
 };
 
-const validateEmailDetails = async (details: IEMAIL_DETAILS) => {
+const validateEmailDetails = async (details: IEMAIL_DETAILS = {}) => {
   await Joi.object({
     to: Joi.array().items({
       name: Joi.string(),
@@ -267,7 +263,7 @@ const validateEmailDetails = async (details: IEMAIL_DETAILS) => {
   }).validateAsync(details);
 };
 
-const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
+const validateMeetingDetails = async (details: IMEETING_DETAILS = {}) => {
   await Joi.object({
     summary: Joi.string().required(),
     calendarId: Joi.string().required(),
@@ -298,14 +294,15 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
   }).validateAsync(details);
 };
 
-const validateTaskDetails = async (details: ITASK_DETAILS) => {
+const validateTaskDetails = async (details: ITASK_DETAILS = {}) => {
   await Joi.object({
-    status: Joi.string().required(),
+    status: Joi.string(),
     title: Joi.string().required(),
     summary: Joi.string(),
-    description: Joi.boolean().required(),
-    isScheduled: Joi.string().required(),
+    description: Joi.string(),
+    isScheduled: Joi.boolean().required(),
   }).validateAsync(details);
+  console.log("validateTaskDetails");
 };
 
 const getStaleActivities = (): Joi.ObjectSchema => {
