@@ -7,7 +7,6 @@ import {
   validateGetActivities,
   validateGetActivitiesByCompany,
   validateGetEmployeeStaleActivities,
-  validateGetMyStaleActivities,
   validateUpdateActivity,
   validateUpdateStatus,
 } from "./schema";
@@ -38,9 +37,7 @@ import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import {
-  addJsonbObjectHelper,
   createUpdateQueries,
-  updateHistoryHelper,
 } from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
@@ -48,21 +45,15 @@ import {
   attachManagerRestrictions,
   // addStaleActivityFilters,
   createDetailsPayload,
-  createStatusHistory,
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
-import { ReminderTimeType, ReminderTimeTypeMap } from "@models/Reminders";
 import {
   checkManagerPermissions,
-  getEmployeeFilter,
 } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
-import isEqual from "lodash.isequal";
-import differenceWith from "lodash.differencewith";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
-import intersectionWith from "lodash.intersectionwith";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -145,12 +136,12 @@ export class ActivityService implements IActivityService {
     await validateGetActivitiesByCompany(companyId, body);
 
     return this.docClient
-      .get(this.TableName)
+      .getKnexClient()(this.TableName)
       .modify(function (queryBuilder) {
         queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+        queryBuilder.where({ companyId });
       })
       .paginate(getPaginateClauseObject(body))
-      .where({ companyId });
   }
 
   async getTopActivities(employeeId: string, companyId: string) {
@@ -298,7 +289,9 @@ export class ActivityService implements IActivityService {
     //   throw new CustomError("Object not found", 404);
     // }
     // // Due date updated,
-    return this.docClient.getKnexClient().transaction(async (trx) => {
+    let errorMessage = false;
+
+    await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         const finalQueries = await createUpdateQueries(
           PendingApprovalType.UPDATE,
@@ -315,18 +308,23 @@ export class ActivityService implements IActivityService {
 
         // If everything is successful, commit the transaction
         await trx.commit();
-        return {
-          activity: {
-            ...oldActivity,
-            ...payload,
-          },
-        };
       } catch (error) {
         // If there's any error, rollback the transaction
         await trx.rollback();
-        throw new CustomError(error.message, error.statusCode);
+        errorMessage = error.message;
       }
     });
+
+    if (errorMessage) {
+      throw new CustomError(errorMessage, 500);
+    } else {
+      return {
+        activity: {
+          ...oldActivity,
+          ...payload,
+        },
+      };
+    }
   }
 
   getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {

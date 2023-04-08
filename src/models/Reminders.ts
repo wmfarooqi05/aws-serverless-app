@@ -18,21 +18,6 @@ export enum ReminderStatus {
 
 // export type ReminderType = "JOB" | "REMINDER"
 
-export enum ReminderTimeType {
-  CUSTOM = "CUSTOM",
-  Reminder_5M_Before = "Reminder_5M_Before",
-  Reminder_15M_Before = "Reminder_15M_Before",
-  Reminder_1H_Before = "Reminder_1H_Before",
-  Reminder_24H_Before = "Reminder_24H_Before",
-}
-
-export const ReminderTimeTypeMap: { [k: number]: ReminderTimeType } = {
-  5: ReminderTimeType.Reminder_5M_Before,
-  15: ReminderTimeType.Reminder_15M_Before,
-  60: ReminderTimeType.Reminder_1H_Before,
-  3600: ReminderTimeType.Reminder_24H_Before,
-};
-
 export enum ReminderType {
   GENERAL = "GENERAL",
   EMAIL = "EMAIL",
@@ -54,7 +39,7 @@ export interface IReminder {
   reminderTime: string;
   minutesDiff: number;
   data: {
-    jobData?: JSON;
+    jobData?: Object;
   };
   tableRowId: string;
   tableName: string;
@@ -82,12 +67,7 @@ export default class ReminderModel extends Model {
         executionArn: { type: "string" },
         reminderName: { type: "string" },
         reminderGroupName: { type: "string" },
-        reminderTimeType: {
-          type: "string",
-          default: ReminderTimeType.Reminder_24H_Before,
-        },
         method: { type: "string" },
-        type: { type: "string", default: ReminderType.GENERAL },
         statusCode: { type: "integer" },
         status: { type: "string", default: ReminderStatus.PENDING },
         reminderTime: { type: "string" },
@@ -100,7 +80,7 @@ export default class ReminderModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["type", "reminderTime"],
+      required: ["reminderTime"],
       additionalProperties: false,
     };
   }

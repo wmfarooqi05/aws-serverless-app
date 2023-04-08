@@ -8,9 +8,9 @@ export interface IEBSchedulerEventInput {
   idClientToken: string;
   eventType: EBSchedulerEventType;
   data: {
-    type: "CUSTOM" | ReminderTimeType;
     tableName: string;
     tableRowId: string;
-    method: "popup" | "email"
+    method: "popup" | "email";
+    minutes: number;
   };
 }

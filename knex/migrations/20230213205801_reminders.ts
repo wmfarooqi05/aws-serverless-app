@@ -32,11 +32,6 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("execution_arn");
-      table.string("reminder_aws_id");
-      table
-        .enum("reminder_time_type", Object.values(ReminderTimeType))
-        .defaultTo(ReminderTimeType.Reminder_1H_Before);
-      table.string("type");
       table.string("method");
       table.integer("status_code");
       table.string("status").defaultTo(ReminderStatus.PENDING);
