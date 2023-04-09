@@ -11,10 +11,6 @@ export const CustomErrorArgs = (): ICustomErrorArgs => {
   };
 };
 
-interface ICustom {
-  message: string;
-  statusCode: number;
-}
 
 export class CustomError extends Error implements ICustomErrorArgs {
   statusCode: number;

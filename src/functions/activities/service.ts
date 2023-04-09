@@ -397,13 +397,36 @@ export class ActivityService implements IActivityService {
     return updatedActivity;
   }
 
-  async deleteActivity(id: string): Promise<any> {
+  async deleteActivity(createdBy: IEmployeeJwt, id: string): Promise<any> {
     // @ADD some query to find index of id directly
-    const deleted = await ActivityModel.query().deleteById(id);
+    const finalQueries = await createKnexTransactionQueries(
+      PendingApprovalType.DELETE,
+      id,
+      createdBy.sub,
+      ActivityModel.tableName,
+      this.docClient.getKnexClient()
+    );
+    let resp = null;
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const updatePromises = finalQueries.map((finalQuery) =>
+          trx.raw(finalQuery.toString())
+        );
+        await Promise.all(updatePromises);
 
-    if (!deleted) {
-      throw new CustomError("Activity not found", 404);
-    }
+        resp = await this.reminderService.findAndDeleteReminders(
+          ActivityModel.tableName,
+          id
+        );
+
+        resp.push({ message: "Activity deleted successfully" });
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+      }
+    });
+
+    return resp;
   }
 
   async getMyStaleActivities(employee: IEmployeeJwt, body: any) {

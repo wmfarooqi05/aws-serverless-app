@@ -589,7 +589,9 @@ export class ReminderService implements IReminderService {
         await this.deleteReminders(remindersToBeRemoved);
         if (remindersToBeRemoved.length > 0) {
           reminderResp.push({
-            message: `${remindersToBeRemoved.length} reminders deleted successfully`,
+            message: `Reminders: ${remindersToBeRemoved
+              .map((x) => x.reminderName)
+              .join(",")} deleted successfully`,
           });
         }
         const updateResponse = await this.updateReminders(remindersToBeUpdated);
@@ -623,11 +625,25 @@ export class ReminderService implements IReminderService {
   }
 
   async findAndDeleteReminders(tableName: string, tableRowId: string) {
-    const reminders: IReminder[] = await ReminderModel.query().where({
-      tableName,
-      tableRowId,
+    const reminderResp = [];
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const reminders: IReminder[] = await ReminderModel.query().where({
+          tableName,
+          tableRowId,
+        });
+        await this.deleteReminders(reminders);
+        reminderResp.push({
+          message: `Reminders: ${reminders
+            .map((x) => x.reminderName)
+            .join(",").toString()} deleted successfully`,
+        });
+      } catch (e) {
+        reminderResp.push(e);
+        await trx.rollback();
+      }
     });
-    await this.deleteReminders(reminders);
+    return reminderResp;
   }
 
   async updateReminders(

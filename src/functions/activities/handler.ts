@@ -163,11 +163,10 @@ const deleteActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const { activityId } = event.pathParameters;
 
-    await container.resolve(ActivityService).deleteActivity(activityId);
-    return formatJSONResponse(
-      { message: "Activity deleted successfully" },
-      200
-    );
+    const reminderResp = await container
+      .resolve(ActivityService)
+      .deleteActivity(event.employee, activityId);
+    return formatJSONResponse(reminderResp, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
