@@ -121,31 +121,6 @@ export const deleteJsonbObjectHelper = (
   return { [jsonbItemKey]: knexClient.raw(`${keySnakeCase} - ${index}`) };
 };
 
-/**
- * @deprecated
- * @param rowId
- * @param key
- * @param jsonItemId
- * @param knexInstance
- * @returns
- */
-export const _findIndexFromJsonbArray = async (
-  rowId: string,
-  key: string,
-  jsonItemId: string,
-  knexInstance
-): Promise<number> => {
-  const object = await knexInstance.where({ id: rowId }).returning(key);
-  // @TODO check if concernedPersons is null
-  const index = object[0][key]?.findIndex((x) => x.id === jsonItemId);
-
-  if (index === -1) {
-    throw new CustomError("Item doesn't exists in jsonb", 404);
-  }
-
-  return index;
-};
-
 export const createKnexTransactionsWithPendingPayload = (
   tableRowId: string,
   actionItems:
@@ -166,44 +141,47 @@ export const createKnexTransactionsWithPendingPayload = (
       actionItem: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD
     ) => {
       if (actionItem.objectType === "SIMPLE_KEY") {
+        let updateHistoryObj: IUpdateHistory = {
+          tableName,
+          tableRowId: tableRowId ?? null,
+          actionType: actionType,
+          updatedBy,
+        } as IUpdateHistory;
+
         if (actionType === PendingApprovalType.CREATE) {
           finalQueries.push(
             knexClient(tableName)
               .insert(transformJSONKeys(actionItem.payload))
               .returning("*")
           );
-        } else {
-          let updateHistoryObj: IUpdateHistory = {
-            tableName,
-            tableRowId,
-            actionType: actionType,
-            updatedBy,
-          } as IUpdateHistory;
-
-          if (actionType === PendingApprovalType.DELETE) {
-            updateHistoryObj = {
-              ...updateHistoryObj,
-              oldValue: JSON.stringify(originalObject),
-              newValue: null,
-            };
-            finalQueries.push(
-              knexClient(tableName).where("id", "=", tableRowId).del()
-            );
-          } else {
-            simpleKeys = { ...simpleKeys, ...actionItem.payload };
-
-            const field = Object.keys(actionItem.payload)[0];
-            updateHistoryObj = {
-              ...updateHistoryObj,
-              field,
-              oldValue: originalObject[field],
-              newValue: actionItem.payload[field],
-            };
-          }
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            oldValue: null,
+            newValue: JSON.stringify(originalObject),
+          };
+        } else if (actionType === PendingApprovalType.DELETE) {
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            oldValue: JSON.stringify(originalObject),
+            newValue: null,
+          };
           finalQueries.push(
-            knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+            knexClient(tableName).where("id", "=", tableRowId).del()
           );
+        } else {
+          simpleKeys = { ...simpleKeys, ...actionItem.payload };
+
+          const field = Object.keys(actionItem.payload)[0];
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            field,
+            oldValue: originalObject[field],
+            newValue: actionItem.payload[field],
+          };
         }
+        finalQueries.push(
+          knexClient(UPDATE_HISTORY_TABLE).insert(updateHistoryObj)
+        );
       } else {
         const {
           payload: {
@@ -416,7 +394,7 @@ export const convertPayloadToArray = (
   } as PayloadType;
 };
 
-export const createUpdateQueries = async (
+export const createKnexTransactionQueries = async (
   actionType: PendingApprovalType,
   tableRowId: string,
   updatedBy: string,
@@ -437,14 +415,19 @@ export const createUpdateQueries = async (
     jsonbItemId
   );
 
-  const originalObject = await knexClient(tableName)
-    .where({ id: tableRowId })
-    .first();
-  if (!originalObject) {
-    throw new CustomError(
-      `Object not found in table: ${tableName}, id: ${tableRowId}`,
-      400
-    );
+  let originalObject = null;
+  if (actionType !== PendingApprovalType.CREATE) {
+    originalObject = await knexClient(tableName)
+      .where({ id: tableRowId })
+      .first();
+    if (!originalObject) {
+      throw new CustomError(
+        `Object not found in table: ${tableName}, id: ${tableRowId}`,
+        400
+      );
+    }
+  } else {
+    originalObject = payload;
   }
 
   return createKnexTransactionsWithPendingPayload(
@@ -468,7 +451,7 @@ export const updateHistoryHelper = async (
   jsonActionType: string = null,
   jsonbItemId: string = null
 ): Promise<any[]> => {
-  const finalQueries = await createUpdateQueries(
+  const finalQueries = await createKnexTransactionQueries(
     actionType,
     tableRowId,
     updatedBy,
@@ -538,3 +521,13 @@ export const getObjectType = (tableName: string, key: string) => {
 
   return map[tableName][key];
 };
+
+export const snakeToCamel = (obj) => {
+  const newObj = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const words = key.split('_');
+    const camelCaseKey = words[0] + words.slice(1).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+    newObj[camelCaseKey] = value;
+  }
+  return newObj;
+}

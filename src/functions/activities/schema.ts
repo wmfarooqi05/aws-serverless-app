@@ -199,15 +199,19 @@ const validateDetailPayload = async (
 
 const validateCallDetails = async (details: ICALL_DETAILS = {}) => {
   await Joi.object({
-    callType: Joi.string()
-      .valid(...Object.keys(CALL_TYPE))
-      .required(),
+    callType: Joi.when("isScheduled", {
+      is: true,
+      then: Joi.string().valid(CALL_TYPE.OUTGOING).messages({
+        "*": "Call can only be Outgoing when isScheduled is true",
+      }),
+      otherwise: Joi.string().valid(CALL_TYPE.INCOMING, CALL_TYPE.MISSED),
+    }),
     callDuration: Joi.when("callType", {
       is: CALL_TYPE.MISSED,
-      then: Joi.not().required(),
+      then: Joi.number().min(0).allow(null),
       otherwise: Joi.when("isScheduled", {
         is: true,
-        then: Joi.not().required(),
+        then: Joi.number().min(0).allow(null),
         otherwise: Joi.number().min(0).required(),
       }),
     }),
@@ -215,31 +219,31 @@ const validateCallDetails = async (details: ICALL_DETAILS = {}) => {
     date: Joi.date().required(),
     callAgenda: Joi.when("callType", {
       is: CALL_TYPE.MISSED,
-      then: Joi.not().required(),
+      then: Joi.string().allow(null),
       otherwise: Joi.string().required(),
     }),
 
     callResult: Joi.when("callType", {
       is: CALL_TYPE.MISSED,
-      then: Joi.not().required(),
+      then: Joi.string().allow(null),
       otherwise: Joi.when("isScheduled", {
         is: true,
-        then: Joi.not().required(),
+        then: Joi.string().allow(null),
         otherwise: Joi.string().required(),
       }),
     }),
     description: Joi.when("callType", {
       is: CALL_TYPE.MISSED,
-      then: Joi.not().required(),
+      then: Joi.string().allow(null),
       otherwise: Joi.string().required(),
     }),
     callStartTime: Joi.string().required(),
     callEndTime: Joi.when("callType", {
       is: CALL_TYPE.MISSED,
-      then: Joi.not().required(),
+      then: Joi.string().allow(null),
       otherwise: Joi.when("isScheduled", {
         is: true,
-        then: Joi.not().required(),
+        then: Joi.string().allow(null),
         otherwise: Joi.string().required(),
       }),
     }),

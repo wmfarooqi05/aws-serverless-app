@@ -37,7 +37,11 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import { createUpdateQueries } from "@common/json_helpers";
+import {
+  convertSnakeToCamelCaseObject,
+  createKnexTransactionQueries,
+  snakeToCamel,
+} from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -51,6 +55,7 @@ import { checkManagerPermissions } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
+import { Knex } from "knex";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -210,6 +215,7 @@ export class ActivityService implements IActivityService {
       payload.details
     );
 
+    let errorMessage = "";
     // @TODO add validations for detail object
     const activityObj: IActivity = {
       summary: payload.summary,
@@ -228,31 +234,46 @@ export class ActivityService implements IActivityService {
       status: payload.status ?? ACTIVITY_STATUS.NOT_STARTED,
     };
     activityObj.statusShort = this.getStatusShort(activityObj.status);
-    if (activityObj.details?.isScheduled) {
-      activityObj.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
-    }
 
     let activity: IActivity = null;
-    try {
-      activity = await ActivityModel.query().insert(activityObj);
-      const updatedDetailObject: IACTIVITY_DETAILS = await this.runSideJobs(
-        createdBy.sub,
-        activity
-      );
-      return await ActivityModel.query().patchAndFetchById(activity.id, {
-        details: updatedDetailObject,
-      });
-    } catch (e) {
-      if (activity) {
-        return activity;
+    let sideJobResponse = null;
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const finalQueries = await createKnexTransactionQueries(
+          PendingApprovalType.CREATE,
+          null,
+          createdBy.sub,
+          ActivityModel.tableName,
+          this.docClient.getKnexClient(),
+          activityObj
+        );
+        const resp = await trx.raw(finalQueries[0].toString());
+        activity = snakeToCamel(resp.rows[0]);
+        await trx.raw(finalQueries[1].toString());
+        sideJobResponse = await this.runSideJobs(createdBy.sub, activity);
+        await ActivityModel.query(trx).patchAndFetchById(activity.id, {
+          details: sideJobResponse,
+        });
+        activity = {
+          ...activity,
+          details: sideJobResponse,
+        };
+
+        await trx.commit();
+      } catch (e) {
+        if (activity) {
+          return activity;
+        }
+
+        errorMessage = e.message;
+        await trx.rollback();
       }
-      if (e.name === "ForeignKeyViolationError") {
-        // @TODO: check maybe employee doesn't exists
-        throw new CustomError("Company doesn't exists", 404);
-      } else {
-        throw new CustomError(e.message, 502);
-      }
+    });
+
+    if (errorMessage) {
+      throw new CustomError(errorMessage, 500);
     }
+    return activity;
   }
 
   /**
@@ -279,7 +300,7 @@ export class ActivityService implements IActivityService {
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         let oldJobData = oldActivity.details?.jobData;
-        const finalQueries = await createUpdateQueries(
+        const finalQueries = await createKnexTransactionQueries(
           PendingApprovalType.UPDATE,
           activityId,
           employee.sub,
@@ -495,17 +516,13 @@ export class ActivityService implements IActivityService {
     originalRowId: any
   ) {
     try {
-      // if (reminder.useDefault) {
-      //   // Get From user's settings
-      // } else
-      const resp = await this.reminderService.scheduleReminders(
+      return this.reminderService.scheduleReminders(
         dueDate,
         reminder.overrides,
         createdBy,
         originalRowId,
         ActivityModel.tableName
       );
-      return resp;
     } catch (e) {
       return {
         stack: e.stack,

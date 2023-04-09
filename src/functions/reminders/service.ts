@@ -237,7 +237,7 @@ export class ReminderService implements IReminderService {
       await this.docClient.getKnexClient().transaction(async (trx) => {
         try {
           outputs = await Promise.all(ebPromises);
-          reminderResp.push({ message: `${outputs.length} Reminders added` });
+          reminderResp.push(...outputs);
           await Promise.all(
             outputs.map((output, i) => {
               return ReminderModel.query(trx).insert({
