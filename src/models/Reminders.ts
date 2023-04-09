@@ -38,7 +38,7 @@ export interface IReminder {
   status: SCHEDULED_STATUS;
   reminderTime: string;
   minutesDiff: number;
-  data: {
+  details: {
     jobData?: Object;
   };
   tableRowId: string;
@@ -73,7 +73,7 @@ export default class ReminderModel extends Model {
         reminderTime: { type: "string" },
         minutesDiff: { type: "integer" },
         schedulerExpression: { type: "string" },
-        data: { type: "object", default: {} },
+        details: { type: "object", default: {} },
         tableRowId: { type: "string" },
         tableName: { type: "string" },
         createdBy: { type: "string" },
@@ -99,7 +99,7 @@ export default class ReminderModel extends Model {
   });
 
   static get jsonAttributes() {
-    return ["data"];
+    return ["details"];
   }
 }
 

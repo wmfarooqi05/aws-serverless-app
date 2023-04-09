@@ -7,7 +7,7 @@ export interface IEBSchedulerEventInput {
   name: string;
   idClientToken: string;
   eventType: EBSchedulerEventType;
-  data: {
+  details: {
     tableName: string;
     tableRowId: string;
     method: "popup" | "email";

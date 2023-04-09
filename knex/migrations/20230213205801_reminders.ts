@@ -39,7 +39,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("scheduler_expression");
       table.integer("minutes_diff").notNullable();
 
-      table.jsonb("data").defaultTo({});
+      table.jsonb("details").defaultTo({});
       table.string("reminder_name");
       table.string("reminder_group_name");
       table.string("table_name");

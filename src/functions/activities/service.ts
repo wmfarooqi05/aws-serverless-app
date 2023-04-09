@@ -37,9 +37,7 @@ import { GoogleGmailService } from "@functions/google/gmail/service";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
-import {
-  createUpdateQueries,
-} from "@common/json_helpers";
+import { createUpdateQueries } from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -49,9 +47,7 @@ import {
   sortedTags,
 } from "./helpers";
 import { ReminderService } from "@functions/reminders/service";
-import {
-  checkManagerPermissions,
-} from "@functions/employees/helpers";
+import { checkManagerPermissions } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
@@ -142,7 +138,7 @@ export class ActivityService implements IActivityService {
         queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
         queryBuilder.where({ companyId });
       })
-      .paginate(getPaginateClauseObject(body))
+      .paginate(getPaginateClauseObject(body));
   }
 
   async getTopActivities(employeeId: string, companyId: string) {
@@ -270,26 +266,10 @@ export class ActivityService implements IActivityService {
     if (payload.dueDate && moment.utc(payload.dueDate).isBefore(moment.utc())) {
       throw new CustomError("Due date has already passed", 400);
     }
-
-    // if (payload.status) {
-    //   payload.statusShort = this.getStatusShort(payload.status);
-    // }
-
-    // if (payload.details?.isScheduled) {
-    //   payload.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
-    // }
     const oldActivity: IActivity = await ActivityModel.query().findById(
       activityId
     );
 
-    // @TODO add validations for detail object
-    // payload.details.jobData = {};
-    // const updatedActivity: IActivity =
-    //   await ActivityModel.query().patchAndFetchById(activityId, payload);
-    // if (!updatedActivity || Object.keys(updatedActivity).length === 0) {
-    //   throw new CustomError("Object not found", 404);
-    // }
-    // // Due date updated,
     let errorMessage = false;
 
     await this.docClient.getKnexClient().transaction(async (trx) => {
@@ -473,9 +453,12 @@ export class ActivityService implements IActivityService {
         );
       }
 
-      activity.details.jobData = {
-        status: response?.status || 424,
-      };
+      activity.details.jobData = [
+        {
+          status: response?.status || 424,
+          data: response?.data || {},
+        },
+      ];
     } catch (e) {
       activity.details.jobData = {
         status: 500,
@@ -503,23 +486,13 @@ export class ActivityService implements IActivityService {
       // if (reminder.useDefault) {
       //   // Get From user's settings
       // } else
-      const reminders = [];
-      if (reminder.overrides) {
-        for (let i = 0; i < reminder.overrides.length; i++) {
-          const { minutes, method } = reminder.overrides[0];
-
-          const reminderObject = await this.reminderService.scheduleReminders(
-            dueDate,
-            minutes,
-            createdBy,
-            originalRowId,
-            ActivityModel.tableName,
-            method
-          );
-          reminders.push(reminderObject);
-        }
-      }
-      return reminders;
+      return this.reminderService.scheduleReminders(
+        dueDate,
+        reminder.overrides,
+        createdBy,
+        originalRowId,
+        ActivityModel.tableName
+      );
     } catch (e) {
       return {
         stack: e.stack,
@@ -552,12 +525,13 @@ export class ActivityService implements IActivityService {
       activityType === ACTIVITY_TYPE.TASK ||
       activityType === ACTIVITY_TYPE.CALL
     ) {
-      await this.reminderService.reminderUpdateHelper(
+      const response = await this.reminderService.reminderUpdateHelper(
         ActivityModel.tableName,
         oldActivity,
         newPayload,
         createdBy
       );
+      return response;
     }
   }
 

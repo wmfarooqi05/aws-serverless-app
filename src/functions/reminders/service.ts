@@ -35,7 +35,7 @@ export interface ReminderEBSchedulerPayload {
   reminderTime: string;
   eventType: string; //ReminderType;
   name: string;
-  data?: any;
+  details?: any;
 }
 
 @injectable()
@@ -61,7 +61,7 @@ export class ReminderService implements IReminderService {
   async createReminder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
     const { dueDate, minutes, tableRowId, tableName, type } = payload;
-    return this.scheduleReminders(
+    return this.scheduleReminder(
       dueDate,
       minutes,
       employee.sub,
@@ -129,7 +129,7 @@ export class ReminderService implements IReminderService {
   // for internal service
   async handleEBSchedulerInvoke(event: IEBSchedulerEventInput) {
     console.log("scheduler event", event);
-    const { tableName, tableRowId } = event.data;
+    const { tableName, tableRowId } = event.details;
     if (tableName !== ReminderModel.tableName) {
       throw new CustomError("No implementation found", 500);
     }
@@ -145,7 +145,7 @@ export class ReminderService implements IReminderService {
       );
     }
     console.log("reminder", reminder);
-    // const { method } = reminder.data;
+    // const { method } = reminder.details;
 
     // if (method === "popup") {
     const notification: INotification = {
@@ -179,6 +179,90 @@ export class ReminderService implements IReminderService {
 
   async scheduleReminders(
     dueDate: string,
+    overrides: IReminderInterface["overrides"],
+    createdBy: string,
+    tableRowId: string,
+    tableName: string
+  ) {
+    if (!(overrides?.length > 0)) return;
+    const dueDateTimeUtc = moment(dueDate).utc();
+    const ebPromises = [];
+    const reminderResp = [];
+
+    const addDBPayload = overrides.map(({ method, minutes }) => {
+      const reminderTime = dueDateTimeUtc
+        .subtract(minutes)
+        .format("YYYY-MM-DDTHH:mm:ss");
+
+      const schedulerExpression = `at(${reminderTime})`;
+
+      const awsEBSItemId = randomUUID();
+      const reminderName = `Reminder-${awsEBSItemId}`;
+      const params: IEBSchedulerEventInput = {
+        schedulerExpression,
+        name: reminderName,
+        idClientToken: awsEBSItemId,
+        eventType: "REMINDER",
+        details: {
+          tableName: tableName,
+          tableRowId: tableRowId,
+          method,
+          minutes,
+        },
+      };
+      ebPromises.push(this.createEBSchedulerHelper(params));
+      return {
+        reminderName,
+        reminderGroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME,
+        tableRowId,
+        tableName,
+        reminderTime,
+        schedulerExpression,
+        method,
+        createdBy,
+        minutesDiff: minutes,
+      };
+    });
+    let outputs = [];
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        outputs = await Promise.all(ebPromises);
+        reminderResp.push({ message: `${outputs.length} Reminders added` });
+        await Promise.all(
+          outputs.map((output, i) => {
+            return ReminderModel.query(trx).insert({
+              ...addDBPayload[i],
+              executionArn: output.ScheduleArn,
+              statusCode: output.$metadata.httpStatusCode,
+              status: ReminderStatus.SCHEDULED,
+              details: { jobData: output },
+            });
+          })
+        );
+        await trx.commit();
+        return outputs;
+      } catch (e) {
+        reminderResp.push(e);
+        try {
+          // Delete Reminders
+          await this.deleteRemindersWithName(
+            addDBPayload.map((payload) => payload.reminderName)
+          );
+          reminderResp.push({
+            message: `${addDBPayload.length} Reminders deleted`,
+          });
+        } catch (e) {
+          reminderResp.push(e);
+        }
+      } finally {
+        await trx.rollback();
+      }
+    });
+    return reminderResp;
+  }
+
+  async scheduleReminder(
+    dueDate: string,
     minutes: number,
     createdBy: string,
     tableRowId: string,
@@ -191,7 +275,7 @@ export class ReminderService implements IReminderService {
       .format("YYYY-MM-DDTHH:mm:ss");
     const schedulerExpression = `at(${reminderTime})`;
     const reminderResp = [];
-    let data: any = { method, minutes };
+    let details = {};
     try {
       console.log("before reminder create");
       const reminderObj: IReminder = await ReminderModel.query().insert({
@@ -202,7 +286,7 @@ export class ReminderService implements IReminderService {
         method,
         createdBy,
         minutesDiff: minutes,
-        data,
+        details,
       });
       console.log("after reminder create", reminderObj);
       const awsEBSItemId = randomUUID();
@@ -211,7 +295,7 @@ export class ReminderService implements IReminderService {
         name: `Reminder-${awsEBSItemId}`,
         idClientToken: awsEBSItemId,
         eventType: "REMINDER",
-        data: {
+        details: {
           tableName: ReminderModel.tableName,
           tableRowId: reminderObj.id,
           method,
@@ -222,15 +306,15 @@ export class ReminderService implements IReminderService {
       console.log("before output create");
       const output = await this.createEBSchedulerHelper(params);
       console.log("after output create", output);
-      data = { method, minutes, jobData: output };
-      reminderResp.push(data);
+      details = { jobData: output };
+      reminderResp.push(details);
 
       await ReminderModel.query().patchAndFetchById(reminderObj.id, {
         executionArn: output.ScheduleArn,
         reminderName: params.name,
         reminderGroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME,
         reminderTime: schedulerExpression,
-        data,
+        details,
         statusCode: output.$metadata.httpStatusCode,
         status: ReminderStatus.SCHEDULED,
       });
@@ -267,8 +351,8 @@ export class ReminderService implements IReminderService {
             status: ReminderStatus.DONE,
           };
           if (x.status === "rejected") {
-            patchObject.data = reminders[index].data;
-            patchObject.data["error"] = x.reason;
+            patchObject.details = reminders[index].details;
+            patchObject.details["error"] = x.reason;
           }
           return ReminderModel.query()
             .patch(patchObject)
@@ -379,6 +463,7 @@ export class ReminderService implements IReminderService {
     updatePayload: any,
     createdBy: IEmployeeJwt
   ) {
+    const reminderResp = [];
     const isScheduled =
       updatePayload?.details?.isScheduled ?? oldRowData.details.isScheduled;
     const isScheduledUpdated = isScheduled !== oldRowData.details?.isScheduled;
@@ -411,7 +496,7 @@ export class ReminderService implements IReminderService {
 
     let syncedAll = true;
     reminders.forEach((x) => {
-      if (x.data.jobData?.["$metadata"]?.httpStatusCode !== 200) {
+      if (x.details.jobData?.["$metadata"]?.httpStatusCode !== 200) {
         syncedAll = false;
       }
     });
@@ -433,7 +518,7 @@ export class ReminderService implements IReminderService {
             : oldIReminder) && reminderObj;
 
         const synced =
-          reminderObj?.data?.jobData?.["$metadata"]?.httpStatusCode === 200;
+          reminderObj?.details?.jobData?.["$metadata"]?.httpStatusCode === 200;
 
         const shouldBeUpdated = existing?.method
           ? existing.method !== oldIReminder.method ||
@@ -475,22 +560,26 @@ export class ReminderService implements IReminderService {
         }
       });
 
-      const remindersToBeAddedPromises = remindersToBeAdded.map(
-        async (x) =>
-          await this.scheduleReminders(
-            currentDueDate,
-            x.minutes,
-            createdBy.sub,
-            oldRowData.id,
-            tableName,
-            x.method
-          )
+      const remindersToBeAddedPromises = remindersToBeAdded.map((x) =>
+        this.scheduleReminder(
+          currentDueDate,
+          x.minutes,
+          createdBy.sub,
+          oldRowData.id,
+          tableName,
+          x.method
+        )
       );
-      await Promise.all(remindersToBeAddedPromises);
-      await this.deleteReminders(remindersToBeRemoved);
-      await this.updateReminders(remindersToBeUpdated);
+      const responses = [];
+      const addResponse = await Promise.all(remindersToBeAddedPromises);
+      const deleteResponse = await this.deleteReminders(remindersToBeRemoved);
+      const updateResponse = await this.updateReminders(remindersToBeUpdated);
+      responses.push(...addResponse);
+      responses.push(...updateResponse);
     }
   }
+
+  async addReminders() {}
 
   getReminderUpdateItem(
     reminderObj: IReminder,
@@ -532,52 +621,77 @@ export class ReminderService implements IReminderService {
     if (!(reminders?.length > 0)) return;
     const ebPromises: Promise<any>[] = [];
     let errorMessage = null;
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        const dbQueries = reminders.map((reminder) => {
-          const {
-            id,
-            dueDate,
-            minutes,
-            method,
-            reminderGroupName,
+    const reminderResp = [];
+    try {
+      const updatePayload = reminders.map((reminder) => {
+        const {
+          id,
+          dueDate,
+          minutes,
+          method,
+          reminderGroupName,
+          reminderName,
+        } = reminder;
+
+        const reminderTime = moment(dueDate)
+          .utc()
+          .subtract(minutes, "minutes")
+          .format("YYYY-MM-DDTHH:mm:ss");
+        const schedulerExpression = `at(${reminderTime})`;
+
+        ebPromises.push(
+          this.updateEBScheduledItem(
             reminderName,
-          } = reminder;
-
-          const reminderTime = moment(dueDate)
-            .utc()
-            .subtract(minutes, "minutes")
-            .format("YYYY-MM-DDTHH:mm:ss");
-          const schedulerExpression = `at(${reminderTime})`;
-
-          ebPromises.push(
-            this.updateEBScheduledItem(
-              reminderName,
-              reminderGroupName,
-              schedulerExpression
-            )
-          );
-          return ReminderModel.query(trx).patchAndFetchById(id, {
-            reminderTime,
-            minutesDiff: minutes,
-            method,
-            schedulerExpression,
-          });
+            reminderGroupName,
+            schedulerExpression
+          )
+        );
+        return {
+          id,
+          reminderTime,
+          minutesDiff: minutes,
+          method,
+        };
+      });
+      const outputs = await Promise.all(ebPromises);
+      reminderResp.push(...outputs);
+      const updateDbQueries = outputs.map((x, i) => {
+        const id = updatePayload[i].id;
+        delete updatePayload[i].id;
+        return ReminderModel.query().patchAndFetchById(id, {
+          ...updatePayload[i],
+          statusCode: x.$metadata.httpStatusCode,
+          details: { jobData: x },
         });
-        await Promise.all(dbQueries);
-        await Promise.all(ebPromises);
-        await trx.commit();
-      } catch (e) {
-        await trx.rollback();
-        errorMessage = e.message;
-      }
-    });
+      });
+      await Promise.all(updateDbQueries);
+    } catch (e) {
+      reminderResp.push(e);
+      errorMessage = e.message;
+    }
 
     if (errorMessage) throw new CustomError(errorMessage, 500);
     // As it is only update reminder query, we are not making sure if it was updated first in
     // db or not
+    return reminderResp;
   }
 
+  async deleteRemindersWithName(
+    reminderNames: string[],
+    GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME
+  ) {
+    if (!(reminderNames?.length > 0)) return;
+    await Promise.all(
+      reminderNames.map((name) => this.deleteEBScheduledItem(name, GroupName))
+    );
+  }
+
+  /**
+   * Needs update
+   * Transaction should be inside delete
+   * @param reminders
+   * @returns
+   */
   async deleteReminders(reminders: IReminder[]) {
     if (!(reminders?.length > 0)) return;
     const deleteEBPromises = reminders.map(async (reminder: IReminder) => {
