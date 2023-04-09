@@ -25,7 +25,10 @@ export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
   try {
     const response = await container
       .resolve(GoogleOAuthService)
-      .getGoogleOauthRequestTokenByEmployee(event.headers.origin, event.employee?.sub);
+      .getGoogleOauthRequestTokenByEmployee(
+        event.headers.origin,
+        event.employee?.sub
+      );
     return formatJSONResponse(response, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -63,10 +66,10 @@ export const googleOauthCallbackHandler: ValidatedEventAPIGatewayProxyEvent<
 
 export const googleOauthExtendRefreshTokenHandler = async (event) => {
   try {
-    await container
+    const updatedToken = container
       .resolve(GoogleOAuthService)
-      .googleOauthExtendRefreshTokenHandler(event.employee?.sub);
-    return formatJSONResponse({ message: "Token updated successfully" }, 200);
+      .getGoogleOauthRequestTokenFromDB(event.employee?.sub);
+    return formatJSONResponse(updatedToken, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }

@@ -1,10 +1,11 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
-import { Auth, calendar_v3 } from "googleapis";
+import { Auth, calendar_v3, google } from "googleapis";
 import { GoogleOAuthService } from "../oauth/service";
 import { randomUUID } from "crypto";
 import { IActivity, IMEETING_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { CustomError } from "@helpers/custom-error";
 
 @injectable()
 export class GoogleCalendarService {
@@ -14,9 +15,25 @@ export class GoogleCalendarService {
     @inject(GoogleOAuthService)
     private readonly googleOAuthService: GoogleOAuthService
   ) {}
+
+  async getAuthenticatedCalendarClient(
+    employeeId: string
+  ): Promise<calendar_v3.Calendar> {
+    const client = await this.googleOAuthService.getOAuth2Client(employeeId);
+    if (!client) {
+      throw new CustomError("Token expired or not found", 400);
+    }
+
+    return google.calendar({ version: "v3", auth: client });
+  }
+
   async getAllMeetings() {}
 
-  async getMeetingById(employeeId: string, calendarId: string, eventId: string) {
+  async getMeetingById(
+    employeeId: string,
+    calendarId: string,
+    eventId: string
+  ) {
     const client = await this.googleOAuthService.getAuthenticatedCalendarClient(
       employeeId
     );

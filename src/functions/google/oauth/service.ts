@@ -19,9 +19,7 @@ const SCOPE_FOR_AUTH = [
 @injectable()
 export class GoogleOAuthService {
   client: Auth.OAuth2Client;
-  constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService
-  ) {
+  constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
     this.initializeGoogleClient();
   }
   async initializeGoogleClient() {
@@ -29,32 +27,13 @@ export class GoogleOAuthService {
       this.client = new google.auth.OAuth2({
         clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
         clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-        redirectUri: `${process.env.APP_BASE_URL}/${process.env.STAGE}/google/oauth/callback`, //this.getApUrl("/google/oauth-callback"),
+        redirectUri: this.getApUrl("/google/oauth/callback"),
       });
     }
   }
 
-  async getAuthenticatedCalendarClient(
-    employeeId: string
-  ): Promise<calendar_v3.Calendar> {
-    const client: Auth.OAuth2Client = await this.getOAuth2Client(employeeId);
-    if (!client) {
-      throw new CustomError("Token expired or not found", 400);
-    }
-
-    return google.calendar({ version: "v3", auth: client });
-  }
-
-  async googleOauthTokenScope(employeeId: string) {
-    const token = await this.getRefreshedAccessToken(employeeId);
-
-    const tokenInfo = await google.oauth2("v2").tokeninfo({
-      access_token: token.accessToken,
-    });
-    return tokenInfo.data;
-  }
   async getOAuth2Client(employeeId: string): Promise<Auth.OAuth2Client | null> {
-    const token = await this.getRefreshedAccessToken(employeeId);
+    const token = await this.getGoogleOauthRequestTokenFromDB(employeeId);
     if (token) {
       const credentials: Auth.Credentials = {
         access_token: token.accessToken,
@@ -67,31 +46,8 @@ export class GoogleOAuthService {
     return null;
   }
 
-  async getGoogleOauthRequestTokenByEmployee(
-    origin: string,
-    employeeId: string
-  ) {
-    const response: any = { origin };
-    const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
-      employeeId
-    );
-    if (!token) {
-      const authUrl = await this.generateGoogleAuthenticationUrl(
-        origin,
-        employeeId
-      );
-      response.authUrl = authUrl;
-    } else {
-      response.isSignedIn = true;
-      response.expiryDate = token.expiryDate;
-    }
-
-    return response;
-  }
-
   async getGoogleOauthRequestTokenFromDB(
-    employeeId: string,
-    checkExpired: boolean = true
+    employeeId: string
   ): Promise<IAuthToken | null> {
     if (!employeeId) {
       throw new Error("EmployeeId not provided");
@@ -99,27 +55,32 @@ export class GoogleOAuthService {
     const token: IAuthToken = await AuthTokenModel.query().findOne({
       employeeId,
     });
-    if (checkExpired && !this.isTokenValid(token?.expiryDate)) {
-      return null;
+
+    if (!this.isTokenValid(token?.expiryDate)) {
+      const updatedToken = await this.getUpdatedTokenFromRefreshToken(
+        token.refreshToken
+      );
+      await this.storeTokenInDB(updatedToken, employeeId);
+      return {
+        ...updatedToken,
+        expiryDate: moment.utc(updatedToken.expiry_date).format(),
+      } as IAuthToken;
     }
     return token;
   }
 
-  async generateGoogleAuthenticationUrl(origin: string, employeeId: string) {
-    const payload = { employeeId, origin }; // any payload we want to keep in token
-    if (!this.client) {
-      throw new Error("no client found");
-      // await this.getAuthenticatedCalendarClient(employeeId);
-    }
-    return this.client.generateAuthUrl({
-      access_type: "offline",
-      state: JSON.stringify(payload),
-      scope: SCOPE_FOR_AUTH,
-    });
-  }
+  async getUpdatedTokenFromRefreshToken(refresh_token: string) {
+    this.client.setCredentials({ refresh_token });
+    try {
+      // Use the OAuth2 client to refresh the access token
+      const { credentials } = await this.client.refreshAccessToken();
 
-  deleteGoogleOAuthTokenByEmployeeId() {
-    // delete from db
+      // Return the new access token
+      return credentials;
+    } catch (err) {
+      console.error(err);
+      throw new Error("Failed to refresh access token");
+    }
   }
 
   async exchangeAuthCodeForAccessToken(code: string, state: string) {
@@ -135,40 +96,6 @@ export class GoogleOAuthService {
     }
     // now store this token using employeeId
     await this.storeTokenInDB(token, payload.employeeId);
-    return token;
-  }
-
-  async googleOauthExtendRefreshTokenHandler(employeeId: string) {
-    await this.getRefreshedAccessToken(employeeId);
-  }
-
-  async getRefreshedAccessToken(
-    employeeId,
-    storeTokenInDB: boolean = true
-  ): Promise<IAuthToken> {
-    let token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
-      employeeId,
-      false
-    );
-    if (!token) {
-      throw new CustomError("Google OAuth Token doesn't exists", 400);
-    }
-
-    if (!this.isTokenValid(token.expiryDate)) {
-      this.client.setCredentials({
-        refresh_token: token.refreshToken,
-      });
-      const newToken = await this.client.refreshAccessToken();
-      if (storeTokenInDB) {
-        token = await this.storeTokenInDB(newToken.credentials, employeeId);
-      } else {
-        return {
-          ...token,
-          accessToken: newToken.credentials.access_token,
-          expiryDate: moment.utc(newToken.credentials.expiry_date).format(),
-        } as IAuthToken;
-      }
-    }
     return token;
   }
 
@@ -216,8 +143,8 @@ export class GoogleOAuthService {
       : false;
   }
   getApUrl(url: string): string {
-    ensureConfigs(["CLIENT_BASE_URL"]);
-    return `${process.env.CLIENT_BASE_URL}${url}`;
+    ensureConfigs(["APP_BASE_URL", "STAGE"]);
+    return `${process.env.APP_BASE_URL}/${process.env.STAGE}${url}`;
   }
 
   async validateGoogleAccessTokens(token: Auth.Credentials) {
@@ -231,5 +158,54 @@ export class GoogleOAuthService {
     }).validateAsync(token, {
       abortEarly: true,
     });
+  }
+
+  async getGoogleOauthRequestTokenByEmployee(
+    origin: string,
+    employeeId: string
+  ) {
+    const response: any = { origin };
+    const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
+      employeeId
+    );
+    if (!token) {
+      const authUrl = await this.generateGoogleAuthenticationUrl(
+        origin,
+        employeeId
+      );
+      response.authUrl = authUrl;
+    } else {
+      response.isSignedIn = true;
+      response.expiryDate = token.expiryDate;
+    }
+
+    return response;
+  }
+
+  private async generateGoogleAuthenticationUrl(
+    origin: string,
+    employeeId: string
+  ) {
+    const payload = { employeeId, origin }; // any payload we want to keep in token
+    if (!this.client) {
+      throw new Error("no client found");
+      // await this.getAuthenticatedCalendarClient(employeeId);
+    }
+    return this.client.generateAuthUrl({
+      access_type: "offline",
+      state: JSON.stringify(payload),
+      scope: SCOPE_FOR_AUTH,
+    });
+  }
+
+  /*** DEV ENDPOINTS */
+
+  async googleOauthTokenScope(employeeId: string) {
+    const token = await this.getGoogleOauthRequestTokenFromDB(employeeId);
+
+    const tokenInfo = await google.oauth2("v2").tokeninfo({
+      access_token: token.accessToken,
+    });
+    return tokenInfo.data;
   }
 }
