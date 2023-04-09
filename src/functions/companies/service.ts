@@ -28,6 +28,8 @@ import {
   convertToWhereInValue,
   validateJSONItemAndGetIndex,
   updateHistoryHelper,
+  snakeToCamel,
+  createKnexTransactionQueries,
 } from "src/common/json_helpers";
 import {
   IPendingApprovals,
@@ -98,7 +100,6 @@ export class CompanyService implements ICompanyService {
     body: any
   ): Promise<ICompanyPaginated> {
     await validateGetCompanies(body);
-    await this.employeeService.validateRequestByEmployeeRole(user, employeeId);
     const { priority, status, stage, returningFields } = body;
 
     // @TODO remove me
@@ -166,7 +167,22 @@ export class CompanyService implements ICompanyService {
         payload
       );
     }
-    const company = await CompanyModel.query().insert(payload).returning("*");
+
+    let company = null;
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      const finalQueries = await createKnexTransactionQueries(
+        PendingApprovalType.CREATE,
+        null,
+        employee.sub,
+        CompanyModel.tableName,
+        this.docClient.getKnexClient(),
+        payload
+      );
+      const resp = await trx.raw(finalQueries[0].toString());
+      company = snakeToCamel(resp.rows[0]);
+      await trx.raw(finalQueries[1].toString());
+    });
+
     return { company };
   }
 

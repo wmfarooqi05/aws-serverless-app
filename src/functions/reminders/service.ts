@@ -60,14 +60,13 @@ export class ReminderService implements IReminderService {
   /** DEV Endpoints */
   async createReminder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
-    const { dueDate, minutes, tableRowId, tableName, type } = payload;
-    return this.scheduleReminder(
+    const { dueDate, overrides, tableRowId, tableName } = payload;
+    return this.scheduleReminders(
       dueDate,
-      minutes,
+      overrides,
       employee.sub,
       tableRowId,
-      tableName,
-      type || "popup"
+      tableName
     );
   }
   /**
@@ -126,17 +125,23 @@ export class ReminderService implements IReminderService {
     } while (NextToken);
   }
 
+  async fetchReminderByTableItem(
+    tableName: string,
+    tableRowId: string,
+    minutes: number
+  ): Promise<IReminder> {
+    return ReminderModel.query().findOne({ tableName, tableRowId, minutes });
+  }
+
   // for internal service
   async handleEBSchedulerInvoke(event: IEBSchedulerEventInput) {
     console.log("scheduler event", event);
-    const { tableName, tableRowId } = event.details;
-    if (tableName !== ReminderModel.tableName) {
-      throw new CustomError("No implementation found", 500);
-    }
-    const reminder: IReminder = await this.docClient
-      .getKnexClient()(tableName)
-      .where({ id: tableRowId })
-      .first();
+    const { tableName, tableRowId, minutes } = event.details;
+    const reminder: IReminder = await this.fetchReminderByTableItem(
+      tableName,
+      tableRowId,
+      minutes
+    );
 
     if (!reminder) {
       throw new CustomError(
@@ -636,7 +641,8 @@ export class ReminderService implements IReminderService {
         reminderResp.push({
           message: `Reminders: ${reminders
             .map((x) => x.reminderName)
-            .join(",").toString()} deleted successfully`,
+            .join(",")
+            .toString()} deleted successfully`,
         });
       } catch (e) {
         reminderResp.push(e);
