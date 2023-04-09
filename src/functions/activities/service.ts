@@ -270,10 +270,15 @@ export class ActivityService implements IActivityService {
       activityId
     );
 
+    let activityCombined = {
+      ...oldActivity,
+      ...payload,
+    };
     let errorMessage = false;
-
+    let jobData = [];
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
+        let oldJobData = oldActivity.details?.jobData;
         const finalQueries = await createUpdateQueries(
           PendingApprovalType.UPDATE,
           activityId,
@@ -285,7 +290,17 @@ export class ActivityService implements IActivityService {
         finalQueries.map(
           async (finalQuery) => await trx.raw(finalQuery.toString())
         );
-        await this.runUpdateSideJobs(oldActivity, payload, employee);
+        jobData = await this.runUpdateSideJobs(oldActivity, payload, employee);
+        if (jobData?.length > 0) {
+          oldJobData = jobData;
+        }
+        await ActivityModel.query(trx).patchAndFetchById(activityId, {
+          details: { ...oldActivity.details, jobData: oldJobData },
+        });
+        activityCombined = {
+          ...activityCombined,
+          details: { ...oldActivity.details, jobData: oldJobData },
+        };
 
         // If everything is successful, commit the transaction
         await trx.commit();
@@ -300,10 +315,7 @@ export class ActivityService implements IActivityService {
       throw new CustomError(errorMessage, 500);
     } else {
       return {
-        activity: {
-          ...oldActivity,
-          ...payload,
-        },
+        activity: activityCombined,
       };
     }
   }
@@ -486,13 +498,14 @@ export class ActivityService implements IActivityService {
       // if (reminder.useDefault) {
       //   // Get From user's settings
       // } else
-      return this.reminderService.scheduleReminders(
+      const resp = await this.reminderService.scheduleReminders(
         dueDate,
         reminder.overrides,
         createdBy,
         originalRowId,
         ActivityModel.tableName
       );
+      return resp;
     } catch (e) {
       return {
         stack: e.stack,
@@ -513,7 +526,7 @@ export class ActivityService implements IActivityService {
     oldActivity: IActivity,
     newPayload: any,
     createdBy: IEmployeeJwt
-  ): Promise<void> {
+  ): Promise<any> {
     // We only have to worry about dueDate, isScheduled and reminders
     const { activityType } = oldActivity;
     if (

@@ -177,6 +177,15 @@ export class ReminderService implements IReminderService {
     // }
   }
 
+  /**
+   *
+   * @param dueDate
+   * @param overrides
+   * @param createdBy
+   * @param tableRowId
+   * @param tableName
+   * @returns
+   */
   async scheduleReminders(
     dueDate: string,
     overrides: IReminderInterface["overrides"],
@@ -184,81 +193,86 @@ export class ReminderService implements IReminderService {
     tableRowId: string,
     tableName: string
   ) {
-    if (!(overrides?.length > 0)) return;
-    const dueDateTimeUtc = moment(dueDate).utc();
-    const ebPromises = [];
+    if (!(overrides?.length > 0)) return [];
     const reminderResp = [];
+    const ebPromises = [];
+    try {
+      const dueDateTimeUtc = moment(dueDate).utc();
 
-    const addDBPayload = overrides.map(({ method, minutes }) => {
-      const reminderTime = dueDateTimeUtc
-        .subtract(minutes)
-        .format("YYYY-MM-DDTHH:mm:ss");
+      const addDBPayload = overrides.map(({ method, minutes }) => {
+        const reminderTime = dueDateTimeUtc
+          .subtract(minutes)
+          .format("YYYY-MM-DDTHH:mm:ss");
 
-      const schedulerExpression = `at(${reminderTime})`;
+        const schedulerExpression = `at(${reminderTime})`;
 
-      const awsEBSItemId = randomUUID();
-      const reminderName = `Reminder-${awsEBSItemId}`;
-      const params: IEBSchedulerEventInput = {
-        schedulerExpression,
-        name: reminderName,
-        idClientToken: awsEBSItemId,
-        eventType: "REMINDER",
-        details: {
-          tableName: tableName,
-          tableRowId: tableRowId,
+        const awsEBSItemId = randomUUID();
+        const reminderName = `Reminder-${awsEBSItemId}`;
+        const params: IEBSchedulerEventInput = {
+          schedulerExpression,
+          name: reminderName,
+          idClientToken: awsEBSItemId,
+          eventType: "REMINDER",
+          details: {
+            tableName: tableName,
+            tableRowId: tableRowId,
+            method,
+            minutes,
+          },
+        };
+        ebPromises.push(this.createEBSchedulerHelper(params));
+        return {
+          reminderName,
+          reminderGroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME,
+          tableRowId,
+          tableName,
+          reminderTime,
+          schedulerExpression,
           method,
-          minutes,
-        },
-      };
-      ebPromises.push(this.createEBSchedulerHelper(params));
-      return {
-        reminderName,
-        reminderGroupName: process.env.REMINDER_SCHEDULER_GROUP_NAME,
-        tableRowId,
-        tableName,
-        reminderTime,
-        schedulerExpression,
-        method,
-        createdBy,
-        minutesDiff: minutes,
-      };
-    });
-    let outputs = [];
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        outputs = await Promise.all(ebPromises);
-        reminderResp.push({ message: `${outputs.length} Reminders added` });
-        await Promise.all(
-          outputs.map((output, i) => {
-            return ReminderModel.query(trx).insert({
-              ...addDBPayload[i],
-              executionArn: output.ScheduleArn,
-              statusCode: output.$metadata.httpStatusCode,
-              status: ReminderStatus.SCHEDULED,
-              details: { jobData: output },
-            });
-          })
-        );
-        await trx.commit();
-        return outputs;
-      } catch (e) {
-        reminderResp.push(e);
+          createdBy,
+          minutesDiff: minutes,
+        };
+      });
+      let outputs = [];
+      await this.docClient.getKnexClient().transaction(async (trx) => {
         try {
-          // Delete Reminders
-          await this.deleteRemindersWithName(
-            addDBPayload.map((payload) => payload.reminderName)
+          outputs = await Promise.all(ebPromises);
+          reminderResp.push({ message: `${outputs.length} Reminders added` });
+          await Promise.all(
+            outputs.map((output, i) => {
+              return ReminderModel.query(trx).insert({
+                ...addDBPayload[i],
+                executionArn: output.ScheduleArn,
+                statusCode: output.$metadata.httpStatusCode,
+                status: ReminderStatus.SCHEDULED,
+                details: { jobData: output },
+              });
+            })
           );
-          reminderResp.push({
-            message: `${addDBPayload.length} Reminders deleted`,
-          });
+          await trx.commit();
+          return outputs;
         } catch (e) {
           reminderResp.push(e);
+          try {
+            // Delete Reminders
+            await this.deleteRemindersWithName(
+              addDBPayload.map((payload) => payload.reminderName)
+            );
+            reminderResp.push({
+              message: `${addDBPayload.length} Reminders deleted`,
+            });
+          } catch (e) {
+            reminderResp.push(e);
+          }
+        } finally {
+          await trx.rollback();
         }
-      } finally {
-        await trx.rollback();
-      }
-    });
-    return reminderResp;
+      });
+    } catch (e) {
+      reminderResp.push(e);
+    } finally {
+      return reminderResp;
+    }
   }
 
   async scheduleReminder(
@@ -464,118 +478,127 @@ export class ReminderService implements IReminderService {
     createdBy: IEmployeeJwt
   ) {
     const reminderResp = [];
-    const isScheduled =
-      updatePayload?.details?.isScheduled ?? oldRowData.details.isScheduled;
-    const isScheduledUpdated = isScheduled !== oldRowData.details?.isScheduled;
+    try {
+      const isScheduled =
+        updatePayload?.details?.isScheduled ?? oldRowData.details.isScheduled;
+      const isScheduledUpdated =
+        isScheduled !== oldRowData.details?.isScheduled;
 
-    const newReminderOverrides: IReminderInterface["overrides"] =
-      updatePayload.reminders?.overrides;
-    const isDueDateUpdated =
-      moment(oldRowData.dueDate).format() !== updatePayload.dueDate;
-    const currentDueDate = isDueDateUpdated
-      ? updatePayload.dueDate
-      : oldRowData.dueDate;
+      const newReminderOverrides: IReminderInterface["overrides"] =
+        updatePayload.reminders?.overrides;
+      const isDueDateUpdated =
+        moment(oldRowData.dueDate).format() !== updatePayload.dueDate;
+      const currentDueDate = isDueDateUpdated
+        ? updatePayload.dueDate
+        : oldRowData.dueDate;
 
-    const oldIReminders: IReminderInterface["overrides"] =
-      oldRowData.reminders.overrides;
-    const remindersToBeRemoved: IReminder[] = [];
-    const remindersToBeAdded: IReminderInterface["overrides"] = [];
-    const remindersToBeUpdated: {
-      id: string;
-      dueDate: string;
-      minutes: number;
-      method: "popup" | "email";
-      reminderName: string;
-      reminderGroupName: string;
-      executionArn: string;
-    }[] = [];
-    const reminders: IReminder[] = await ReminderModel.query().where({
-      tableName,
-      tableRowId: oldRowData.id,
-    });
+      const oldIReminders: IReminderInterface["overrides"] =
+        oldRowData.reminders.overrides;
+      const remindersToBeRemoved: IReminder[] = [];
+      const remindersToBeAdded: IReminderInterface["overrides"] = [];
+      const remindersToBeUpdated: {
+        id: string;
+        dueDate: string;
+        minutes: number;
+        method: "popup" | "email";
+        reminderName: string;
+        reminderGroupName: string;
+        executionArn: string;
+      }[] = [];
+      const reminders: IReminder[] = await ReminderModel.query().where({
+        tableName,
+        tableRowId: oldRowData.id,
+      });
 
-    let syncedAll = true;
-    reminders.forEach((x) => {
-      if (x.details.jobData?.["$metadata"]?.httpStatusCode !== 200) {
-        syncedAll = false;
-      }
-    });
+      let syncedAll = true;
+      reminders.forEach((x) => {
+        if (x?.details?.jobData?.["$metadata"]?.httpStatusCode !== 200) {
+          syncedAll = false;
+        }
+      });
 
-    if (isScheduledUpdated && !isScheduled) {
-      // delete reminder
-      await this.findAndDeleteReminders(tableName, oldRowData.id);
-    } else if (newReminderOverrides || isDueDateUpdated || !syncedAll) {
-      oldIReminders.forEach((oldIReminder) => {
-        const reminderObj: IReminder = reminders.find(
-          (x) => x.minutesDiff === oldIReminder.minutes
-        );
+      if (isScheduledUpdated && !isScheduled) {
+        // delete reminder
+        await this.findAndDeleteReminders(tableName, oldRowData.id);
+        reminderResp.push({ message: "All reminders delete successfully" });
+      } else if (newReminderOverrides || isDueDateUpdated || !syncedAll) {
+        oldIReminders.forEach((oldIReminder) => {
+          const reminderObj: IReminder = reminders.find(
+            (x) => x.minutesDiff === oldIReminder.minutes
+          );
 
-        const existing =
-          (newReminderOverrides
-            ? newReminderOverrides?.find(
-                (x) => x.minutes === oldIReminder.minutes
-              )
-            : oldIReminder) && reminderObj;
+          const existing =
+            (newReminderOverrides
+              ? newReminderOverrides?.find(
+                  (x) => x.minutes === oldIReminder.minutes
+                )
+              : oldIReminder) && reminderObj;
 
-        const synced =
-          reminderObj?.details?.jobData?.["$metadata"]?.httpStatusCode === 200;
+          const synced =
+            reminderObj?.details?.jobData?.["$metadata"]?.httpStatusCode ===
+            200;
 
-        const shouldBeUpdated = existing?.method
-          ? existing.method !== oldIReminder.method ||
-            isDueDateUpdated ||
-            !synced
-          : false;
+          const shouldBeUpdated = existing?.method
+            ? existing.method !== oldIReminder.method ||
+              isDueDateUpdated ||
+              !synced
+            : false;
 
-        if (existing) {
-          if (shouldBeUpdated) {
-            remindersToBeUpdated.push({
-              id: reminderObj.id,
-              dueDate: currentDueDate,
-              minutes: reminderObj.minutesDiff,
-              method: existing.method === "email" ? "email" : "popup",
-              reminderGroupName: reminderObj.reminderGroupName,
-              reminderName: reminderObj.reminderName,
-              executionArn: reminderObj.executionArn,
-            });
-          }
-        } else {
-          if (reminderObj) {
-            remindersToBeRemoved.push(reminderObj);
+          if (existing) {
+            if (shouldBeUpdated) {
+              remindersToBeUpdated.push({
+                id: reminderObj.id,
+                dueDate: currentDueDate,
+                minutes: reminderObj.minutesDiff,
+                method: existing.method === "email" ? "email" : "popup",
+                reminderGroupName: reminderObj.reminderGroupName,
+                reminderName: reminderObj.reminderName,
+                executionArn: reminderObj.executionArn,
+              });
+            }
           } else {
-            // this is the case where reminders payload was
-            // added in activity, but due to some reasons it
-            // couldn't added to reminder
-            remindersToBeAdded.push({
-              minutes: oldIReminder.minutes,
-              method: oldIReminder.method,
-            });
+            if (reminderObj) {
+              remindersToBeRemoved.push(reminderObj);
+            } else {
+              // this is the case where reminders payload was
+              // added in activity, but due to some reasons it
+              // couldn't added to reminder
+              remindersToBeAdded.push({
+                minutes: oldIReminder.minutes,
+                method: oldIReminder.method,
+              });
+            }
           }
-        }
-      });
-      newReminderOverrides?.map((newReminder) => {
-        const { method, minutes } = newReminder;
-        const found = oldIReminders.find((x) => x.minutes === minutes);
-        if (!found) {
-          remindersToBeAdded.push({ minutes, method });
-        }
-      });
+        });
+        newReminderOverrides?.map((newReminder) => {
+          const { method, minutes } = newReminder;
+          const found = oldIReminders.find((x) => x.minutes === minutes);
+          if (!found) {
+            remindersToBeAdded.push({ minutes, method });
+          }
+        });
 
-      const remindersToBeAddedPromises = remindersToBeAdded.map((x) =>
-        this.scheduleReminder(
+        const remindersToBeAddedPromise = await this.scheduleReminders(
           currentDueDate,
-          x.minutes,
+          remindersToBeAdded,
           createdBy.sub,
           oldRowData.id,
-          tableName,
-          x.method
-        )
-      );
-      const responses = [];
-      const addResponse = await Promise.all(remindersToBeAddedPromises);
-      const deleteResponse = await this.deleteReminders(remindersToBeRemoved);
-      const updateResponse = await this.updateReminders(remindersToBeUpdated);
-      responses.push(...addResponse);
-      responses.push(...updateResponse);
+          tableName
+        );
+        reminderResp.push(...remindersToBeAddedPromise);
+        await this.deleteReminders(remindersToBeRemoved);
+        if (remindersToBeRemoved.length > 0) {
+          reminderResp.push({
+            message: `${remindersToBeRemoved.length} reminders deleted successfully`,
+          });
+        }
+        const updateResponse = await this.updateReminders(remindersToBeUpdated);
+        reminderResp.push(...updateResponse);
+      }
+    } catch (e) {
+      reminderResp.push(e);
+    } finally {
+      return reminderResp;
     }
   }
 
@@ -617,10 +640,9 @@ export class ReminderService implements IReminderService {
       reminderGroupName: string;
       executionArn: string;
     }[]
-  ): Promise<any> {
-    if (!(reminders?.length > 0)) return;
+  ): Promise<any[]> {
+    if (!(reminders?.length > 0)) return [];
     const ebPromises: Promise<any>[] = [];
-    let errorMessage = null;
     const reminderResp = [];
     try {
       const updatePayload = reminders.map((reminder) => {
@@ -667,13 +689,9 @@ export class ReminderService implements IReminderService {
       await Promise.all(updateDbQueries);
     } catch (e) {
       reminderResp.push(e);
-      errorMessage = e.message;
+    } finally {
+      return reminderResp;
     }
-
-    if (errorMessage) throw new CustomError(errorMessage, 500);
-    // As it is only update reminder query, we are not making sure if it was updated first in
-    // db or not
-    return reminderResp;
   }
 
   async deleteRemindersWithName(
@@ -693,33 +711,35 @@ export class ReminderService implements IReminderService {
    * @returns
    */
   async deleteReminders(reminders: IReminder[]) {
-    if (!(reminders?.length > 0)) return;
-    const deleteEBPromises = reminders.map(async (reminder: IReminder) => {
-      return this.deleteEBScheduledItem(
-        reminder.reminderName,
-        reminder.reminderGroupName
-      );
-    });
-    let errorMessage = null;
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        await ReminderModel.query(trx)
-          .whereIn(
-            "id",
-            reminders.map((x) => x.id)
-          )
-          .del();
+    if (!(reminders?.length > 0)) return [];
+    const reminderResp = [];
+    try {
+      const deleteEBPromises = reminders.map(async (reminder: IReminder) => {
+        return this.deleteEBScheduledItem(
+          reminder.reminderName,
+          reminder.reminderGroupName
+        );
+      });
+      await this.docClient.getKnexClient().transaction(async (trx) => {
+        try {
+          await ReminderModel.query(trx)
+            .whereIn(
+              "id",
+              reminders.map((x) => x.id)
+            )
+            .del();
 
-        await Promise.all(deleteEBPromises);
-        await trx.commit();
-      } catch (e) {
-        errorMessage = e.message;
-        await trx.rollback();
-      }
-    });
-
-    if (errorMessage) {
-      throw new CustomError(errorMessage, 500);
+          await Promise.all(deleteEBPromises);
+          await trx.commit();
+        } catch (e) {
+          reminderResp.push(e);
+          await trx.rollback();
+        }
+      });
+    } catch (e) {
+      reminderResp.push(e);
+    } finally {
+      return reminderResp;
     }
   }
 

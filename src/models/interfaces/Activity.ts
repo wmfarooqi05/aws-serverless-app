@@ -108,6 +108,7 @@ export interface IEMAIL_DETAILS {
   body: string;
   status?: string;
   isDraft: boolean;
+  jobData?: Object;
   // attachment: string;
 }
 
@@ -127,6 +128,7 @@ export interface IMEETING_DETAILS {
   };
   sendUpdates: "all" | "externalOnly" | "none";
   createVideoLink: boolean;
+  jobData?: Object;
   // @TODO verify and make this IReminderInterface
   reminders?: {
     useDefault?: boolean;
@@ -155,6 +157,7 @@ export interface ITASK_DETAILS {
   summary: string;
   description: string;
   isScheduled: boolean;
+  jobData?: Object;
 }
 
 export interface ICALL_DETAILS {
@@ -168,6 +171,7 @@ export interface ICALL_DETAILS {
   callStartTime: string;
   callEndTime: string;
   isScheduled: boolean;
+  jobData?: Object;
 }
 
 export type IACTIVITY_DETAILS =
