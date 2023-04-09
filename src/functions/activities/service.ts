@@ -233,7 +233,7 @@ export class ActivityService implements IActivityService {
       dueDate: payload.dueDate,
       status: payload.status ?? ACTIVITY_STATUS.NOT_STARTED,
     };
-    activityObj.statusShort = this.getStatusShort(activityObj.status);
+    activityObj.statusShort = ActivityModel.getStatusShort(activityObj.status);
 
     let activity: IActivity = null;
     let sideJobResponse = null;
@@ -338,25 +338,6 @@ export class ActivityService implements IActivityService {
       return {
         activity: activityCombined,
       };
-    }
-  }
-
-  getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
-    switch (status) {
-      case ACTIVITY_STATUS.COMPLETED:
-        return ACTIVITY_STATUS_SHORT.CLOSED;
-      case ACTIVITY_STATUS.DEFERRED:
-        return ACTIVITY_STATUS_SHORT.CLOSED;
-      case ACTIVITY_STATUS.IN_PROGRESS:
-        return ACTIVITY_STATUS_SHORT.OPEN;
-      case ACTIVITY_STATUS.NEED_APPROVAL:
-        return ACTIVITY_STATUS_SHORT.OPEN;
-      case ACTIVITY_STATUS.NOT_STARTED:
-        return ACTIVITY_STATUS_SHORT.OPEN;
-      case ACTIVITY_STATUS.WAITING_FOR_SOMEONE_ELSE:
-        return ACTIVITY_STATUS_SHORT.OPEN;
-      default:
-        return ACTIVITY_STATUS_SHORT.OPEN;
     }
   }
 

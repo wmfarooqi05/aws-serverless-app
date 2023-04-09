@@ -1,5 +1,4 @@
 export enum PendingApprovalsStatus {
-  // CANCELLED = "CANCELLED", //A pending request is canceled and any action items associated with the request are canceled.
   ESCALATED = "ESCALATED", //	Because the original approver did not complete the RFI in the allotted amount of time, the RFI was sent to another approver.
   FAILED = "FAILED", //	The activity could not be completed. No further activity occurs.
   PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED", // 	The activity could not be completed because the approver was deleted from the system.

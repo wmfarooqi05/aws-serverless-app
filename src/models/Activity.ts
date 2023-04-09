@@ -89,14 +89,14 @@ export default class ActivityModel extends Model {
     await super.$beforeUpdate(opt, queryContext);
 
     const payload = this.toJSON();
-    this.statusShort = this.getStatusShort(payload.status);
+    this.statusShort = ActivityModel.getStatusShort(payload.status);
 
     if (payload.details?.isScheduled) {
       this.statusShort = ACTIVITY_STATUS_SHORT.SCHEDULED;
     }
   }
 
-  getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
+  static getStatusShort(status: ACTIVITY_STATUS): ACTIVITY_STATUS_SHORT {
     switch (status) {
       case ACTIVITY_STATUS.COMPLETED:
         return ACTIVITY_STATUS_SHORT.CLOSED;
@@ -110,6 +110,8 @@ export default class ActivityModel extends Model {
         return ACTIVITY_STATUS_SHORT.OPEN;
       case ACTIVITY_STATUS.WAITING_FOR_SOMEONE_ELSE:
         return ACTIVITY_STATUS_SHORT.OPEN;
+      case ACTIVITY_STATUS.SCHEDULED:
+        return ACTIVITY_STATUS_SHORT.SCHEDULED;
       default:
         return ACTIVITY_STATUS_SHORT.OPEN;
     }

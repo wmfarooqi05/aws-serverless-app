@@ -3,18 +3,19 @@ import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers";
 
 const tableName = Tables.pendingApprovals;
-enum PendingApprovalsStatus {
+export enum PendingApprovalsStatus {
+  ESCALATED = "ESCALATED", //	Because the original approver did not complete the RFI in the allotted amount of time, the RFI was sent to another approver.
+  FAILED = "FAILED", //	The activity could not be completed. No further activity occurs.
+  PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED", // 	The activity could not be completed because the approver was deleted from the system.
+  PENDING = "PENDING", //	No action was taken to complete the activity.
+  SUBMITTED = "SUBMITTED", //	The activity was submitted for approval.
+  SUCCESS = "SUCCESS", //	The RFI was successfully completed.
+  TERMINATED = "TERMINATED", //	The process run fails with an unknown exception.
+  TIMEOUT = "TIMEOUT", //	The specified amount of time to complete an activity passed. The activity is completed and a new activity is created and sent to the escalation participant.
+  WARNING = "WARNING", //	The activity was partially completed. A problem occurred, preventing the work order from being successfully completed.
   REJECTED = "REJECTED",
-  ESCALATED = "ESCALATED",
-  FAILED = "FAILED",
-  PARTICIPANT_RESOLUTION_FAILED = "PARTICIPANT_RESOLUTION_FAILED",
-  PENDING = "PENDING",
-  SUBMITTED = "SUBMITTED",
-  SUCCESS = "SUCCESS",
-  TERMINATED = "TERMINATED",
-  TIMEOUT = "TIMEOUT",
-  WARNING = "WARNING",
 }
+
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema

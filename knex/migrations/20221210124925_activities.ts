@@ -9,36 +9,40 @@ export enum ACTIVITY_TYPE {
   MEETING = "MEETING",
 }
 
-export enum ACTIVITY_STATUS {
-  // OPEN
-  NOT_STARTED = "NOT_STARTED",
-
-  DRAFT = "DRAFT", // if task is closed without saving
-  // Approval by manager, like for meetings, or some serious emails or calls
-  NEED_APPROVAL = "NEED_APPROVAL",
-  IN_PROGRESS = "IN_PROGRESS",
-
-  // SCHEDULED
-  SCHEDULED = "SCHEDULED",
-
-  // COMPLETED
-  DONE = "DONE",
-  CANCELLED = "CANCELLED",
-}
-
 export enum ACTIVITY_STATUS_SHORT {
   OPEN = "OPEN",
   CLOSED = "CLOSED",
   SCHEDULED = "SCHEDULED",
 }
 
+export enum ACTIVITY_STATUS {
+  NOT_STARTED = "NOT_STARTED",
+  NEED_APPROVAL = "NEED_APPROVAL",
+  WAITING_FOR_SOMEONE_ELSE = "WAITING_FOR_SOMEONE_ELSE",
+  SCHEDULED = "SCHEDULED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  DEFERRED = "DEFERRED",
+}
+
+export const ACTIVITY_STATUSES = [
+  "NOT_STARTED",
+  "NEED_APPROVAL",
+  "WAITING_FOR_SOMEONE_ELSE",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "DEFERRED",
+];
+
 export enum ACTIVITY_PRIORITY {
+  NONE = "NONE",
   LOWEST = "LOWEST",
   LOW = "LOW",
   NORMAL = "NORMAL",
   HIGH = "HIGH",
   HIGHEST = "HIGHEST",
 }
+
 const tableName = Tables.activities;
 
 export async function up(knex: Knex): Promise<void> {
