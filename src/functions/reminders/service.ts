@@ -486,7 +486,7 @@ export class ReminderService implements IReminderService {
             x.method
           )
       );
-      const resp = await Promise.all(remindersToBeAddedPromises);
+      await Promise.all(remindersToBeAddedPromises);
       await this.deleteReminders(remindersToBeRemoved);
       await this.updateReminders(remindersToBeUpdated);
     }

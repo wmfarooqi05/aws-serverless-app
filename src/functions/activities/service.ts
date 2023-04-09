@@ -7,6 +7,7 @@ import {
   validateGetActivities,
   validateGetActivitiesByCompany,
   validateGetEmployeeStaleActivities,
+  validateGetMyStaleActivities,
   validateUpdateActivity,
   validateUpdateStatus,
 } from "./schema";
@@ -393,36 +394,7 @@ export class ActivityService implements IActivityService {
   }
 
   async getMyStaleActivities(employee: IEmployeeJwt, body: any) {
-    // await validateGetMyStaleActivities(body);
-
-    // const knex = this.docClient.getKnexClient();
-    // return knex("update_history as u")
-    //   .distinctOn("u.table_row_id")
-    //   .select("u.table_row_id")
-    //   .where("u.table_name", "activities")
-    //   .where("u.field", "status")
-    //   // // .where("u.updated_at", "<=", knex.raw("now() - interval '10 days')"))
-    //   .orderBy("u.table_row_id")
-    //   .orderBy("u.updated_at", "desc");
-    // return knex(`${this.TableName} as a`)
-    //   .modify(function (subquery) {
-    //     subquery
-    //       .whereIn("a.id", function () {
-    //         this.distinctOn("u.table_row_id")
-    //           .select("u.table_row_id")
-    //           .from("update_history as u")
-    //           .where("u.table_name", "activities")
-    //           .where("u.field", "status")
-    //           .orderBy("u.table_row_id")
-    //           .orderBy("u.updated_at", "desc")
-    //         // .orderBy(['u.table_row_id', { column: 'u.updated_at', order: 'desc' }])
-    //         // .where('u.updated_at', '<=', knex.raw("now() - interval '10 days')"))
-    //         // .orderBy('u.updated_at','desc')
-    //       })
-    //       .whereIn("a.status", ["IN_PROGRESS", "WAITING_FOR_SOMEONE_ELSE"])
-    //       .whereIn("a.priority", ["NORMAL"]);
-    //   })
-    //   .select(['id', 'status', 'status_short']);
+    await validateGetMyStaleActivities(body);
 
     return this.docClient
       .get(`${this.TableName} as a`)
