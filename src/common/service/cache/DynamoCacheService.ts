@@ -20,10 +20,12 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { ICache } from "./CacheService";
 
-export interface IDynamoService extends ICache {}
+// @TODO replace this with main dynamo service
+// right now keeping this class as it is 
+export interface IDynamoCacheService extends ICache {}
 
 @injectable()
-export class DynamoService implements IDynamoService {
+export class DynamoCacheService implements IDynamoCacheService {
   client: DynamoDBClient;
   // isReady: boolean;
   constructor() {

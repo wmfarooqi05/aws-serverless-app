@@ -64,6 +64,7 @@ export const googleOauthCallbackHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+// check if we want this, or already covered in get token
 export const googleOauthExtendRefreshTokenHandler = async (event) => {
   try {
     const updatedToken = container
@@ -75,6 +76,7 @@ export const googleOauthExtendRefreshTokenHandler = async (event) => {
   }
 };
 
+// @DEV
 export const googleOauthTokenScopeHandler = async (event) => {
   try {
     const resp = await container

@@ -4,6 +4,12 @@ export interface IEmployeeJwt {
   teamId: string;
   permitted: boolean;
   createPendingApproval: boolean;
+  email: string;
+  email_verified: boolean;
+  phone_number_verified: boolean;
+  auth_time: string;
+  phone_number: string;
+  exp: string;
 }
 
 export const roleKey = "cognito:groups";

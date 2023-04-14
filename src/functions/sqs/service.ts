@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { injectable } from "tsyringe";
+import { container, injectable } from "tsyringe";
 import {
   SQSClient,
   SendMessageCommand,
@@ -12,6 +12,13 @@ import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcess } from "@functions/jobs/bulkSignupProcess";
 import { IPendingApprovals } from "@models/interfaces/PendingApprovals";
 import { INotification } from "@models/Notification";
+import {
+  IEmailSqsEventInput,
+  IJobSqsEventInput,
+  I_SQS_EVENT_INPUT,
+} from "@models/interfaces/Reminders";
+import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
+import { ReminderService } from "@functions/reminders/service";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -42,27 +49,46 @@ export class SQSService {
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
     try {
+      const deleteEvent = [];
       const promises = Records.map(async (record) => {
-        const payload = JSON.parse(record.body);
+        const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
 
-        const messageBody = JSON.parse(payload);
-        if (!messageBody.jobId) {
-          throw new CustomError("job id not found", 400);
-          return;
-        }
-        const job: IJobsResults = await JobsResultsModel.query().findById(
-          messageBody.jobId
-        );
-        if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
-          await bulkImportUsersProcess(job);
-        }
+        deleteEvent.push(this.deleteMessage(record.receiptHandle));
 
-        await this.deleteMessage(record.receiptHandle);
+        if (payload.eventType === "REMINDER") {
+          return this.reminderSqsEventHandler(payload);
+        } else if (payload.eventType === "SEND_EMAIL") {
+          return this.emailSqsEventHandler(payload);
+        } else if (payload.eventType === "JOB") {
+          return this.jobSqsEventHandler(payload);
+        }
       });
 
       await Promise.all(promises);
+      await Promise.all(deleteEvent);
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async emailSqsEventHandler(input: IEmailSqsEventInput) {
+    return;
+  }
+
+  async reminderSqsEventHandler(input: IEBSchedulerEventInput) {
+    return container.resolve(ReminderService).handleEBSchedulerInvoke(input);
+  }
+
+  async jobSqsEventHandler(input: IJobSqsEventInput) {
+    if (!input.jobId) {
+      throw new CustomError("job id not found", 400);
+      return;
+    }
+    const job: IJobsResults = await JobsResultsModel.query().findById(
+      input.jobId
+    );
+    if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
+      await bulkImportUsersProcess(job);
     }
   }
 

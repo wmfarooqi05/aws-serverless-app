@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
-import { DynamoService } from "@common/service/DynamoService";
+import { DynamoCacheService } from "./DynamoCacheService";
 import { ElasticCacheService } from "./ElasticCache";
 import moment from "moment-timezone";
 
@@ -21,7 +21,7 @@ export class CacheService implements ICacheService {
   // also, this cache can also be used for values other than connections
   // so we will need to modify in future
   constructor(
-    @inject(DynamoService) private readonly dynamoService: DynamoService,
+    @inject(DynamoCacheService) private readonly dynamoService: DynamoCacheService,
     @inject(ElasticCacheService)
     private readonly elasticCache: ElasticCacheService
   ) {

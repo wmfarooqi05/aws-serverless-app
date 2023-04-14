@@ -12,7 +12,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
-import { CacheService } from "@common/service/CacheService";
+import { CacheService } from "@common/service/cache/CacheService";
 import axios from "axios";
 import { INotification } from "@models/Notification";
 

@@ -33,6 +33,7 @@ export const ensureEnvConfigs = () => {
     "REMINDER_SCHEDULER_GROUP_ARN",
     "REMINDER_SCHEDULER_GROUP_NAME",
     "REMINDER_TARGET_LAMBDA",
+    "JOB_SQS_ARN",
 
     "ConnectionTableName",
     "ConnectionTablePartitionKey",

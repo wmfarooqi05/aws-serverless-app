@@ -3,12 +3,12 @@ import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers";
 
 export const EmployeeRolesMigrate = [
-  "SALES_REP",
-  "SALES_MANAGER",
-  "REGIONAL_MANAGER",
-  "ADMIN",
-  "SUPER_ADMIN",
-]
+    "SALES_REP_GROUP",
+    "SALES_MANAGER_GROUP",
+    "REGIONAL_MANAGER_GROUP",
+    "ADMIN_GROUP",
+    "SUPER_ADMIN_GROUP",
+  ];
 
 const tableName = Tables.employees;
 

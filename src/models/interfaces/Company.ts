@@ -64,7 +64,12 @@ export enum COMPANY_STATUS {
   JUNK_LEAD = "JUNK_LEAD",
   LOST_LEAD = "LOST_LEAD",
   NOT_CONTACTED = "NOT_CONTACTED",
+  DO_NOT_CALL = "DO_NOT_CALL",
 }
+
+// we have to manage status and priorities by teams
+// do not email me
+//
 
 export enum COMPANY_PRIORITY {
   NO_PRIORITY = "NO_PRIORITY",

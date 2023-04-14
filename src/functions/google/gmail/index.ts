@@ -1,6 +1,7 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
+// remove this
 const createAndSendEmail = {
   handler: `${handlerPath(__dirname)}/handler.createAndSendEmail`,
   events: [

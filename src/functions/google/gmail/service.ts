@@ -7,6 +7,7 @@ import { IActivity, IEMAIL_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployee } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
+import { formatRFC2822Message } from "@utils/emails";
 
 @injectable()
 export class GoogleGmailService {
@@ -35,14 +36,7 @@ export class GoogleGmailService {
     );
     // const token = await this.googleOAuthService.getRefreshedAccessToken(employeeId);
     const _client = await this.getGoogleGmailClient(employeeId);
-    const raw = this.formatRFC2822Message(
-      from,
-      to,
-      subject,
-      date,
-      messageId,
-      body
-    );
+    const raw = formatRFC2822Message(from, to, subject, date, messageId, body);
     const resp = await _client.users.messages.send({
       userId: employee.email,
       requestBody: {
@@ -58,14 +52,7 @@ export class GoogleGmailService {
       activity.details as IEMAIL_DETAILS;
     if (isDraft) return;
     const _client = await this.getGoogleGmailClient(activity.createdBy);
-    const raw = this.formatRFC2822Message(
-      from,
-      to,
-      subject,
-      date,
-      messageId,
-      body
-    );
+    const raw = formatRFC2822Message(from, to, subject, date, messageId, body);
     const resp = await _client.users.messages.send({
       userId: fromEmail,
       requestBody: {
@@ -74,39 +61,5 @@ export class GoogleGmailService {
     });
 
     return resp;
-  }
-
-  formatRFC2822Message(
-    from: string,
-    to: string,
-    subject: string,
-    date: string,
-    messageId: string,
-    body: string
-  ) {
-    let message: string = "";
-    message += "From: " + from + "\r\n";
-    message += "To: " + to + "\r\n";
-    message += "Subject: " + subject + "\r\n";
-    message += "Date: " + date + "\r\n";
-    message += "Message-ID: " + messageId + "\r\n";
-    if (this.isHtml(body)) {
-      message += "Content-Type: text/html; charset=utf-8`\r\n";
-    }
-    message += "\r\n";
-    message += body;
-
-    return this.utf8_to_b64(message);
-  }
-
-  utf8_to_b64(text) {
-    return Buffer.from(
-      String.fromCharCode.apply(null, new TextEncoder().encode(text))
-    ).toString("base64");
-  }
-
-  isHtml(str) {
-    const htmlRegex = /<[a-z][\s\S]*>/i;
-    return htmlRegex.test(str);
   }
 }

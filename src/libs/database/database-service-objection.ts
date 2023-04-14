@@ -6,13 +6,6 @@ import { attachPaginate } from "knex-paginate";
 // @TODO check if this works
 attachPaginate();
 
-export default interface IConfig {
-  region: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
-  endpoint?: string;
-}
-
 @injectable()
 export class DatabaseService {
   // @TODO make this private

@@ -137,11 +137,19 @@ export class ReminderService implements IReminderService {
   async handleEBSchedulerInvoke(event: IEBSchedulerEventInput) {
     console.log("scheduler event", event);
     const { tableName, tableRowId, minutes } = event.details;
+    console.log(
+      "tableName, tableRowId, minutes",
+      tableName,
+      tableRowId,
+      minutes
+    );
     const reminder: IReminder = await this.fetchReminderByTableItem(
       tableName,
       tableRowId,
       minutes
     );
+
+    console.log("reminder", reminder);
 
     if (!reminder) {
       throw new CustomError(
@@ -400,7 +408,7 @@ export class ReminderService implements IReminderService {
   ) {
     const Target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
-      Arn: process.env.REMINDER_TARGET_LAMBDA!,
+      Arn: process.env.JOB_SQS_ARN!,
     };
 
     const input: UpdateScheduleCommandInput = {
@@ -802,7 +810,7 @@ export class ReminderService implements IReminderService {
   ): Promise<CreateScheduleCommandOutput> {
     const target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
-      Arn: process.env.REMINDER_TARGET_LAMBDA!,
+      Arn: process.env.JOB_SQS_ARN!,
       Input: JSON.stringify(params),
     };
 
@@ -823,3 +831,5 @@ export class ReminderService implements IReminderService {
     return output;
   }
 }
+
+interface I_SQS_INPUT {}

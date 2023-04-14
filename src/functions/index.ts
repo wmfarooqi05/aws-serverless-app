@@ -85,6 +85,8 @@ import {
   // deleteMeetingById,
 } from "@functions/google/calendar";
 
+import { sendEmail } from "@functions/emails";
+
 import {
   importData,
   bulkCognitoSignup,
@@ -169,6 +171,9 @@ export default {
   // deleteMeetingById,
 
   createAndSendEmail,
+
+  /// emails
+  sendEmail,
 
   // employees
   getEmployees,
