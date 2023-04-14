@@ -6,9 +6,16 @@ import { container } from "tsyringe";
 
 export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
   try {
-    console.log('[sqsJobQueueInvokeHandler]')
-    await container.resolve(SQSService).sqsJobQueueInvokeHandler(event.Records);
+    if (event.body) {
+      event.Records = [{ body: event.body }];
+    }
+    console.log("[sqsJobQueueInvokeHandler]", event);
+    const service = container.resolve(SQSService);
+    console.log("service", service);
+    const resp = await service.sqsJobQueueInvokeHandler(event.Records);
+    console.log("await ended");
     const ids = event.Records.filter((x) => x.messageId);
+    return formatJSONResponse(resp, 200);
     return formatJSONResponse(
       { message: `Job executed properly, Ids: ${ids}` },
       200

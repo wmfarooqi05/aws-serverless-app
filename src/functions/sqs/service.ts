@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { container, injectable } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 import {
   SQSClient,
   SendMessageCommand,
@@ -51,7 +51,10 @@ export class SQSService {
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
     try {
       const deleteEvent = [];
+      console.log("[sqsJobQueueInvokeHandler] records", Records);
       const promises = Records.map(async (record) => {
+        console.log("[sqsJobQueueInvokeHandler] record", record);
+
         const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
 
         deleteEvent.push(this.deleteMessage(record.receiptHandle));
@@ -65,14 +68,16 @@ export class SQSService {
         }
       });
 
-      await Promise.all(promises);
+      const resps = await Promise.all(promises);
       await Promise.all(deleteEvent);
+      return resps;
     } catch (error) {
       console.error(error);
     }
   }
 
   async emailSqsEventHandler(record: IEmailSqsEventInput) {
+    console.log("[emailSqsEventHandler]", record);
     return container.resolve(EmailService).sqsEmailHandler(record);
   }
 

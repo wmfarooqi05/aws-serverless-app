@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { inject, injectable } from "tsyringe";
+import { container, delay, inject, injectable } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
 import EmailModel from "@models/dynamoose/Emails";
@@ -19,7 +19,6 @@ export interface IEmailService {}
 export class EmailService implements IEmailService {
   constructor(
     @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
-    @inject(SQSService) private readonly sqsService: SQSService,
     @inject(DatabaseService) private readonly _: DatabaseService
   ) {}
 
@@ -76,7 +75,8 @@ export class EmailService implements IEmailService {
       ],
     };
 
-    const resp = await this.sqsService.enqueueItems(item);
+    const resp = await container.resolve(SQSService).enqueueItems(item);
+
     return JobsResultsModel.query().insert({
       jobType: "SEND_EMAIL",
       details: {
@@ -117,21 +117,22 @@ export class EmailService implements IEmailService {
   async deleteEmail(id: string): Promise<any> {}
 
   async sqsEmailHandler(event: IEmailSqsEventInput) {
+    console.log("[sqsEmailHandler]", event);
     const {
-        senderEmail,
-        senderId,
-        replyTo,
-        ConfigurationSetName,
-        recipientId,
-        recipientEmail,
-        subject,
-        body,
-        ccList,
-        bccList,
-        companyId,
+      senderEmail,
+      senderId,
+      replyTo,
+      ConfigurationSetName,
+      recipientId,
+      recipientEmail,
+      subject,
+      body,
+      ccList,
+      bccList,
+      companyId,
     } = event.details[0];
-    await validateSendEmail(event);
     try {
+      await validateSendEmail(event);
       const respEmail = await this.sesEmailService.sendEmails(
         senderEmail,
         [recipientEmail],
@@ -165,6 +166,8 @@ export class EmailService implements IEmailService {
         return resp;
       }
     } catch (error) {
+      console.log("[sqsEmailHandler] error: ", error);
+
       if (error.$metadata) {
         const {
           $metadata: { httpStatusCode },

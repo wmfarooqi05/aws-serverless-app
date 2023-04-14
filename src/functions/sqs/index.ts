@@ -9,6 +9,13 @@ const sqsJobQueueInvokeHandler = {
         arn: `arn:aws:sqs:ca-central-1:524073432557:job-queue-dev`,
       },
     },
+    // {
+    //   http: {
+    //     method: "post",
+    //     path: "job-queue",
+    //     cors: true,
+    //   },
+    // },
   ],
 };
 

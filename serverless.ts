@@ -163,7 +163,7 @@ const serverlessConfiguration: AWS = {
     "serverless-layers": {
       packageManager: "npm",
       dependenciesPath: "package.json",
-      compatibleRuntimes: ["nodejs16.x", "nodejs18.x"],
+      compatibleRuntimes: ["nodejs18.x"],
     },
     serverlessOfflineSqs: {
       autoCreate: true,
@@ -204,21 +204,21 @@ const serverlessConfiguration: AWS = {
           QueueName: "${self:custom.JOB_QUEUE}",
         },
       },
-      EmailSNSTopic: {
-        Type: "AWS::SNS::Topic",
-        Properties: {
-          DisplayName: "Email SNS Topic",
-          Subscription: [
-            {
-              Protocol: "sqs",
-              TopicArn: "${self:custom.snsTopicArn}",
-              Endpoint: {
-                "Fn::GetAtt": ["EmailSNSTopic", "Arn"],
-              },
-            },
-          ],
-        },
-      },
+      // EmailSNSTopic: {
+      //   Type: "AWS::SNS::Topic",
+      //   Properties: {
+      //     DisplayName: "Email SNS Topic",
+      //     Subscription: [
+      //       {
+      //         Protocol: "sqs",
+      //         TopicArn: "${self:custom.snsTopicArn}",
+      //         Endpoint: {
+      //           "Fn::GetAtt": ["EmailSNSTopic", "Arn"],
+      //         },
+      //       },
+      //     ],
+      //   },
+      // },
       // Websocket endpoint authorization with cognito
       // WebsocketAuthorizer: {
       //   Type: "AWS::ApiGateway::Authorizer",
