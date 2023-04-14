@@ -26,22 +26,24 @@ export class SESEmailService implements ISESEmailService {
   }
 
   /**
-   * 
-   * @param from 
-   * @param recipients 
-   * @param subject 
-   * @param body 
-   * @param CcAddresses 
-   * @param BccAddresses 
-   * @returns 
+   *
+   * @param from
+   * @param recipients
+   * @param subject
+   * @param body
+   * @param CcAddresses
+   * @param BccAddresses
+   * @returns
    */
   async sendEmails(
     from: string,
     recipients: string[],
     subject: string,
     body: string,
+    ConfigurationSetName: string,
     CcAddresses: string[] = [],
     BccAddresses: string[] = [],
+    replyTo: string[] = []
   ): Promise<SendBounceCommandOutput> {
     const isBodyHtml = isHtml(body);
     const bodyData = { Data: body };
@@ -59,7 +61,8 @@ export class SESEmailService implements ISESEmailService {
         },
         Body: isBodyHtml ? { Html: bodyData } : { Text: bodyData },
       },
-      ReplyToAddresses: [from, ...CcAddresses],
+      ReplyToAddresses: [...new Set([from, ...CcAddresses, ...replyTo])],
+      ConfigurationSetName,
     };
     const command = new SendEmailCommand(input);
 

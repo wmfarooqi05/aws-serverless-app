@@ -130,7 +130,11 @@ export class ReminderService implements IReminderService {
     tableRowId: string,
     minutes: number
   ): Promise<IReminder> {
-    return ReminderModel.query().findOne({ tableName, tableRowId, minutes });
+    return ReminderModel.query().findOne({
+      tableName,
+      tableRowId,
+      minutesDiff: minutes,
+    });
   }
 
   // for internal service
@@ -143,11 +147,11 @@ export class ReminderService implements IReminderService {
       tableRowId,
       minutes
     );
-    const reminder: IReminder = await this.fetchReminderByTableItem(
+    const reminder: IReminder = await ReminderModel.query().findOne({
       tableName,
       tableRowId,
-      minutes
-    );
+      minutesDiff: minutes,
+    });
 
     console.log("reminder", reminder);
 

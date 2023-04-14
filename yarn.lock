@@ -4079,7 +4079,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aws-sdk@npm:^2.1352.0":
+"aws-sdk@npm:^2.1234.0, aws-sdk@npm:^2.1352.0":
   version: 2.1358.0
   resolution: "aws-sdk@npm:2.1358.0"
   dependencies:
@@ -5512,6 +5512,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eventemitter3@npm:^4.0.4":
+  version: 4.0.7
+  resolution: "eventemitter3@npm:4.0.7"
+  checksum: 1875311c42fcfe9c707b2712c32664a245629b42bb0a5a84439762dd0fd637fc54d078155ea83c2af9e0323c9ac13687e03cfba79b03af9f40c89b4960099374
+  languageName: node
+  linkType: hard
+
 "events@npm:1.1.1":
   version: 1.1.1
   resolution: "events@npm:1.1.1"
@@ -6103,6 +6110,7 @@ __metadata:
     serverless-esbuild: ^1.37.3
     serverless-layers: ^2.6.1
     serverless-offline: ^12.0.4
+    serverless-offline-sqs: ^7.3.2
     ts-node: ^10.9.1
     tsconfig-paths: ^4.1.2
     tsyringe: ^4.7.0
@@ -8234,6 +8242,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"p-queue@npm:^6.6.2":
+  version: 6.6.2
+  resolution: "p-queue@npm:6.6.2"
+  dependencies:
+    eventemitter3: ^4.0.4
+    p-timeout: ^3.2.0
+  checksum: 832642fcc4ab6477b43e6d7c30209ab10952969ed211c6d6f2931be8a4f9935e3578c72e8cce053dc34f2eb6941a408a2c516a54904e989851a1a209cf19761c
+  languageName: node
+  linkType: hard
+
 "p-retry@npm:^5.1.2":
   version: 5.1.2
   resolution: "p-retry@npm:5.1.2"
@@ -8244,7 +8262,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-timeout@npm:^3.1.0":
+"p-timeout@npm:^3.1.0, p-timeout@npm:^3.2.0":
   version: 3.2.0
   resolution: "p-timeout@npm:3.2.0"
   dependencies:
@@ -9010,6 +9028,19 @@ __metadata:
     semver: ^7.3.2
     slugify: ^1.4.0
   checksum: 77ac85091db9c08aa17a09f48789575b9a2c9bcd86640f55ea642c5c52d74db0206fbe409f6f738f7c557881a6c23691e675aa2889cd82d0d0d4057f2850bef1
+  languageName: node
+  linkType: hard
+
+"serverless-offline-sqs@npm:^7.3.2":
+  version: 7.3.2
+  resolution: "serverless-offline-sqs@npm:7.3.2"
+  dependencies:
+    aws-sdk: ^2.1234.0
+    lodash: ^4.17.21
+    p-queue: ^6.6.2
+  peerDependencies:
+    serverless-offline: ^10.0.2 || ^11 || ^12
+  checksum: 27dd79e3ee3dec1eb667d7814af7e0bbfbbb5f69b9105b8c1d75f09dba68f8cd2d58bb133bb4a95fef7ffbd43ee863dac81a822de7641bce9389f0e313e82488
   languageName: node
   linkType: hard
 

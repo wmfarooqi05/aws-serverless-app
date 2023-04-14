@@ -106,6 +106,8 @@ const serverlessConfiguration: AWS = {
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
     JOBS_FOLDER: process.env.JOBS_FOLDER,
     userPoolId: process.env.USER_POOL_ID,
+    snsTopicArn: "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
+
     // cognitoAuthorizerArn:
     //   "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
 
@@ -163,6 +165,15 @@ const serverlessConfiguration: AWS = {
       dependenciesPath: "package.json",
       compatibleRuntimes: ["nodejs16.x", "nodejs18.x"],
     },
+    serverlessOfflineSqs: {
+      autoCreate: true,
+      apiVersion: "2012-11-05",
+      endpoint: "http://0.0.0.0:9324",
+      region: "ca-central-1",
+      accessKeyId: "root",
+      secretAccessKey: "root",
+      skipCacheInvalidation: false,
+    },
   },
   // include resources from resources.ts
   resources: {
@@ -191,6 +202,21 @@ const serverlessConfiguration: AWS = {
         Type: "AWS::SQS::Queue",
         Properties: {
           QueueName: "${self:custom.JOB_QUEUE}",
+        },
+      },
+      EmailSNSTopic: {
+        Type: "AWS::SNS::Topic",
+        Properties: {
+          DisplayName: "Email SNS Topic",
+          Subscription: [
+            {
+              Protocol: "sqs",
+              TopicArn: "${self:custom.snsTopicArn}",
+              Endpoint: {
+                "Fn::GetAtt": ["EmailSNSTopic", "Arn"],
+              },
+            },
+          ],
         },
       },
       // Websocket endpoint authorization with cognito

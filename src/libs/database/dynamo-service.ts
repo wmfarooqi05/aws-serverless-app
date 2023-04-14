@@ -28,9 +28,16 @@ export class DynamoService implements IDynamoService {
   async initializeClient() {
     try {
       if (this.client) return;
-      this.client = new DynamoDBClient({
-        region: process.env.REGION,
-      });
+      // if (process.env.STAGE === "local") {
+      //   this.client = new DynamoDBClient({
+      //     region: process.env.REGION,
+      //     endpoint: "http://localhost:8000",
+      //   });
+      // } else {
+        this.client = new DynamoDBClient({
+          region: process.env.REGION,
+        });
+      // }
     } catch (e) {
       console.error("[DynamoService] error", e);
     }

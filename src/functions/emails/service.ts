@@ -4,24 +4,45 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { inject, injectable } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import { EmailModel } from "@models/dynamoose/Emails";
+import EmailModel from "@models/dynamoose/Emails";
 import { randomUUID } from "crypto";
+import { CustomError } from "@helpers/custom-error";
+import { validateSendEmail } from "./schema";
+import moment from "moment-timezone";
+import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
+import { SQSService } from "@functions/sqs/service";
+import JobsResultsModel from "@models/JobsResult";
 
 export interface IEmailService {}
 
 @injectable()
 export class EmailService implements IEmailService {
   constructor(
-    @inject(SESEmailService) private readonly sesEmailService: SESEmailService
+    @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
+    @inject(SQSService) private readonly sqsService: SQSService,
+    @inject(DatabaseService) private readonly _: DatabaseService
   ) {}
 
   async getAllEmails(body: any): Promise<IEmailPaginated> {}
 
   async getEmail(id: string): Promise<IEmailModel> {}
 
+  /**
+   * @param employee
+   * @param body
+   * @returns
+   */
   async sendEmail(employee: IEmployeeJwt, body: any): Promise<IEmailModel> {
-    const payload = JSON.parse(body);
-    // await validateSendEmail(payload);
+    const payload: {
+      recipientId: string;
+      recipientEmail: string;
+      subject: string;
+      body: string;
+      ccList: string[];
+      bccList: string[];
+      companyId: string;
+    } = JSON.parse(body);
+    await validateSendEmail(employee, payload);
     // @TODO get reporting manager if want to add CC
 
     const {
@@ -29,42 +50,48 @@ export class EmailService implements IEmailService {
       recipientEmail,
       subject,
       body: emailBody,
-      CcAddresses,
-      BccAddresses,
+      ccList,
+      bccList,
       companyId,
     } = payload;
 
-    const respEmail = await this.sesEmailService.sendEmails(
-      employee.email,
-      [recipientEmail],
-      subject,
-      emailBody,
-      // CcAddresses,
-      // BccAddresses
-    );
+    const id = randomUUID();
 
-    const newEmail = new EmailModel({
-      id: randomUUID(),
-      senderId: employee.sub,
-      senderEmail: employee.email,
-      emailData: {
-        subject,
-        body: emailBody,
+    const item: IEmailSqsEventInput = {
+      eventType: "SEND_EMAIL",
+      name: `EMAIL_JOB_${id}`,
+      details: [
+        {
+          body: emailBody,
+          ConfigurationSetName: "email_sns_config",
+          recipientEmail,
+          senderEmail: employee.email,
+          senderId: employee.sub,
+          subject,
+          bccList,
+          ccList,
+          companyId,
+          recipientId,
+        },
+      ],
+    };
+
+    const resp = await this.sqsService.enqueueItems(item);
+    return JobsResultsModel.query().insert({
+      jobType: "SEND_EMAIL",
+      details: {
+        sqsResp: resp.MessageId,
+        emailDetails: item.details,
       },
-      // ccList: CcAddresses,
-      // bccList: BccAddresses,
-      recipientId,
-      recipientEmail,
-      companyId,
-      sentDate: Date.now(),
-      serviceProvider: "AWS",
-      updatedBy: employee.sub,
+      uploadedBy: employee.sub,
     });
-
-    const resp = await newEmail.save();
-    return resp;
   }
-
+  /**
+   * Push the emails in chunk of 50 in each sqs item
+   * @param employee
+   * @param body
+   * @returns
+   */
   async sendBulkEmails(
     employee: IEmployeeJwt,
     body
@@ -73,6 +100,11 @@ export class EmailService implements IEmailService {
     // push this to sqs, which will trigger the same function, sendEmails
     return: any;
   }> {
+    const payload = JSON.parse(body);
+    if (payload.emailListId) {
+      const emailList = EmailList.query();
+    }
+
     return;
   }
 
@@ -83,4 +115,65 @@ export class EmailService implements IEmailService {
   ): Promise<IEmailModel> {}
 
   async deleteEmail(id: string): Promise<any> {}
+
+  async sqsEmailHandler(event: IEmailSqsEventInput) {
+    const {
+        senderEmail,
+        senderId,
+        replyTo,
+        ConfigurationSetName,
+        recipientId,
+        recipientEmail,
+        subject,
+        body,
+        ccList,
+        bccList,
+        companyId,
+    } = event.details[0];
+    await validateSendEmail(event);
+    try {
+      const respEmail = await this.sesEmailService.sendEmails(
+        senderEmail,
+        [recipientEmail],
+        subject,
+        body,
+        ConfigurationSetName,
+        ccList,
+        bccList,
+        replyTo
+      );
+
+      if (respEmail?.$metadata?.httpStatusCode === 200) {
+        const newEmail = new EmailModel({
+          id: randomUUID(),
+          senderId,
+          senderEmail,
+          emailData: {
+            subject,
+            body,
+          },
+          ccList: ccList?.join(","),
+          bccList: bccList?.join(","),
+          recipientId,
+          recipientEmail,
+          companyId,
+          serviceProvider: "AMAZON_SES",
+          updatedBy: senderId,
+        });
+
+        const resp = await newEmail.save();
+        return resp;
+      }
+    } catch (error) {
+      if (error.$metadata) {
+        const {
+          $metadata: { httpStatusCode },
+          Error: { message },
+        } = error;
+        throw new CustomError(message, httpStatusCode);
+      } else {
+        throw new CustomError(error.message, error.statusCode, error);
+      }
+    }
+  }
 }

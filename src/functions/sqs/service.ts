@@ -19,13 +19,14 @@ import {
 } from "@models/interfaces/Reminders";
 import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
 import { ReminderService } from "@functions/reminders/service";
+import { EmailService } from "@functions/emails/service";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
 //   "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev";
-if (process.env.STAGE === "local") {
-  queueUrl = "http://localhost:4566/000000000000/job-queue-local";
-}
+// if (process.env.STAGE === "local") {
+//   queueUrl = "http://localhost:4566/000000000000/job-queue-local";
+// }
 
 console.log("queueUrl", queueUrl);
 
@@ -34,17 +35,17 @@ export class SQSService {
   sqsClient: SQSClient = null;
   constructor() {
     // this.sqs = new SQS({ region: process.env.REGION });
-    if (process.env.STAGE === "local") {
-      this.sqsClient = new SQSClient({
-        endpoint: "http://localhost:4566", // Replace with the endpoint of your LocalStack instance
-        region: "ca-central-1", // Replace with your desired region
-        apiVersion: "2012-11-05", // Replace with your desired API version})
-      });
-    } else {
-      this.sqsClient = new SQSClient({
-        region: process.env.REGION,
-      });
-    }
+    // if (process.env.STAGE === "local") {
+    //   this.sqsClient = new SQSClient({
+    //     endpoint: "http://localhost:4566", // Replace with the endpoint of your LocalStack instance
+    //     region: "ca-central-1", // Replace with your desired region
+    //     apiVersion: "2012-11-05", // Replace with your desired API version})
+    //   });
+    // } else {
+    this.sqsClient = new SQSClient({
+      region: process.env.REGION,
+    });
+    // }
   }
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
@@ -71,8 +72,8 @@ export class SQSService {
     }
   }
 
-  async emailSqsEventHandler(input: IEmailSqsEventInput) {
-    return;
+  async emailSqsEventHandler(record: IEmailSqsEventInput) {
+    return container.resolve(EmailService).sqsEmailHandler(record);
   }
 
   async reminderSqsEventHandler(input: IEBSchedulerEventInput) {
@@ -119,7 +120,8 @@ export class SQSService {
       // return data; // For unit tests.
 
       const command = new SendMessageCommand({
-        QueueUrl: queueUrl,
+        QueueUrl:
+          "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev",
         MessageBody: messageBody,
       });
       const response = await this.sqsClient.send(command);
@@ -175,9 +177,17 @@ export class SQSService {
     }
   }
 
-  // async enqueueNotifications(
-  //   notifications: INotification[]
-  // ) {
-  //   this.quq
-  // }
+  async enqueueItems(item: any) {
+    try {
+      const sendMessageCommand = new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: JSON.stringify(item),
+      });
+
+      // Send the message using the SQS client
+      return this.sqsClient.send(sendMessageCommand);
+    } catch (error) {
+      console.error(`Error during enqueue: ${error}`);
+    }
+  }
 }
