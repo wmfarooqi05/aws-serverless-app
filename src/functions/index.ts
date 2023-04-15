@@ -86,6 +86,12 @@ import {
 } from "@functions/google/calendar";
 
 import { sendEmail } from "@functions/emails";
+import {
+  getAllEmailLists,
+  addEmailList,
+  updateEmailList,
+  deleteEmailList,
+} from "@functions/emails/emailLists";
 
 import {
   importData,
@@ -174,6 +180,12 @@ export default {
 
   /// emails
   sendEmail,
+
+  // email list
+  addEmailList,
+  updateEmailList,
+  deleteEmailList,
+  getAllEmailLists,
 
   // employees
   getEmployees,

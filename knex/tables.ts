@@ -11,6 +11,7 @@ export const tableName = {
   updateHistory: process.env.UPDATE_HISTORY_TABLE || "update_history",
   teams: process.env.TEAMS || "teams",
   accessPermissions: process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions",
-  emails: process.env.EMAILS || "emails",
-  emailHistory: process.env.EMAIL_HISTORY || "email_history",
+  // emails: process.env.EMAILS || "emails",
+  // emailHistory: process.env.EMAIL_HISTORY || "email_history",
+  emailList: process.env.EMAIL_LIST || "email_lists",
 };

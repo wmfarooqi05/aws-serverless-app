@@ -25,6 +25,7 @@ export const UPDATE_HISTORY_TABLE = (process.env.UPDATE_HISTORY_TABLE =
 export const TEAMS_TABLE = process.env.TEAMS_TABLE || "teams";
 export const ACCESS_PERMISSIONS_TABLE =
   process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions";
+export const EMAIL_LIST_TABLE = process.env.EMAIL_LIST || "email_lists";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

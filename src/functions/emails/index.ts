@@ -14,6 +14,24 @@ const sendEmail = {
   ],
 };
 
+// const handleEmailEvent = {
+//   handler: `${handlerPath(__dirname)}/handler.handleEmailEvent`,
+//   events: [
+//     {
+//       s3: {
+//         bucket: "gel-api-dev-serverlessdeploymentbucket-d34v77eas9bz", // process.env.DEPLOYMENT_BUCKET,
+//         event: "s3:ObjectCreated:*",
+//         existing: true,
+//         rules: [
+//           {
+//             prefix: "emails/", // Specify the subfolder path
+//           },
+//         ],
+//       },
+//     },
+//   ],
+// };
+
 // const getEmails = {
 //   handler: `${handlerPath(__dirname)}/handler.getEmails`,
 //   events: [
@@ -66,4 +84,7 @@ const sendEmail = {
 //   ],
 // };
 
-export { sendEmail };
+export {
+  sendEmail,
+  // handleEmailEvent
+};

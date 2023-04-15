@@ -1,10 +1,6 @@
 import * as Joi from "joi";
-// import { getPaginatedJoiKeys } from "src/common/schema";
-// import EmailModel from "@models/dynamoose/Emails";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 
-// const schemaKeys = Object.keys(EmailModel.jsonSchema.properties);
 export const validateSendEmail = (obj: IEmailSqsEventInput) => {
   return Joi.object({
     details: Joi.array().items(

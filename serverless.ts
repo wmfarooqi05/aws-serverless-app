@@ -204,6 +204,34 @@ const serverlessConfiguration: AWS = {
           QueueName: "${self:custom.JOB_QUEUE}",
         },
       },
+      // MyRuleSet: {
+      //   Type: "AWS::SES::ReceiptRuleSet",
+      //   Properties: {
+      //     RuleSetName: "my-rule-set",
+      //   },
+      // },
+      // MyRule: {
+      //   Type: "AWS::SES::ReceiptRule",
+      //   Properties: {
+      //     // Rule: {
+      //     //   Actions: [
+      //     //     {
+      //     //       LambdaAction: {
+      //     //         FunctionArn: {
+      //     //           "Fn::GetAtt": ["HandleEmailLambdaFunction", "Arn"],
+      //     //         },
+      //     //       },
+      //     //     },
+      //     //   ],
+      //     //   Recipients: ["*@my-domain.com"], // Replace with your domain
+      //     //   ScanEnabled: true,
+      //     //   Name: "my-rule",
+      //     // },
+      //     RuleSetName: {
+      //       Ref: "MyRuleSet",
+      //     },
+      //   },
+      // },
       // EmailSNSTopic: {
       //   Type: "AWS::SNS::Topic",
       //   Properties: {

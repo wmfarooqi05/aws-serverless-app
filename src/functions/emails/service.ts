@@ -4,7 +4,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { container, delay, inject, injectable } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailModel from "@models/dynamoose/Emails";
+import EmailRecordsModel from "@models/dynamoose/EmailRecords";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import { validateSendEmail } from "./schema";
@@ -145,8 +145,7 @@ export class EmailService implements IEmailService {
       );
 
       if (respEmail?.$metadata?.httpStatusCode === 200) {
-        const newEmail = new EmailModel({
-          id: randomUUID(),
+        const newEmail = new EmailRecordsModel({
           senderId,
           senderEmail,
           emailData: {
@@ -160,6 +159,7 @@ export class EmailService implements IEmailService {
           companyId,
           serviceProvider: "AMAZON_SES",
           updatedBy: senderId,
+          emailType: "SENDING",
         });
 
         const resp = await newEmail.save();
