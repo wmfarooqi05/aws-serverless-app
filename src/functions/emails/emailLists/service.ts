@@ -42,39 +42,40 @@ export class EmailListService implements IEmailListServiceService {
       .paginate(getPaginateClauseObject(body));
   }
 
-  async getEmailListById(
-    user: IEmployeeJwt,
-    employeeId: string,
-    body: any
-  ): Promise<ICompanyPaginated> {
-    await validateGetCompanies(body);
-    const { priority, status, stage, returningFields } = body;
+  // async getEmailListById(
+  //   user: IEmployeeJwt,
+  //   employeeId: string,
+  //   body: any
+  // ): Promise<ICompanyPaginated> {
+  //   await validateGetCompanies(body);
+  //   const { priority, status, stage, returningFields } = body;
 
-    // @TODO remove me
-    const whereClause: any = {
-      assignedTo: employeeId === "me" ? user.sub : employeeId,
-    };
-    if (stage) whereClause.stage = stage;
+  //   // @TODO remove me
+  //   const whereClause: any = {
+  //     assignedTo: employeeId === "me" ? user.sub : employeeId,
+  //   };
+  //   // @TODO move this to team interactions
+  //   // if (stage) whereClause.stage = stage;
 
-    return this.docClient
-      .getKnexClient()(CompanyModel.tableName)
-      .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
-      .where(whereClause)
-      .where((builder) => {
-        if (status) {
-          builder.whereRaw(
-            `details->>'status' IN (${convertToWhereInValue(status)})`
-          );
-        }
-        if (priority) {
-          builder.whereRaw(
-            `details->>'priority' IN (${convertToWhereInValue(priority)})`
-          );
-        }
-      })
-      .orderBy(...getOrderByItems(body))
-      .paginate(getPaginateClauseObject(body));
-  }
+  //   return this.docClient
+  //     .getKnexClient()(CompanyModel.tableName)
+  //     .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+  //     .where(whereClause)
+  //     .where((builder) => {
+  //       if (status) {
+  //         builder.whereRaw(
+  //           `details->>'status' IN (${convertToWhereInValue(status)})`
+  //         );
+  //       }
+  //       if (priority) {
+  //         builder.whereRaw(
+  //           `details->>'priority' IN (${convertToWhereInValue(priority)})`
+  //         );
+  //       }
+  //     })
+  //     .orderBy(...getOrderByItems(body))
+  //     .paginate(getPaginateClauseObject(body));
+  // }
   async addEmailList(employee: IEmployeeJwt, body: any) {
     try {
       const payload = JSON.parse(body);

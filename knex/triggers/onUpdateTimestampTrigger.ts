@@ -1,4 +1,3 @@
-
 export const onUpdateTrigger = (tableName: string) => `
 CREATE TRIGGER ${tableName}_updated_at
 BEFORE UPDATE ON ${tableName}

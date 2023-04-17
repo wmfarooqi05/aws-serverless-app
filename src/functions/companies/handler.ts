@@ -97,6 +97,25 @@ export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+export const updateCompanyInteractionsHandler: ValidatedEventAPIGatewayProxyEvent<
+  ICompanyModel
+> = async (event) => {
+  try {
+    const { companyId } = event.pathParameters;
+    const updatedCompany = await container
+      .resolve(CompanyService)
+      .updateCompanyEmployeeInteractions(
+        event?.employee,
+        companyId,
+        event.body
+      );
+    return formatJSONResponse(updatedCompany, 200);
+  } catch (e) {
+    console.log("e", e);
+    return formatErrorResponse(e);
+  }
+};
+
 export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
   middy(async (event) => {
     try {
@@ -200,7 +219,7 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
     const notes = await container
       .resolve(CompanyService)
       .getNotes(event?.employee, companyId);
-    return formatJSONResponse(notes, 200);
+    return formatJSONResponse({ notes }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -269,6 +288,12 @@ export const updateCompany = checkRolePermission(
   "companyId",
   "assignedTo"
 );
+
+export const updateCompanyInteractions = checkRolePermission(
+  updateCompanyInteractionsHandler,
+  "COMPANY_READ"
+);
+
 export const createCompany = checkRolePermission(
   createCompanyHandler,
   "COMPANY_CREATE"
@@ -310,23 +335,17 @@ export const deleteConcernedPerson = checkRolePermission(
 
 export const createNotes = checkRolePermission(
   createNotesHandler,
-  "NOTES_CREATE",
-  "companyId",
-  "assignedTo"
+  "COMPANY_READ_ALL"
 );
 
 export const updateNotes = checkRolePermission(
   updateNotesHandler,
-  "NOTES_UPDATE",
-  "companyId",
-  "assignedTo"
+  "COMPANY_READ_ALL"
 );
 
 export const deleteNotes = checkRolePermission(
   deleteNotesHandler,
-  "NOTES_DELETE",
-  "companyId",
-  "assignedTo"
+  "COMPANY_READ_ALL"
 );
 
 export const getNotes = checkRolePermission(getNotesHandler, "COMPANY_READ");

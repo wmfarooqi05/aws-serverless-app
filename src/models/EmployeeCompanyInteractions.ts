@@ -6,17 +6,40 @@ import {
   EMPLOYEES_TABLE_NAME,
   EMPLOYEE_COMPANY_INTERACTIONS_TABLE,
 } from "./commons";
-import {
-  COMPANY_STAGES,
-  COMPANY_PRIORITY,
-  COMPANY_STATUS,
-} from "./interfaces/Company";
-import Employee from "./Employees";
+import { COMPANY_PRIORITY, COMPANY_STATUS } from "./interfaces/Company";
+
+export const getDefaultInteractionItem = (
+  employeeId: string,
+  companyId: string
+) => {
+  return {
+    ...defaultInteractionItem,
+    employeeId,
+    companyId,
+  };
+};
+
+export const defaultInteractionItem = {
+  priority: COMPANY_PRIORITY.NO_PRIORITY,
+  status: COMPANY_STATUS.NONE,
+  notes: [],
+  interactionDetails: {},
+};
+
+export interface IEmployeeCompanyInteraction {
+  id?: string;
+  companyId: string;
+  employeeId: string;
+  priority: string;
+  status: string;
+  interactionDetails: Object;
+  notes: Object[];
+}
 
 @singleton()
 export default class EmployeeCompanyInteractionsModel extends Model {
   static get tableName() {
-    return COMPANIES_TABLE_NAME;
+    return EMPLOYEE_COMPANY_INTERACTIONS_TABLE;
   }
 
   static get columnNames(): string[] {
@@ -27,23 +50,23 @@ export default class EmployeeCompanyInteractionsModel extends Model {
     return {
       type: "object",
       properties: {
+        id: { type: "string" },
         companyId: { type: "string" },
         employeeId: { type: "string" },
         priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
         status: { type: "string", default: COMPANY_STATUS.NONE },
         interactionDetails: { type: "object", default: JSON.stringify({}) },
-        stage: { type: "string", default: COMPANY_STAGES.LEAD },
         notes: { type: "array" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["companyName"],
+      required: ["companyId", "employeeId"],
       additionalProperties: false,
     };
   }
 
   static get validSchemaKeys() {
-    return ["priority", "status", "interactionDetails", "stage", "notes"];
+    return ["priority", "status", "interactionDetails", "notes"];
   }
 
   // This object defines the relations to other models. The relationMappings

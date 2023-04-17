@@ -1,6 +1,6 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
-import { onUpdateTrigger } from "../triggers";
+import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 const tableName = Tables.authTokens;
 
 export async function up(knex: Knex): Promise<void> {

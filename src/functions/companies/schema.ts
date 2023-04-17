@@ -67,9 +67,6 @@ export const validateCreateCompany = async (obj: any) => {
         })
         .or("emails", "phoneNumbers")
     ),
-    priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
-    status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
-    stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
   }).validateAsync(obj, {
     abortEarly: true,
     // @TODO cleanup api update
@@ -81,13 +78,28 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
     id: Joi.string().guid(),
     companyName: Joi.string(),
     addresses: AddressJoi,
-    priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
-    status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
-    stage: Joi.string().valid(...Object.values(COMPANY_STAGES)),
     tags: Joi.array().items(Joi.string()),
     details: Joi.object(),
   }).validateAsync(
     { ...obj, id },
+    {
+      abortEarly: true,
+    }
+  );
+};
+
+export const validateUpdateCompanyInteractions = async (
+  obj,
+  employeeId,
+  companyId
+) => {
+  await Joi.object({
+    companyId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
+    priority: Joi.string().valid(...Object.values(COMPANY_PRIORITY)),
+    status: Joi.string().valid(...Object.values(COMPANY_STATUS)),
+  }).validateAsync(
+    { ...obj, employeeId, companyId },
     {
       abortEarly: true,
     }
@@ -226,6 +238,7 @@ export const validateUpdateNotes = async (
 
 export const validateDeleteNotes = async (obj) => {
   return Joi.object({
+    employeeId: Joi.string().guid().required(),
     companyId: Joi.string().guid().required(),
     notesId: Joi.string().guid().required(),
   }).validateAsync(obj);

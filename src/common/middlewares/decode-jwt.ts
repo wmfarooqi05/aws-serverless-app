@@ -154,7 +154,7 @@ export const validatePermissions = (
       } = event.employee;
       if (!permitted) {
         if (!specialPermissions && !createPendingApproval) {
-          returnUnAuthorizedError();
+          return returnUnAuthorizedError();
         }
         const specialPermitted = await checkIfPermittedWithSpecialPermission(
           event,
@@ -163,7 +163,8 @@ export const validatePermissions = (
           employeeRelationKey
         );
         if (!specialPermitted) {
-          returnUnAuthorizedError();
+          
+          return returnUnAuthorizedError();
         }
       }
     },

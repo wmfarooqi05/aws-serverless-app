@@ -26,6 +26,7 @@ import {
   validateUpdateNotes,
   validateDeleteNotes,
   validateUpdateCompaniesAssignedEmployee,
+  validateUpdateCompanyInteractions,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
@@ -53,7 +54,12 @@ import {
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
 import { EMPLOYEE_COMPANY_INTERACTIONS_TABLE } from "@models/commons";
-import EmployeeCompanyInteractionsModel from "@models/EmployeeCompanyInteractions";
+import EmployeeCompanyInteractionsModel, {
+  IEmployeeCompanyInteraction,
+  IEmployeeCompanyInteractionsModel,
+  defaultInteractionItem,
+  getDefaultInteractionItem,
+} from "@models/EmployeeCompanyInteractions";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -101,9 +107,10 @@ export class CompanyService implements ICompanyService {
   async getCompanyQuery(employeeId, body, whereClause = {}) {
     const { priority, status, stage, returningFields } = body;
 
-    if (stage) {
-      whereClause["stage"] = stage;
-    }
+    // @TODO move this to team interactions
+    // if (stage) {
+    //   whereClause["stage"] = stage;
+    // }
     const knex = this.docClient.getKnexClient();
     const returningKeys = this.getSelectKeys(returningFields);
 
@@ -191,7 +198,7 @@ export class CompanyService implements ICompanyService {
       await trx.raw(finalQueries[1].toString());
     });
 
-    return { company };
+    return { company: this.validateCompanyWithInteractions(company) };
   }
 
   async updateCompany(
@@ -226,6 +233,54 @@ export class CompanyService implements ICompanyService {
     return { company };
   }
 
+  async updateCompanyEmployeeInteractions(
+    employee: IEmployeeJwt,
+    companyId: string,
+    body: any
+  ) {
+    const payload = JSON.parse(body);
+    await validateUpdateCompanyInteractions(payload, employee.sub, companyId);
+
+    const company: ICompany = await CompanyModel.query().findById(companyId);
+    if (!company) {
+      throw new CustomError("Company not found", 404);
+    }
+
+    const interactionRecord: IEmployeeCompanyInteraction =
+      await EmployeeCompanyInteractionsModel.query()
+        .where({
+          companyId,
+          employeeId: employee.sub,
+        })
+        .first();
+
+    const id = interactionRecord?.id ?? null;
+    const action = interactionRecord?.id
+      ? PendingApprovalType.UPDATE
+      : PendingApprovalType.CREATE;
+
+    const defaultPayload = {
+      ...getDefaultInteractionItem(employee.sub, companyId),
+      ...payload,
+    };
+    // As they belongs to employee, we don't need any approval
+    await updateHistoryHelper(
+      action,
+      id,
+      employee.sub,
+      EmployeeCompanyInteractionsModel.tableName,
+      this.docClient.getKnexClient(),
+      action === PendingApprovalType.CREATE ? defaultPayload : payload
+    );
+
+    return {
+      company: this.validateCompanyWithInteractions({
+        ...company,
+        ...payload,
+      }),
+    };
+  }
+
   async deleteCompany(
     employee: IEmployeeJwt,
     id: string
@@ -245,7 +300,8 @@ export class CompanyService implements ICompanyService {
         CompanyModel.tableName
       );
     }
-    await updateHistoryHelper(
+
+    updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
       employee.sub,
@@ -491,23 +547,22 @@ export class CompanyService implements ICompanyService {
     return { concernedPersons: originalObject[key][index] };
   }
 
+  /*** Notes are personal items, so no validations */
   // Notes
   async getNotes(employee: IEmployeeJwt, companyId: any) {
     await validateGetNotes(employee.sub, companyId);
-    const notes = await this.docClient
-      .getKnexClient()(CompanyModel.tableName)
+    const interactionItem: IEmployeeCompanyInteraction = await this.docClient
+      .getKnexClient()(EmployeeCompanyInteractionsModel.tableName)
       .select(["notes"])
-      .where({ id: companyId })
+      .where({ companyId, employeeId: employee.sub })
       .first();
-    return notes.notes;
+    return interactionItem?.notes ?? [];
   }
 
   // Notes
   async createNotes(employee: IEmployeeJwt, companyId: string, body: any) {
     const payload = JSON.parse(body);
-    if (payload) {
-      await validateAddNotes(employee.sub, companyId, payload);
-    }
+    await validateAddNotes(employee.sub, companyId, payload);
     const notes: INotes = {
       id: randomUUID(),
       addedBy: employee.sub,
@@ -516,31 +571,43 @@ export class CompanyService implements ICompanyService {
       updatedAt: moment().utc().format(),
     };
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
+    const interactionItem: IEmployeeCompanyInteraction =
+      await EmployeeCompanyInteractionsModel.query()
+        .where({
+          companyId,
+          employeeId: employee.sub,
+        })
+        .first();
+
+    if (interactionItem?.id) {
+      await updateHistoryHelper(
         PendingApprovalType.UPDATE,
-        companyId,
-        employee,
-        CompanyModel.tableName,
+        interactionItem.id,
+        employee.sub,
+        EmployeeCompanyInteractionsModel.tableName,
+        this.docClient.getKnexClient(),
         { notes },
         PendingApprovalType.JSON_PUSH,
         null
       );
+    } else {
+      await updateHistoryHelper(
+        PendingApprovalType.CREATE,
+        null,
+        employee.sub,
+        EmployeeCompanyInteractionsModel.tableName,
+        this.docClient.getKnexClient(),
+        {
+          ...getDefaultInteractionItem(employee.sub, companyId),
+          notes: [notes],
+        }
+      );
     }
-
-    await updateHistoryHelper(
-      PendingApprovalType.UPDATE,
-      companyId,
-      employee.sub,
-      CompanyModel.tableName,
-      this.docClient.getKnexClient(),
-      { notes },
-      PendingApprovalType.JSON_PUSH,
-      null
-    );
-
-    return { notes };
+    return {
+      notes: interactionItem?.id
+        ? interactionItem.notes?.concat(notes)
+        : [notes],
+    };
   }
 
   async updateNotes(
@@ -554,8 +621,8 @@ export class CompanyService implements ICompanyService {
 
     const { index, originalObject } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
-      CompanyModel.tableName,
-      companyId,
+      EmployeeCompanyInteractionsModel.tableName,
+      { companyId, employeeId: employee.sub },
       "notes",
       notesId
     );
@@ -566,24 +633,11 @@ export class CompanyService implements ICompanyService {
       updatedAt: moment().utc().format(),
     };
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
-        companyId,
-        employee,
-        CompanyModel.tableName,
-        { notes },
-        PendingApprovalType.JSON_UPDATE,
-        notesId
-      );
-    }
-
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
-      companyId,
+      originalObject?.id,
       employee.sub,
-      CompanyModel.tableName,
+      EmployeeCompanyInteractionsModel.tableName,
       this.docClient.getKnexClient(),
       { notes },
       PendingApprovalType.JSON_UPDATE,
@@ -598,34 +652,21 @@ export class CompanyService implements ICompanyService {
     notesId: string
   ) {
     // @ADD some query to find index of id directly
-    await validateDeleteNotes({ companyId, notesId });
+    await validateDeleteNotes({ employeeId: employee.sub, companyId, notesId });
     const key = "notes";
     const { originalObject, index } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
-      CompanyModel.tableName,
-      companyId,
+      EmployeeCompanyInteractionsModel.tableName,
+      { companyId, employeeId: employee.sub },
       key,
       notesId
     );
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
-        companyId,
-        employee,
-        CompanyModel.tableName,
-        { [key]: null },
-        PendingApprovalType.JSON_DELETE,
-        notesId
-      );
-    }
-
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
-      companyId,
+      originalObject.id,
       employee.sub,
-      CompanyModel.tableName,
+      EmployeeCompanyInteractionsModel.tableName,
       this.docClient.getKnexClient(),
       { [key]: null },
       PendingApprovalType.JSON_DELETE,
@@ -682,7 +723,7 @@ export class CompanyService implements ICompanyService {
       ...companyItem,
       priority: companyItem?.priority ?? COMPANY_PRIORITY.NO_PRIORITY,
       status: companyItem?.status ?? COMPANY_STATUS.NONE,
-      stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
+      // stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
       notes: companyItem?.notes ?? [],
       interactionDetails: companyItem?.interactionDetails ?? {},
     };

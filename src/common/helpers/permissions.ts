@@ -63,7 +63,7 @@ export const validateRequestByEmployeeRole = async (
       if (
         originalObject[creatorEmployeeColumnName] !== requestingEmployee.sub
       ) {
-        throwUnAuthorizedError();
+        return false;
       }
       break;
     case RolesEnum.SALES_MANAGER_GROUP:
@@ -71,12 +71,12 @@ export const validateRequestByEmployeeRole = async (
         originalObject[creatorEmployeeColumnName] !==
         requestingEmployeeObject.reportingManager
       ) {
-        throwUnAuthorizedError();
+        return false;
       }
       break;
     case RolesEnum.REGIONAL_MANAGER_GROUP:
       if (tableRowCreator.teamId !== requestingEmployee.teamId) {
-        throwUnAuthorizedError();
+        return false;
       }
       break;
     default:

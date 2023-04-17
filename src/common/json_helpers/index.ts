@@ -275,15 +275,21 @@ export const createKnexTransactionsWithPendingPayload = (
 export const validateJSONItemAndGetIndex = async (
   knexClient: Knex,
   tableName: string,
-  tableRowId: string,
+  tableRowId: string | object,
   jsonColumnName: string,
   jsonItemId: string,
   errorRowNotFound = null,
   errorJSONItemNotFound = null
-): Promise<{ index: number; originalObject: Object }> => {
+): Promise<{ index: number; originalObject: any }> => {
+  let whereClause = {};
+  if (typeof tableRowId === "string") {
+    whereClause["id"] = tableRowId;
+  } else {
+    whereClause = tableRowId;
+  }
   const originalRowItem = await knexClient
     .table(tableName)
-    .where({ id: tableRowId })
+    .where(whereClause)
     .first();
 
   if (!originalRowItem) {
@@ -489,10 +495,6 @@ export const getObjectType = (tableName: string, key: string) => {
       addresses: "SIMPLE_KEY",
       assignedTo: "SIMPLE_KEY",
       assignedBy: "SIMPLE_KEY",
-      priority: "SIMPLE_KEY",
-      status: "SIMPLE_KEY",
-      details: "SIMPLE_KEY",
-      stage: "SIMPLE_KEY",
       tags: "SIMPLE_KEY",
       notes: "JSONB",
       tableRowId: "SIMPLE_KEY",
@@ -517,6 +519,12 @@ export const getObjectType = (tableName: string, key: string) => {
       updatedAt: "SIMPLE_KEY",
       jobData: "SIMPLE_KEY",
     },
+    employee_company_interactions: {
+      status: "SIMPLE_KEY",
+      notes: "JSONB",
+      priorities: "SIMPLE_KEY",
+      interactionDetails: "SIMPLE_KEY",
+    },
   };
 
   return map[tableName][key];
@@ -525,9 +533,14 @@ export const getObjectType = (tableName: string, key: string) => {
 export const snakeToCamel = (obj) => {
   const newObj = {};
   for (const [key, value] of Object.entries(obj)) {
-    const words = key.split('_');
-    const camelCaseKey = words[0] + words.slice(1).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join('');
+    const words = key.split("_");
+    const camelCaseKey =
+      words[0] +
+      words
+        .slice(1)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join("");
     newObj[camelCaseKey] = value;
   }
   return newObj;
-}
+};

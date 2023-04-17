@@ -156,6 +156,19 @@ const updateConcernedPerson = {
   ],
 };
 
+const updateCompanyInteractions = {
+  handler: `${handlerPath(__dirname)}/handler.updateCompanyInteractions`,
+  events: [
+    {
+      http: {
+        method: "put",
+        path: "/company/{companyId}/interactions",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const deleteConcernedPerson = {
   handler: `${handlerPath(__dirname)}/handler.deleteConcernedPerson`,
   events: [
@@ -230,6 +243,7 @@ export {
   getCompanyById,
   getCompaniesByEmployeeId,
   updateCompany,
+  updateCompanyInteractions,
   deleteCompany,
   updateCompanyAssignedEmployee,
   updateCompaniesAssignedEmployee,

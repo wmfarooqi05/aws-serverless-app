@@ -1,6 +1,6 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
-import { onUpdateTrigger } from "../triggers";
+import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 const tableName = Tables.employeeCompanyInteraction;
 
 export enum COMPANY_STAGES {
@@ -30,22 +30,20 @@ export enum COMPANY_PRIORITY {
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
+      table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table
         .uuid("employee_id")
         .references("id")
         .inTable(Tables.employees)
-        .notNullable();
+        .notNullable()
 
       table
         .uuid("company_id")
         .references("id")
         .inTable(Tables.companies)
-        .notNullable();
+        .notNullable()
 
       table.jsonb("interaction_details").defaultTo(JSON.stringify({}));
-      table
-        .enum("stage", Object.values(COMPANY_STAGES))
-        .defaultTo(COMPANY_STAGES.LEAD);
       table
         .enum("priority", Object.values(COMPANY_PRIORITY))
         .defaultTo(COMPANY_PRIORITY.NO_PRIORITY);
@@ -64,7 +62,7 @@ export async function up(knex: Knex): Promise<void> {
         .notNullable()
         .defaultTo(knex.fn.now());
 
-      table.index(["company_id", "employee_id"])
+      table.index(["company_id", "employee_id"]);
     })
     .then(() => knex.raw(onUpdateTrigger(tableName)));
 }

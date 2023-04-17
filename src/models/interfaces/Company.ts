@@ -44,12 +44,12 @@ export interface ICompany {
   addresses?: IAddress[];
   assignedTo?: string;
   assignedBy?: string;
-  assignmentHistory?: JSON;
-  priority: COMPANY_PRIORITY;
-  taskStatus: COMPANY_STATUS;
-  stage: COMPANY_STAGES;
+  // assignmentHistory?: JSON;
+  // priority: COMPANY_PRIORITY;
+  // taskStatus: COMPANY_STATUS;
+  // stage: COMPANY_STAGES;
   updatedAt?: string;
-  notes?: INotes[];
+  // notes?: INotes[];
 }
 
 export enum COMPANY_STAGES {
