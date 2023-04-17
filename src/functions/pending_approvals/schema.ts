@@ -18,8 +18,6 @@ export const validateGetPendingApprovals = async (obj: any) => {
 export const validateCreatePendingApproval = async (obj: any) => {
   await Joi.object({
     activityId: Joi.string().required(),
-    // @TODO: make it required
-    activityName: Joi.string(),
     approvers: Joi.array().items(Joi.string()),
     createdBy: Joi.string().required(),
     onApprovalActionRequired: Joi.object({

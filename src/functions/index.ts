@@ -27,6 +27,7 @@ import {
   getCompaniesByEmployeeId,
   updateCompany,
   updateCompanyAssignedEmployee,
+  updateCompaniesAssignedEmployee,
   createConcernedPersons,
   updateConcernedPerson,
   deleteConcernedPerson,
@@ -85,7 +86,7 @@ import {
   // deleteMeetingById,
 } from "@functions/google/calendar";
 
-import { sendEmail } from "@functions/emails";
+import { sendEmail, sendBulkEmails } from "@functions/emails";
 import {
   getAllEmailLists,
   addEmailList,
@@ -120,6 +121,7 @@ export default {
   getCompaniesByEmployeeId,
   updateCompany,
   updateCompanyAssignedEmployee,
+  updateCompaniesAssignedEmployee,
   createConcernedPersons,
   updateConcernedPerson,
   deleteConcernedPerson,
@@ -180,6 +182,7 @@ export default {
 
   /// emails
   sendEmail,
+  sendBulkEmails,
 
   // email list
   addEmailList,

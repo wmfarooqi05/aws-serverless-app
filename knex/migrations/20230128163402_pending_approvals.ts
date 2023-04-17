@@ -24,9 +24,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("table_row_id");
       table.string("table_name");
       table.jsonb("approvers").defaultTo("[]");
-      // table
-      //   .specificType("approvers", "uuid[]")
-      //   .defaultTo(knex.raw("ARRAY[]::uuid[]"));
+      table.jsonb("approval_details");
       table.uuid("created_by");
       table.jsonb("on_approval_action_required").defaultTo("{}");
       table.dateTime("escalation_time");
@@ -36,6 +34,7 @@ export async function up(knex: Knex): Promise<void> {
         .defaultTo(PendingApprovalsStatus.PENDING);
       table.integer("retry_count").defaultTo(0);
       table.jsonb("result_payload");
+      table.uuid("batch_approval_key");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

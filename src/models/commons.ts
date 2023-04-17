@@ -18,8 +18,8 @@ export const GLOBAL_SETTINGS_TABLE =
 export const PENDING_APPROVAL_TABLE =
   process.env.PENDING_APPROVAL_TABLE || "pending_approvals";
 export const AUTH_TOKEN_TABLE = process.env.AUTH_TOKENS_TABLE || "auth_tokens";
-export const JOBS_RESULTS_TABLE =
-  process.env.JOBS_RESULTS_TABLE || "jobs_results";
+export const JOBS_TABLE =
+  process.env.JOBS_TABLE || "jobs";
 export const UPDATE_HISTORY_TABLE = (process.env.UPDATE_HISTORY_TABLE =
   "update_history");
 export const TEAMS_TABLE = process.env.TEAMS_TABLE || "teams";

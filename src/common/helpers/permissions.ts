@@ -19,12 +19,22 @@ import { Knex } from "knex";
 export const validateRequestByEmployeeRole = async (
   requestingEmployee: IEmployeeJwt,
   tableName: string,
-  tableRowId: string,
+  tableRowId: string | string[],
   creatorEmployeeColumnName: string,
   knexClient: Knex
 ): Promise<boolean> => {
+  let whereClause = {};
+  if (typeof tableRowId === "string") {
+    whereClause;
+  }
   const originalObject = await knexClient(tableName)
-    .where({ id: tableRowId })
+    .modify((qb) => {
+      if (Array.isArray(tableRowId)) {
+        qb.whereIn("id", tableRowId);
+      } else {
+        qb.where({ id: tableRowId });
+      }
+    })
     .first();
   if (!originalObject) return false;
   /**

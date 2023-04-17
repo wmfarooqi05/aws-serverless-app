@@ -11,7 +11,7 @@ import * as xlsx from "xlsx";
 import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
 import { IEmployeeJwt, RolesEnum } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
-import JobsResultsModel, { IJobsResults } from "@models/JobsResult";
+// import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { uploadToS3 } from "./upload";
 import { container } from "tsyringe";
 import { SQSService } from "@functions/sqs/service";
@@ -47,21 +47,21 @@ const bulkCognitoSignup: ValidatedEventAPIGatewayProxyEvent<
     // data is validated, upload this file to S3 as it is
     const originalFileS3Url = await uploadToS3("job_result", data);
      */
-    await container.resolve(DatabaseService);
-    const job: IJobsResults = await JobsResultsModel.query().insert({
-      jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
-      uploadedBy: manager.sub,
-      resultType: "PENDING",
-      details: {
-        originalFileS3Url: "originalFileS3Url",
-      },
-    });
+    // await container.resolve(DatabaseService);
+    // const job: IJobs = await JobsModel.query().insert({
+    //   jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
+    //   uploadedBy: manager.sub,
+    //   resultType: "PENDING",
+    //   details: {
+    //     originalFileS3Url: "originalFileS3Url",
+    //   },
+    // });
 
-    const resp1 = await container.resolve(SQSService).addJobToQueue(job.id);
-    return formatJSONResponse({ resp1 }, 200);
-    await JobsResultsModel.query().insert({
-      jobType: "BULK_SIGNUP_USERs_TO_COGNITO",
-    });
+    // const resp1 = await container.resolve(SQSService).addJobToQueue(job.id);
+    return formatJSONResponse({  }, 200);
+    // await JobsModel.query().insert({
+    //   jobType: "BULK_SIGNUP_USERs_TO_COGNITO",
+    // });
 
     const transformedData = await transformDataHelper(employeeId, data);
     if (!transformedData || transformedData?.length === 0) {
@@ -74,11 +74,11 @@ const bulkCognitoSignup: ValidatedEventAPIGatewayProxyEvent<
     // in next step when we divide this job, we will add S3 url here and return;
     // this endpoint will be a short lived endpoint
     // longer things will run in job, not here
-    await JobsResultsModel.query().insert({
-      jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
-      uploadedBy: manager.sub,
-      resultType: "PENDING",
-    });
+    // await JobsModel.query().insert({
+    //   jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
+    //   uploadedBy: manager.sub,
+    //   resultType: "PENDING",
+    // });
 
     return formatJSONResponse({ message: "Added data successfully" }, 200);
   } catch (e) {

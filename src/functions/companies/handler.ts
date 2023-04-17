@@ -128,6 +128,20 @@ const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+const updateCompaniesAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
+  ICompanyModel
+> = async (event) => {
+  try {
+    const company = await container
+      .resolve(CompanyService)
+      .updateCompaniesAssignedEmployee(event?.employee, event.body);
+
+    return formatJSONResponse(company, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
@@ -261,6 +275,11 @@ export const deleteCompany = checkRolePermission(
 
 export const updateCompanyAssignedEmployee = checkRolePermission(
   updateCompanyAssignedEmployeeHandler,
+  "COMPANY_UPDATE"
+);
+
+export const updateCompaniesAssignedEmployee = checkRolePermission(
+  updateCompaniesAssignedEmployeeHandler,
   "COMPANY_UPDATE"
 );
 

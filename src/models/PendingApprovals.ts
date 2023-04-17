@@ -21,6 +21,7 @@ export default class PendingApprovalsModel extends Model {
         tableRowId: { type: "string" },
         tableName: { type: "string" },
         approvers: { type: "array" },
+        approvalDetails: { type: "object" },
         createdBy: { type: "string" },
         onApprovalActionRequired: {
           type: "object",
@@ -31,13 +32,11 @@ export default class PendingApprovalsModel extends Model {
         status: { type: "string", default: PendingApprovalsStatus.PENDING },
         retryCount: { type: "number", default: 0 },
         resultPayload: { type: "array", default: JSON.stringify([]) },
+        batchApprovalKey: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: [
-        "createdBy",
-        "onApprovalActionRequired",
-      ],
+      required: ["createdBy", "onApprovalActionRequired"],
       additionalProperties: false,
     };
   }

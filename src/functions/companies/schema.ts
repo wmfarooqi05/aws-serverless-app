@@ -90,6 +90,22 @@ export const validateUpdateCompanies = async (id: string, obj: any) => {
   );
 };
 
+export const validateUpdateCompaniesAssignedEmployee = async (
+  assignedBy: string,
+  payload: any
+) => {
+  await Joi.object({
+    assignedBy: Joi.string().guid().required(),
+    assignTo: Joi.string().guid().allow(null),
+    companyIds: Joi.array().items(Joi.string().guid()).required(),
+  }).validateAsync(
+    { ...payload, assignedBy },
+    {
+      abortEarly: true,
+    }
+  );
+};
+
 export const validateUpdateCompanyAssignedEmployee = async (
   companyId: string,
   assignedBy: string,
@@ -119,6 +135,7 @@ export const validateCreateConcernedPerson = async (
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
     emails: Joi.array().items(Joi.string().email()),
+    emailLists: Joi.array().items(Joi.string().guid()),
   })
     .or("phoneNumbers", "emails")
     .validateAsync(
@@ -143,6 +160,7 @@ export const validateUpdateConcernedPerson = async (
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
     emails: Joi.array().items(Joi.string().email()),
+    emailLists: Joi.array().items(Joi.string().guid()),
   }).validateAsync(
     { ...payload, companyId, employeeId, concernedPersonId },
     {

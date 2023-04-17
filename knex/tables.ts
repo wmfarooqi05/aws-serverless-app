@@ -7,7 +7,7 @@ export const tableName = {
   reminders: process.env.REMINDERS_TABLE || "reminders",
   notifications: process.env.NOTIFICATIONS_TABLE || "notifications",
   authTokens: process.env.AUTH_TOKENS_TABLE || "auth_tokens",
-  jobsResults: process.env.JOBS_RESULTS_TABLE || "jobs_result",
+  jobs: process.env.JOBS_TABLE || "jobs",
   updateHistory: process.env.UPDATE_HISTORY_TABLE || "update_history",
   teams: process.env.TEAMS || "teams",
   accessPermissions: process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions",

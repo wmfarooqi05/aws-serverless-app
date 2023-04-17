@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { CustomError } from "@helpers/custom-error";
-import JobsResultsModel, { IJobsResults } from "@models/JobsResult";
+// import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { downloadFromS3Readable } from "./upload";
 import { container } from "tsyringe";
 import { DatabaseService } from "@libs/database/database-service-objection";
@@ -11,38 +11,38 @@ export const bulkImportUsersProcessHandler = async (event) => {
   const payload = JSON.parse(event.body);
 
   container.register(DatabaseService);
-  const job = await JobsResultsModel.query().findById(payload.id);
-  await bulkImportUsersProcess(job);
+  // const job = await JobsModel.query().findById(payload.id);
+  // await bulkImportUsersProcess(job);
 };
 
-export const bulkImportUsersProcess = async (job: IJobsResults) => {
-  if (!job.details.originalFileS3Url) {
-    throw new CustomError("no valid file path for S3", 400);
-  }
-  const fileStream = await downloadFromS3Readable(
-    job.details.originalFileS3Url
-  );
-  if (!fileStream) {
-    throw new CustomError("No file download from S3", 404);
-  }
-  const data: any = await importDataFromXlsx(fileStream);
-  if (!data) {
-    throw new CustomError("No data found", 400);
-  }
+// export const bulkImportUsersProcess = async (job: IJobs) => {
+//   if (!job.details.originalFileS3Url) {
+//     throw new CustomError("no valid file path for S3", 400);
+//   }
+//   const fileStream = await downloadFromS3Readable(
+//     job.details.originalFileS3Url
+//   );
+//   if (!fileStream) {
+//     throw new CustomError("No file download from S3", 404);
+//   }
+//   const data: any = await importDataFromXlsx(fileStream);
+//   if (!data) {
+//     throw new CustomError("No data found", 400);
+//   }
 
-  const transformedData = await transformDataHelper(employeeId, data);
-  if (!transformedData || transformedData?.length === 0) {
-    throw new CustomError("No valid data found", 400);
-  }
+//   const transformedData = await transformDataHelper(employeeId, data);
+//   if (!transformedData || transformedData?.length === 0) {
+//     throw new CustomError("No valid data found", 400);
+//   }
 
-  const resp = await writeDataToDB(transformedData);
-  const url = await uploadToS3("job_result", resp);
-  await JobsResultsModel.query().insert({
-    jobResultUrl: JSON.stringify({ url }),
-    jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
-    uploadedBy: employeeId,
-  });
-};
+//   const resp = await writeDataToDB(transformedData);
+//   const url = await uploadToS3("job_result", resp);
+//   await JobsModel.query().insert({
+//     jobResultUrl: JSON.stringify({ url }),
+//     jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
+//     uploadedBy: employeeId,
+//   });
+// };
 
 /**
  * It will accept a file

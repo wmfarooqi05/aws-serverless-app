@@ -1,7 +1,7 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers";
-const tableName = Tables.jobsResults;
+const tableName = Tables.jobs;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
@@ -14,9 +14,8 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(Tables.employees)
         .notNullable()
       table.string("job_type").notNullable();
-      table.string("job_result_url");
-      table.string("summary");
-      table.string("result_type");
+      table.jsonb("result");
+      table.string("job_status").notNullable();
       table.jsonb("details");
       table
         .timestamp("created_at", { useTz: true })

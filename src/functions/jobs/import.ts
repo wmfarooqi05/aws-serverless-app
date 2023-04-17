@@ -13,7 +13,6 @@ import CompanyModel from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { uploadToS3 } from "./upload";
 import { container } from "tsyringe";
-import JobsResultsModel from "@models/JobsResult";
 import { CustomError } from "@helpers/custom-error";
 
 // @TODO add service
@@ -51,11 +50,11 @@ const importDataHandler = async (event) => {
 
     const resp = await writeDataToDB(transformedData);
     const url = await uploadToS3("job_result", resp);
-    await JobsResultsModel.query().insert({
-      jobResultUrl: JSON.stringify({ url }),
-      jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
-      uploadedBy: employeeId,
-    });
+    // await JobsModel.query().insert({
+    //   jobResultUrl: JSON.stringify({ url }),
+    //   jobType: "UPLOAD_COMPANIES_FROM_EXCEL",
+    //   uploadedBy: employeeId,
+    // });
 
     return formatJSONResponse({ message: "Added data successfully" }, 200);
   } catch (e) {

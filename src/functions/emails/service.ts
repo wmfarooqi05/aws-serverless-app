@@ -4,14 +4,19 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { container, delay, inject, injectable } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailRecordsModel from "@models/dynamoose/EmailRecords";
+import EmailRecordsModel, { JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
-import { validateSendEmail } from "./schema";
+import { validateBulkEmails, validateSendEmail } from "./schema";
 import moment from "moment-timezone";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSService } from "@functions/sqs/service";
-import JobsResultsModel from "@models/JobsResult";
+import { COMPANIES_TABLE_NAME, EMAIL_LIST_TABLE } from "@models/commons";
+import { ICompany } from "@models/interfaces/Company";
+import { IConcernedPerson } from "@models/interfaces/Company";
+import chunk from "lodash.chunk";
+import { IJobs } from "@models/pending/[x]Jobs";
+import { x } from "joi";
 
 export interface IEmailService {}
 
@@ -19,7 +24,7 @@ export interface IEmailService {}
 export class EmailService implements IEmailService {
   constructor(
     @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
-    @inject(DatabaseService) private readonly _: DatabaseService
+    @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
   async getAllEmails(body: any): Promise<IEmailPaginated> {}
@@ -32,21 +37,14 @@ export class EmailService implements IEmailService {
    * @returns
    */
   async sendEmail(employee: IEmployeeJwt, body: any): Promise<IEmailModel> {
-    const payload: {
-      recipientId: string;
-      recipientEmail: string;
-      subject: string;
-      body: string;
-      ccList: string[];
-      bccList: string[];
-      companyId: string;
-    } = JSON.parse(body);
-    await validateSendEmail(employee, payload);
+    const payload = JSON.parse(body);
+    await validateSendEmail(payload);
     // @TODO get reporting manager if want to add CC
 
     const {
       recipientId,
       recipientEmail,
+      recipientName,
       subject,
       body: emailBody,
       ccList,
@@ -59,25 +57,28 @@ export class EmailService implements IEmailService {
     const item: IEmailSqsEventInput = {
       eventType: "SEND_EMAIL",
       name: `EMAIL_JOB_${id}`,
-      details: [
-        {
-          body: emailBody,
-          ConfigurationSetName: "email_sns_config",
-          recipientEmail,
-          senderEmail: employee.email,
-          senderId: employee.sub,
-          subject,
-          bccList,
-          ccList,
-          companyId,
-          recipientId,
-        },
-      ],
+      details: {
+        body: emailBody,
+        ConfigurationSetName: "email_sns_config",
+        recipients: [
+          {
+            recipientEmail,
+            recipientName,
+            companyId,
+            recipientId,
+          },
+        ],
+        senderEmail: employee.email,
+        senderId: employee.sub,
+        subject,
+        bccList,
+        ccList,
+      },
     };
 
     const resp = await container.resolve(SQSService).enqueueItems(item);
 
-    return JobsResultsModel.query().insert({
+    return JobsModel.query().insert({
       jobType: "SEND_EMAIL",
       details: {
         sqsResp: resp.MessageId,
@@ -92,20 +93,107 @@ export class EmailService implements IEmailService {
    * @param body
    * @returns
    */
-  async sendBulkEmails(
-    employee: IEmployeeJwt,
-    body
-  ): Promise<{
-    // await validateBulkEmails(body);
-    // push this to sqs, which will trigger the same function, sendEmails
-    return: any;
-  }> {
+  async sendBulkEmails(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
-    if (payload.emailListId) {
-      const emailList = EmailList.query();
-    }
+    await validateBulkEmails(payload);
 
-    return;
+    const { emailListId } = payload;
+
+    if (!emailListId) {
+      return;
+    }
+    const companies: ICompany[] = await this.docClient
+      .getKnexClient()(COMPANIES_TABLE_NAME)
+      .where(
+        "concerned_persons",
+        "@>",
+        JSON.stringify([{ emailList: [emailListId] }])
+      );
+
+    const emailIds = this.getEmailIdsFromCompanies(companies, emailListId);
+
+    const emailInputPayloads: IEmailSqsEventInput[] = this.createEmailSqsInputs(
+      payload,
+      emailIds,
+      employee
+    );
+
+    
+    const jobItems = emailInputPayloads.map((x) => {
+      return new JobsModel({
+        id: randomUUID(),
+        uploadedBy: employee.sub,
+        jobType: "BULK_EMAIL",
+        details: x,
+        jobStatus: "PENDING",
+      });
+    });
+
+    // Use the batchPut method to perform bulk create
+    return JobsModel.batchPut(jobItems);
+    // Need to write a helper method which picks the batch of X and put in SQS
+    // const sqsItemsWithJobId: IEmailSqsEventInput[] = emailInputPayloads.map(
+    //   (x: IEmailSqsEventInput, i) => {
+    //     return {
+    //       ...x,
+    //       jobId: jobs[i].id,
+    //     };
+    //   }
+    // );
+
+    // const sqsService = container.resolve(SQSService);
+    // await Promise.all(sqsItemsWithJobId.map((x) => sqsService.enqueueItems(x)));
+    // return jobs.filter((x) => x.id);
+  }
+
+  private createEmailSqsInputs(
+    emailPayload: any,
+    emailList: IEmailSqsEventInput["details"]["recipients"],
+    createdBy: IEmployeeJwt
+  ): IEmailSqsEventInput[] {
+    const chunkSize = 10;
+    return chunk(emailList, chunkSize).map((x) => {
+      const { subject, body, ccList, bccList } = emailPayload;
+      const id = randomUUID();
+      return {
+        eventType: "SEND_EMAIL",
+        name: `EMAIL_JOB_${id}`,
+        details: {
+          body,
+          ConfigurationSetName: "email_sns_config", // @TODO change with env
+          recipients: x,
+          senderEmail: createdBy.email,
+          senderId: createdBy.sub,
+          subject,
+          bccList,
+          ccList,
+        },
+      } as IEmailSqsEventInput;
+    });
+  }
+
+  private getEmailIdsFromCompanies(
+    companies: ICompany[],
+    emailListId: string
+  ): IEmailSqsEventInput["details"]["recipients"] {
+    const emailIds = [];
+    companies.forEach((company: ICompany) => {
+      company.concernedPersons.forEach((x) => {
+        if (x?.emailList?.includes(emailListId)) {
+          emailIds.push(
+            ...x.emailList.map((e) => {
+              return {
+                recipientName: x.name,
+                recipientEmail: e,
+                companyId: null,
+                recipientId: null,
+              };
+            })
+          );
+        }
+      });
+    });
+    return emailIds;
   }
 
   async updateEmail(
@@ -116,6 +204,7 @@ export class EmailService implements IEmailService {
 
   async deleteEmail(id: string): Promise<any> {}
 
+  // @TODO fix the 0th index thing
   async sqsEmailHandler(event: IEmailSqsEventInput) {
     console.log("[sqsEmailHandler]", event);
     const {

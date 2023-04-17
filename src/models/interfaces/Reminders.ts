@@ -20,21 +20,32 @@ export interface IEBSchedulerEventInput extends I_SQS_EVENT_INPUT {
 }
 
 export interface IEmailSqsEventInput extends I_SQS_EVENT_INPUT {
-  name: string;
-  details: [{
+  name?: string;
+  details: {
     senderId: string;
     senderEmail: string;
     //    replyHeader: string;
     ConfigurationSetName?: string;
     replyTo?: string[];
-    recipientId?: string;
-    recipientEmail: string;
+    recipients: {
+      recipientId?: string;
+      recipientEmail: string;
+      companyId?: string;
+      recipientName: string;
+    }[];
     subject: string;
     body: string;
     ccList?: string[];
     bccList?: string[];
-    companyId?: string;
-  }];
+  };
+  /**
+   * SQS Message Id
+   */
+  messageId: string;
+  /**
+   * Job Table Id
+   */
+  jobId: string;
 }
 
 export interface IJobSqsEventInput extends I_SQS_EVENT_INPUT {

@@ -1,13 +1,14 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { JOBS_RESULTS_TABLE, EMPLOYEES_TABLE_NAME } from "./commons";
-import EmployeeModel from "./Employees";
+import { JOBS_TABLE, EMPLOYEES_TABLE_NAME } from "../commons";
+import EmployeeModel from "../Employees";
 
-export interface IJobsResults {
+interface IJobs {
   id?: string;
   uploadedBy: string;
   jobType: string;
-  jobResultUrl: string;
+  jobResultUrl?: string;
+  resultPayload?: object;
   createdAt?: string;
   summary?: string;
   resultType?: string;
@@ -15,15 +16,14 @@ export interface IJobsResults {
 }
 
 @singleton()
-export default class JobsResultsModel extends Model {
+class JobsModel extends Model {
   static get tableName() {
-    return JOBS_RESULTS_TABLE;
+    return JOBS_TABLE;
   }
 
   static get columnNames(): string[] {
     return Object.keys(this.jsonSchema.properties);
   }
-
 
   static get jsonSchema() {
     return {
@@ -32,11 +32,12 @@ export default class JobsResultsModel extends Model {
         id: { type: "string" },
         uploadedBy: { type: "string" },
         jobType: { type: "string" },
-        jobResultUrl: { type: "string" }, // snake cased value
         summary: { type: "string" },
-        resultType: { type: "string" },
-        createdAt: { type: "string" },
         details: { type: "object" },
+        result: { type: "object" },
+        jobStatus: { type: "string" },
+        createdAt: { type: "string" },
+        updatedAt: { type: "string" },
       },
       required: ["uploadedBy", "jobType"],
       additionalProperties: false,
@@ -47,17 +48,15 @@ export default class JobsResultsModel extends Model {
       relation: Model.BelongsToOneRelation,
       modelClass: EmployeeModel,
       join: {
-        from: `${JOBS_RESULTS_TABLE}.uploadedBy`,
+        from: `${JOBS_TABLE}.uploadedBy`,
         to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
   });
 
   static get jsonAttributes() {
-    return [
-      "details",
-    ];
+    return ["details", "result"];
   }
 }
 
-export type IJobsResultsModel = ModelObject<JobsResultsModel>;
+type IJobsModel = ModelObject<JobsModel>;

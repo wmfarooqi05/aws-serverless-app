@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { container, inject, injectable } from "tsyringe";
+import { container, injectable } from "tsyringe";
 import {
   SQSClient,
   SendMessageCommand,
@@ -7,11 +7,9 @@ import {
   DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 import { SQSEvent } from "aws-lambda";
-import JobsResultsModel, { IJobsResults } from "@models/JobsResult";
+// import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcess } from "@functions/jobs/bulkSignupProcess";
-import { IPendingApprovals } from "@models/interfaces/PendingApprovals";
-import { INotification } from "@models/Notification";
 import {
   IEmailSqsEventInput,
   IJobSqsEventInput,
@@ -24,9 +22,9 @@ import { EmailService } from "@functions/emails/service";
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
 //   "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev";
-// if (process.env.STAGE === "local") {
-//   queueUrl = "http://localhost:4566/000000000000/job-queue-local";
-// }
+if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
+  queueUrl = "http://localhost:4566/000000000000/job-queue-local";
+}
 
 console.log("queueUrl", queueUrl);
 
@@ -34,18 +32,17 @@ console.log("queueUrl", queueUrl);
 export class SQSService {
   sqsClient: SQSClient = null;
   constructor() {
-    // this.sqs = new SQS({ region: process.env.REGION });
-    // if (process.env.STAGE === "local") {
-    //   this.sqsClient = new SQSClient({
-    //     endpoint: "http://localhost:4566", // Replace with the endpoint of your LocalStack instance
-    //     region: "ca-central-1", // Replace with your desired region
-    //     apiVersion: "2012-11-05", // Replace with your desired API version})
-    //   });
-    // } else {
-    this.sqsClient = new SQSClient({
-      region: process.env.REGION,
-    });
-    // }
+    if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
+      this.sqsClient = new SQSClient({
+        endpoint: "http://localhost:4566", // Replace with the endpoint of your LocalStack instance
+        region: "ca-central-1", // Replace with your desired region
+        apiVersion: "2012-11-05", // Replace with your desired API version})
+      });
+    } else {
+      this.sqsClient = new SQSClient({
+        region: process.env.REGION,
+      });
+    }
   }
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
@@ -53,6 +50,12 @@ export class SQSService {
       const deleteEvent = [];
       console.log("[sqsJobQueueInvokeHandler] records", Records);
       const promises = Records.map(async (record) => {
+        // const jobItem = JobsModel.query()
+        // .where(
+        //   "details->>'sqsPayload.MessageId'",
+        //   record.messageId
+        // ).first();
+
         console.log("[sqsJobQueueInvokeHandler] record", record);
 
         const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
@@ -90,12 +93,12 @@ export class SQSService {
       throw new CustomError("job id not found", 400);
       return;
     }
-    const job: IJobsResults = await JobsResultsModel.query().findById(
-      input.jobId
-    );
-    if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
-      await bulkImportUsersProcess(job);
-    }
+    // const job: IJobs = await JobsModel.query().findById(
+    //   input.jobId
+    // );
+    // if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
+    //   await bulkImportUsersProcess(job);
+    // }
   }
 
   async addJobToQueue(jobId: string) {

@@ -113,6 +113,18 @@ export const handleEmailEvent = async (event: SESEvent) => {
     };
   }
 };
+
+export const sendBulkEmailsHandler = async (event) => {
+  try {
+    const emails = await container
+      .resolve(EmailService)
+      .sendBulkEmails(event.employee, event.body);
+    return formatJSONResponse(emails, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getEmails = allowRoleWrapper(getEmailsHandler);
 export const updateEmail = allowRoleWrapper(updateEmailHandler);
 export const sendEmail = checkRolePermission(
@@ -122,4 +134,8 @@ export const sendEmail = checkRolePermission(
 export const deleteEmail = allowRoleWrapper(
   deleteEmailHandler,
   RolesEnum.ADMIN_GROUP
+);
+export const sendBulkEmails = checkRolePermission(
+  sendBulkEmailsHandler,
+  "COMPANY_READ_ALL"
 );

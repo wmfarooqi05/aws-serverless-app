@@ -92,6 +92,7 @@ export class PendingApprovalService implements IPendingApprovalService {
           retryCount: updatedEntry.retryCount + 1,
           resultPayload: updatedEntry.resultPayload,
           status: updatedEntry.status,
+          // Add merged it key in approvalDetails
         })
         .first();
 
@@ -154,6 +155,19 @@ export class PendingApprovalService implements IPendingApprovalService {
     }
   }
 
+  /**
+   *
+   * @param actionType
+   * @param tableRowId
+   * @param createdBy
+   * @param tableName
+   * @param payload
+   * @param jsonActionType
+   * @param jsonbItemId
+   * @param batchApprovalKey - If we are running operations on multiple rows,
+   * we can add this key to all rows
+   * @returns
+   */
   async createPendingApprovalRequest(
     actionType: PendingApprovalType,
     tableRowId: string,
@@ -161,7 +175,8 @@ export class PendingApprovalService implements IPendingApprovalService {
     tableName: string,
     payload: object = null,
     jsonActionType: string = null,
-    jsonbItemId: string = null
+    jsonbItemId: string = null,
+    batchApprovalKey: string = null
   ): Promise<{ pendingApproval: IPendingApprovals }> {
     const { onApprovalActionRequired } = convertPayloadToArray(
       actionType,
@@ -188,11 +203,12 @@ export class PendingApprovalService implements IPendingApprovalService {
       status: PendingApprovalsStatus.PENDING,
       retryCount: 0,
       resultPayload: [],
+      batchApprovalKey,
     };
     if (actionType === PendingApprovalType.CREATE) {
       delete item.tableRowId;
     }
-    let senderName;
+    let senderName; // remove this
     if (createdBy["name"]) {
       senderName = createdBy["name"];
     } else {
@@ -244,7 +260,6 @@ export class PendingApprovalService implements IPendingApprovalService {
         extraData: {
           module: "PENDING_APPROVALS",
           rowId: pendingApprovalItem["id"],
-          infoType: pendingApprovalItem.activityName,
           senderEmployeeName: employee.name,
           avatar: employee.picture,
         },

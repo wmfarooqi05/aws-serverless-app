@@ -24,6 +24,7 @@ export interface IConcernedPerson {
   timezone: string;
   createdAt: string;
   updatedAt: string;
+  emailList: string[];
 }
 
 export interface IAddress {

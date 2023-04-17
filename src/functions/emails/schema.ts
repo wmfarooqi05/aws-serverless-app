@@ -9,6 +9,7 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
         senderEmail: Joi.string().email().required(),
         recipientId: Joi.string().guid().allow(null),
         recipientEmail: Joi.string().email().required(),
+        recipientName: Joi.string(),
         subject: Joi.string().required(),
         body: Joi.string().required(),
         ccList: Joi.array().items(Joi.string().email()),
@@ -18,6 +19,19 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
         snsHeaders: Joi.string(),
       })
     ),
+  }).validateAsync(obj, {
+    allowUnknown: true,
+  });
+};
+
+export const validateBulkEmails = (obj) => {
+  return Joi.object({
+    emailListId: Joi.string().guid().required(),
+    subject: Joi.string().required(),
+    body: Joi.string().required(),
+    ccList: Joi.array().items(Joi.string().email()),
+    bccList: Joi.array().items(Joi.string().email()),
+    replyTo: Joi.array().items(Joi.string().email()),
   }).validateAsync(obj, {
     allowUnknown: true,
   });

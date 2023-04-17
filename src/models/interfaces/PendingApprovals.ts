@@ -12,11 +12,11 @@ export enum PendingApprovalsStatus {
 }
 
 export interface IPendingApprovals {
-  activityName: string;
   id?: string;
   tableRowId: string;
   tableName: string;
   approvers: string[];
+  approvalDetails?: Object;
   createdBy: string;
   onApprovalActionRequired: IOnApprovalActionRequired;
   escalationTime?: string;
@@ -24,6 +24,7 @@ export interface IPendingApprovals {
   status?: PendingApprovalsStatus;
   retryCount?: number;
   resultPayload?: {};
+  batchApprovalKey?: string;
   createdAt?: string;
   updatedAt?: string;
 }

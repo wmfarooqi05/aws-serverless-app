@@ -19,7 +19,6 @@ export const ensureEnvConfigs = () => {
     "NOTIFICATIONS_TABLE",
     "REMINDERS_TABLE",
     "AUTH_TOKENS_TABLE",
-    "JOBS_RESULTS_TABLE",
     "UPDATE_HISTORY_TABLE",
     "ACCESS_PERMISSIONS_TABLE",
 

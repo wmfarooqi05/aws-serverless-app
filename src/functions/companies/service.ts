@@ -18,6 +18,7 @@ import {
   validateAddNotes,
   validateUpdateNotes,
   validateDeleteNotes,
+  validateUpdateCompaniesAssignedEmployee,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
@@ -45,6 +46,7 @@ import {
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
 import { validateRequestByEmployeeRole } from "@common/helpers/permissions";
+import reject from "lodash.reject";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -155,6 +157,7 @@ export class CompanyService implements ICompanyService {
         id: randomUUID(),
         createdAt: timeNow,
         updatedAt: timeNow,
+        emailList: x.emailList ?? [],
       } as IConcernedPerson;
     });
     const { permitted, createPendingApproval } = employee;
@@ -246,6 +249,66 @@ export class CompanyService implements ICompanyService {
     );
     return { company: { id } };
   }
+
+  /**
+   * Bulk assignment
+   * @param employee
+   * @param companyId
+   * @param body
+   */
+  async updateCompaniesAssignedEmployee(employee: IEmployeeJwt, body) {
+    const payload = JSON.parse(body);
+    await validateUpdateCompaniesAssignedEmployee(employee.sub, payload);
+
+    const { companyIds }: { companyIds: string[]; action: string } = payload;
+    const companies: ICompany[] = await CompanyModel.query().findByIds(
+      companyIds
+    );
+
+    if (companies.length !== companyIds.length) {
+      throw new CustomError(
+        `Companies with ids ${companyIds
+          .filter((x) => !companies.find((y) => y.id === x))
+          .join(",")} not found`,
+        400
+      );
+    }
+    const { permitted, createPendingApproval } = employee;
+    const batchApprovalKey = randomUUID();
+    if (!permitted && createPendingApproval) {
+      const pendingApprovalPromises = companyIds.map((x) =>
+        this.pendingApprovalService.createPendingApprovalRequest(
+          PendingApprovalType.UPDATE,
+          x,
+          employee,
+          CompanyModel.tableName,
+          { assignedTo: payload?.assignTo ?? null },
+          null,
+          null,
+          batchApprovalKey
+        )
+      );
+      return Promise.all(pendingApprovalPromises);
+    }
+    const updatePromises = companyIds.map((x) =>
+      updateHistoryHelper(
+        PendingApprovalType.UPDATE,
+        x,
+        employee.sub,
+        CompanyModel.tableName,
+        this.docClient.getKnexClient(),
+        { assignedTo: payload?.assignTo ?? null }
+      )
+    );
+
+    await Promise.all(updatePromises);
+    return {
+      companies: companyIds.map((x) => {
+        return { id: x, assignedTo: payload?.assignTo ?? null };
+      }),
+    };
+  }
+
   async updateCompanyAssignedEmployee(employee: IEmployeeJwt, companyId, body) {
     // @TODO: @Auth this employee should be the manager of changing person
     // @Paul No need for pending approval [Check with Paul]
