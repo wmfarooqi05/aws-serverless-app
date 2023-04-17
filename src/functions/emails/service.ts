@@ -1,22 +1,18 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { container, delay, inject, injectable } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
 import EmailRecordsModel, { JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import { validateBulkEmails, validateSendEmail } from "./schema";
-import moment from "moment-timezone";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSService } from "@functions/sqs/service";
-import { COMPANIES_TABLE_NAME, EMAIL_LIST_TABLE } from "@models/commons";
+import { COMPANIES_TABLE_NAME } from "@models/commons";
 import { ICompany } from "@models/interfaces/Company";
-import { IConcernedPerson } from "@models/interfaces/Company";
-import chunk from "lodash.chunk";
-import { IJobs } from "@models/pending/[x]Jobs";
-import { x } from "joi";
+import { chunk } from "@utils/lodash";
 
 export interface IEmailService {}
 
@@ -118,7 +114,6 @@ export class EmailService implements IEmailService {
       employee
     );
 
-    
     const jobItems = emailInputPayloads.map((x) => {
       return new JobsModel({
         id: randomUUID(),

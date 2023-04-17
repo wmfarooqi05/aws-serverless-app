@@ -2,11 +2,6 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { COMPANIES_TABLE_NAME, EMPLOYEES_TABLE_NAME } from "./commons";
-import {
-  COMPANY_STAGES,
-  COMPANY_PRIORITY,
-  COMPANY_STATUS,
-} from "./interfaces/Company";
 import Employee from "./Employees";
 
 @singleton()
