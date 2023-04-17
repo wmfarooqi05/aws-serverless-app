@@ -34,7 +34,7 @@ const getCompaniesHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const companies = await container
       .resolve(CompanyService)
-      .getAllCompanies(event.queryStringParameters || {});
+      .getAllCompanies(event.employee, event.queryStringParameters || {});
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -68,14 +68,14 @@ const getCompaniesByEmployeeIdHandler = async (event) => {
   }
 };
 
-export const getCompanyById: ValidatedEventAPIGatewayProxyEvent<
+const getCompanyByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   const { companyId } = event.pathParameters;
   try {
     const companies = await container
       .resolve(CompanyService)
-      .getCompany(companyId);
+      .getCompany(event.employee, companyId);
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -252,6 +252,11 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 export const getCompanies = checkRolePermission(
   getCompaniesHandler,
   "COMPANY_READ_ALL"
+);
+
+export const getCompanyById = checkRolePermission(
+  getCompanyByIdHandler,
+  "COMPANY_READ"
 );
 
 export const getCompaniesByEmployeeId = checkRolePermission(

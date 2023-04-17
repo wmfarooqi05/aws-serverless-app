@@ -7,8 +7,12 @@ import {
 import { getPaginatedJoiKeys } from "src/common/schema";
 import CompanyModel from "@models/Company";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
+import EmployeeCompanyInteractionsModel from "@models/EmployeeCompanyInteractions";
 
 const schemaKeys = Object.keys(CompanyModel.jsonSchema.properties);
+const combinedKeys = schemaKeys.concat(
+  EmployeeCompanyInteractionsModel.validSchemaKeys
+);
 
 const AddressJoi = Joi.array().items(
   Joi.object({
@@ -34,7 +38,7 @@ export const validateGetCompanies = async (obj: any) => {
       Joi.string().valid(...Object.values(COMPANY_STAGES))
     ),
   })
-    .concat(getPaginatedJoiKeys(schemaKeys))
+    .concat(getPaginatedJoiKeys(combinedKeys))
     .validateAsync(
       {
         ...obj,

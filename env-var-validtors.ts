@@ -21,6 +21,7 @@ export const ensureEnvConfigs = () => {
     "AUTH_TOKENS_TABLE",
     "UPDATE_HISTORY_TABLE",
     "ACCESS_PERMISSIONS_TABLE",
+    "EMPLOYEE_COMPANY_INTERACTIONS_TABLE",
 
     "DEPLOYMENT_BUCKET",
     "ELASTIC_CACHE_SERVER",
@@ -33,6 +34,7 @@ export const ensureEnvConfigs = () => {
     "REMINDER_SCHEDULER_GROUP_NAME",
     "REMINDER_TARGET_LAMBDA",
     "JOB_SQS_ARN",
+    "MAIL_QUEUE_ARN",
 
     "ConnectionTableName",
     "ConnectionTablePartitionKey",
@@ -53,5 +55,6 @@ export const ensureEnvConfigs = () => {
     "JOBS_FOLDER",
     "AWS_ACCOUNT_ID",
     "USER_POOL_ID",
+    "MAIL_QUEUE",
   ]);
 };

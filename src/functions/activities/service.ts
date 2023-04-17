@@ -13,7 +13,7 @@ import {
 } from "./schema";
 
 import EmployeeModel from "src/models/Employees";
-import CompanyModel from "src/models/Company";
+import CompanyModel from "@models/Company";
 import ActivityModel, {
   IActivityModel,
   IActivityPaginated,

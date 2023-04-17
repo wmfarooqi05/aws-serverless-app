@@ -9,12 +9,6 @@ import {
 } from "./interfaces/Company";
 import Employee from "./Employees";
 
-// @TODO export them somewhere else
-export const defaultCompanyDetails = {
-  priority: COMPANY_PRIORITY.NO_PRIORITY,
-  status: COMPANY_STATUS.NONE,
-};
-
 @singleton()
 export default class CompanyModel extends Model {
   static get tableName() {
@@ -40,16 +34,10 @@ export default class CompanyModel extends Model {
         addresses: { type: "array" },
         assignedTo: { type: "string" },
         assignedBy: { type: "string" },
-        priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
-        status: { type: "string", default: COMPANY_STATUS.NONE },
-        details: {
-          type: "object",
-          default: defaultCompanyDetails,
-        },
-        stage: { type: "string", default: COMPANY_STAGES.LEAD },
+        details: { type: "object" },
+        // remove this key maybe
         tags: { type: "string" }, // comma separated strings
         // @TODO typecasting issues
-        notes: { type: "array" },
         updatedAt: { type: "string" },
       },
       required: ["companyName"],

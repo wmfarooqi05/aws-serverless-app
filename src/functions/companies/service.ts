@@ -3,7 +3,14 @@ import CompanyModel, {
   ICompanyModel,
   ICompanyPaginated,
 } from "@models/Company";
-import { IConcernedPerson, ICompany, INotes } from "@models/interfaces/Company";
+import {
+  IConcernedPerson,
+  ICompany,
+  INotes,
+  COMPANY_PRIORITY,
+  COMPANY_STATUS,
+  COMPANY_STAGES,
+} from "@models/interfaces/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 
@@ -45,8 +52,8 @@ import {
 } from "@common/query";
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
-import { validateRequestByEmployeeRole } from "@common/helpers/permissions";
-import reject from "lodash.reject";
+import { EMPLOYEE_COMPANY_INTERACTIONS_TABLE } from "@models/commons";
+import EmployeeCompanyInteractionsModel from "@models/EmployeeCompanyInteractions";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -69,72 +76,70 @@ export class CompanyService implements ICompanyService {
     @inject(EmployeeService) private readonly employeeService: EmployeeService
   ) {}
 
-  async getAllCompanies(body: any): Promise<ICompanyPaginated> {
+  async getAllCompanies(
+    employee: IEmployeeJwt,
+    body: any
+  ): Promise<ICompanyPaginated> {
     await validateGetCompanies(body);
-    const { priority, status, stage, returningFields } = body;
-
-    const whereClause: any = {};
-    if (stage) whereClause.stage = stage;
-
-    return this.docClient
-      .getKnexClient()(CompanyModel.tableName)
-      .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
-      .where(whereClause)
-      .where((builder) => {
-        if (status) {
-          builder.whereRaw(
-            `details->>'status' IN (${convertToWhereInValue(status)})`
-          );
-        }
-        if (priority) {
-          builder.whereRaw(
-            `details->>'priority' = (${convertToWhereInValue(priority)})`
-          );
-        }
-      })
-      .orderBy(...getOrderByItems(body))
-      .paginate(getPaginateClauseObject(body));
+    return this.getCompanyQuery(employee.sub, body);
   }
 
   async getCompaniesByEmployeeId(
-    user: IEmployeeJwt,
+    employee: IEmployeeJwt,
     employeeId: string,
     body: any
   ): Promise<ICompanyPaginated> {
     await validateGetCompanies(body);
-    const { priority, status, stage, returningFields } = body;
-
     // @TODO remove me
     const whereClause: any = {
-      assignedTo: employeeId === "me" ? user.sub : employeeId,
+      assignedTo: employeeId === "me" ? employee.sub : employeeId,
     };
-    if (stage) whereClause.stage = stage;
 
-    return this.docClient
-      .getKnexClient()(CompanyModel.tableName)
-      .select(sanitizeColumnNames(CompanyModel.columnNames, returningFields))
+    return this.getCompanyQuery(employee.sub, body, whereClause);
+  }
+
+  async getCompanyQuery(employeeId, body, whereClause = {}) {
+    const { priority, status, stage, returningFields } = body;
+
+    if (stage) {
+      whereClause["stage"] = stage;
+    }
+    const knex = this.docClient.getKnexClient();
+    const returningKeys = this.getSelectKeys(returningFields);
+
+    const companies = await knex(`${CompanyModel.tableName} as c`)
+      .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
+        join.on("ec.employee_id", "=", knex.raw("?", [employeeId])); // Use parameter binding
+      })
+      .select(returningKeys)
       .where(whereClause)
-      .where((builder) => {
+      .modify((builder) => {
         if (status) {
-          builder.whereRaw(
-            `details->>'status' IN (${convertToWhereInValue(status)})`
-          );
+          builder.whereRaw(`ec.'status' IN (${convertToWhereInValue(status)})`);
         }
         if (priority) {
           builder.whereRaw(
-            `details->>'priority' IN (${convertToWhereInValue(priority)})`
+            `ec.'priority' = (${convertToWhereInValue(priority)})`
           );
         }
       })
-      .orderBy(...getOrderByItems(body))
+      .orderBy(...getOrderByItems(body, "c"))
       .paginate(getPaginateClauseObject(body));
+
+    return {
+      data: companies?.data?.map((x) =>
+        this.validateCompanyWithInteractions(x)
+      ),
+      pagination: companies?.pagination,
+    };
   }
 
-  async getCompany(id: string): Promise<ICompanyModel> {
-    const company = await CompanyModel.query().findById(id);
-    if (!company) {
+  async getCompany(employee: IEmployeeJwt, id: string): Promise<ICompanyModel> {
+    const companies = await this.getCompanyQuery(employee.sub, {}, { id });
+    if (companies?.data?.length === 0) {
       throw new CustomError("Company not found", 404);
     }
+    const company = companies.data[0];
     const activities = await ActivityModel.query().where({
       companyId: id,
     });
@@ -640,5 +645,46 @@ export class CompanyService implements ICompanyService {
      * Even if key is allowed to change, we have to check if every sales rep can update it
      * or only the one assigned on it
      */
+  }
+
+  getSelectKeys(returningFields) {
+    let returningKeys = sanitizeColumnNames(
+      CompanyModel.columnNames,
+      returningFields,
+      "c"
+    );
+
+    const secondKeys = sanitizeColumnNames(
+      EmployeeCompanyInteractionsModel.validSchemaKeys,
+      returningFields,
+      "ec",
+      true
+    );
+    if (Array.isArray(returningKeys)) {
+      if (Array.isArray(secondKeys)) {
+        returningKeys = [...returningKeys, ...secondKeys];
+      } else {
+        returningKeys = [...returningKeys, secondKeys];
+      }
+    } else if (typeof returningKeys === "string") {
+      if (Array.isArray(secondKeys)) {
+        returningKeys = [returningKeys, ...secondKeys];
+      } else {
+        returningKeys = [returningKeys, secondKeys];
+      }
+    }
+
+    return returningKeys;
+  }
+
+  validateCompanyWithInteractions(companyItem) {
+    return {
+      ...companyItem,
+      priority: companyItem?.priority ?? COMPANY_PRIORITY.NO_PRIORITY,
+      status: companyItem?.status ?? COMPANY_STATUS.NONE,
+      stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
+      notes: companyItem?.notes ?? [],
+      interactionDetails: companyItem?.interactionDetails ?? {},
+    };
   }
 }

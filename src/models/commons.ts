@@ -18,14 +18,15 @@ export const GLOBAL_SETTINGS_TABLE =
 export const PENDING_APPROVAL_TABLE =
   process.env.PENDING_APPROVAL_TABLE || "pending_approvals";
 export const AUTH_TOKEN_TABLE = process.env.AUTH_TOKENS_TABLE || "auth_tokens";
-export const JOBS_TABLE =
-  process.env.JOBS_TABLE || "jobs";
+export const JOBS_TABLE = process.env.JOBS_TABLE || "jobs";
 export const UPDATE_HISTORY_TABLE = (process.env.UPDATE_HISTORY_TABLE =
   "update_history");
 export const TEAMS_TABLE = process.env.TEAMS_TABLE || "teams";
 export const ACCESS_PERMISSIONS_TABLE =
   process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions";
 export const EMAIL_LIST_TABLE = process.env.EMAIL_LIST || "email_lists";
+export const EMPLOYEE_COMPANY_INTERACTIONS_TABLE =
+  process.env.EMPLOYEE_COMPANY_INTERACTIONS_TABLE || "employee_company_interactions";
 
 export type ModuleType =
   | "PENDING_APPROVALS"
