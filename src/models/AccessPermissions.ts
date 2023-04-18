@@ -115,12 +115,24 @@ const defaultAllowedPermissions: IAccessPermissions = {
   specialPermissions: true
 };
 
+const allowedManagers: IAccessPermissions = {
+  role: "SALES_MANAGER_GROUP",
+  tableName: "COMPANIES",
+  permissionType: PermissionTypes.UPDATE,
+  isAllowed: true,
+  createPendingApproval: true,
+  allowedEmployees: [],
+  permissionKey: "COMPANY_CONVERT",
+  specialPermissions: false
+};
+
 export type PERMISSION_KEY =
   | "*"
   | "COMPANY_READ_ALL"
   | "COMPANY_READ"
   | "COMPANY_CREATE"
   | "COMPANY_UPDATE"
+  | "COMPANY_CONVERT"
   | "COMPANY_DELETE"
   | "CONCERNED_PERSON_CREATE"
   | "CONCERNED_PERSON_UPDATE"
@@ -142,6 +154,7 @@ export const accessPermissionsCacheMap: IAccessPermissionsCacheMap = {
   COMPANY_READ: defaultAllowedPermissions,
   COMPANY_CREATE: defaultPermissions,
   COMPANY_UPDATE: defaultPermissions,
+  COMPANY_CONVERT: allowedManagers,
   COMPANY_DELETE: defaultPermissions,
   CONCERNED_PERSON_CREATE: defaultPermissions,
   CONCERNED_PERSON_UPDATE: defaultPermissions,

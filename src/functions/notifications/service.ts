@@ -5,7 +5,10 @@ import { CustomError } from "@helpers/custom-error";
 import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import { validateGetNotifications } from "./schema";
+import {
+  validateGetNotifications,
+  validateUpdateNotificationsReadStatus,
+} from "./schema";
 import {
   getOrderByItems,
   getPaginateClauseObject,
@@ -121,7 +124,7 @@ export class NotificationService implements INotificationService {
   async updateNotificationsReadStatus(body) {
     const payload = JSON.parse(body);
     // @todo add validator JOI
-    await this.updateNotificationsReadStatus(payload);
+    await validateUpdateNotificationsReadStatus(payload);
 
     const response = await NotificationModel.query()
       .patch({

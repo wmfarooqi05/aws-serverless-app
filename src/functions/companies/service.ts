@@ -53,13 +53,21 @@ import {
 } from "@common/query";
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
-import { EMPLOYEE_COMPANY_INTERACTIONS_TABLE } from "@models/commons";
+import {
+  EMPLOYEE_COMPANY_INTERACTIONS_TABLE,
+  TEAM_COMPANY_INTERACTIONS_TABLE,
+} from "@models/commons";
 import EmployeeCompanyInteractionsModel, {
   IEmployeeCompanyInteraction,
   IEmployeeCompanyInteractionsModel,
   defaultInteractionItem,
-  getDefaultInteractionItem,
+  getDefaultEmployeeInteractionItem,
 } from "@models/EmployeeCompanyInteractions";
+import TeamCompanyInteractionsModel, {
+  ITeamCompanyInteraction,
+  getDefaultTeamInteractionItem,
+} from "@models/TeamCompanyInteractions";
+import TeamModel, { ITeam } from "@models/Teams";
 
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -87,7 +95,7 @@ export class CompanyService implements ICompanyService {
     body: any
   ): Promise<ICompanyPaginated> {
     await validateGetCompanies(body);
-    return this.getCompanyQuery(employee.sub, body);
+    return this.getCompanyQuery(employee, body);
   }
 
   async getCompaniesByEmployeeId(
@@ -101,10 +109,10 @@ export class CompanyService implements ICompanyService {
       assignedTo: employeeId === "me" ? employee.sub : employeeId,
     };
 
-    return this.getCompanyQuery(employee.sub, body, whereClause);
+    return this.getCompanyQuery(employee, body, whereClause);
   }
 
-  async getCompanyQuery(employeeId, body, whereClause = {}) {
+  async getCompanyQuery(employee: IEmployeeJwt, body, whereClause = {}) {
     const { priority, status, stage, returningFields } = body;
 
     // @TODO move this to team interactions
@@ -116,7 +124,10 @@ export class CompanyService implements ICompanyService {
 
     const companies = await knex(`${CompanyModel.tableName} as c`)
       .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
-        join.on("ec.employee_id", "=", knex.raw("?", [employeeId])); // Use parameter binding
+        join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
+      })
+      .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
+        join.on("tc.team_id", "=", knex.raw("?", [employee.teamId]));
       })
       .select(returningKeys)
       .where(whereClause)
@@ -128,6 +139,9 @@ export class CompanyService implements ICompanyService {
           builder.whereRaw(
             `ec.'priority' = (${convertToWhereInValue(priority)})`
           );
+        }
+        if (stage) {
+          builder.whereRaw(`tc.'stage' IN (${convertToWhereInValue(stage)})`);
         }
       })
       .orderBy(...getOrderByItems(body, "c"))
@@ -142,7 +156,7 @@ export class CompanyService implements ICompanyService {
   }
 
   async getCompany(employee: IEmployeeJwt, id: string): Promise<ICompanyModel> {
-    const companies = await this.getCompanyQuery(employee.sub, {}, { id });
+    const companies = await this.getCompanyQuery(employee, {}, { "c.id": id });
     if (companies?.data?.length === 0) {
       throw new CustomError("Company not found", 404);
     }
@@ -260,7 +274,8 @@ export class CompanyService implements ICompanyService {
       : PendingApprovalType.CREATE;
 
     const defaultPayload = {
-      ...getDefaultInteractionItem(employee.sub, companyId),
+      ...getDefaultEmployeeInteractionItem(employee.sub, companyId),
+      // ...this.getDefaultTeamInteractionItem(employee),
       ...payload,
     };
     // As they belongs to employee, we don't need any approval
@@ -279,6 +294,56 @@ export class CompanyService implements ICompanyService {
         ...payload,
       }),
     };
+  }
+
+  async convertCompany(employee: IEmployeeJwt, companyId: string) {
+    const company: ICompany = await CompanyModel.query().findById(companyId);
+    if (!company) {
+      throw new CustomError("Company not found", 404);
+    }
+
+    const teamInteraction: ITeamCompanyInteraction =
+      await TeamCompanyInteractionsModel.query()
+        .where({
+          companyId,
+          teamId: employee.teamId,
+        })
+        .first();
+
+    const id = teamInteraction?.id ?? null;
+    const action = teamInteraction?.id
+      ? PendingApprovalType.UPDATE
+      : PendingApprovalType.CREATE;
+
+    const payload =
+      action === PendingApprovalType.CREATE
+        ? {
+            ...getDefaultTeamInteractionItem(employee, companyId),
+            stage: COMPANY_STAGES.CONTACT,
+          }
+        : { stage: COMPANY_STAGES.CONTACT };
+
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
+        action,
+        id,
+        employee,
+        TeamCompanyInteractionsModel.tableName,
+        payload
+      );
+    }
+
+    await updateHistoryHelper(
+      action,
+      id,
+      employee.sub,
+      TeamCompanyInteractionsModel.tableName,
+      this.docClient.getKnexClient(),
+      payload
+    );
+
+    return { company: { stage: COMPANY_STAGES.CONTACT } };
   }
 
   async deleteCompany(
@@ -301,7 +366,7 @@ export class CompanyService implements ICompanyService {
       );
     }
 
-    updateHistoryHelper(
+    await updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
       employee.sub,
@@ -598,7 +663,7 @@ export class CompanyService implements ICompanyService {
         EmployeeCompanyInteractionsModel.tableName,
         this.docClient.getKnexClient(),
         {
-          ...getDefaultInteractionItem(employee.sub, companyId),
+          ...getDefaultEmployeeInteractionItem(employee.sub, companyId),
           notes: [notes],
         }
       );
@@ -676,46 +741,38 @@ export class CompanyService implements ICompanyService {
     return { notes: originalObject[key][index] };
   }
 
-  permissionResolver() {
-    /**
-     * We have to resolve these things
-     * If this key is permitted to be updated
-     * If assigned_employee is permitted to be updated
-     * If his manager is permitted to be updated
-     *
-     * Even if key is allowed to change, we have to check if every sales rep can update it
-     * or only the one assigned on it
-     */
-  }
-
   getSelectKeys(returningFields) {
-    let returningKeys = sanitizeColumnNames(
+    const companyKeys = sanitizeColumnNames(
       CompanyModel.columnNames,
       returningFields,
       "c"
     );
 
-    const secondKeys = sanitizeColumnNames(
+    const employeeToCompanyKeys = sanitizeColumnNames(
       EmployeeCompanyInteractionsModel.validSchemaKeys,
       returningFields,
       "ec",
       true
     );
-    if (Array.isArray(returningKeys)) {
-      if (Array.isArray(secondKeys)) {
-        returningKeys = [...returningKeys, ...secondKeys];
-      } else {
-        returningKeys = [...returningKeys, secondKeys];
-      }
-    } else if (typeof returningKeys === "string") {
-      if (Array.isArray(secondKeys)) {
-        returningKeys = [returningKeys, ...secondKeys];
-      } else {
-        returningKeys = [returningKeys, secondKeys];
-      }
-    }
 
-    return returningKeys;
+    const teamToCompanyKeys = sanitizeColumnNames(
+      TeamCompanyInteractionsModel.validSchemaKeys,
+      returningFields,
+      "tc",
+      true
+    );
+
+    const companyArray = Array.isArray(companyKeys)
+      ? companyKeys
+      : [companyKeys];
+    const teamToCompanyArray = Array.isArray(teamToCompanyKeys)
+      ? teamToCompanyKeys
+      : [teamToCompanyKeys];
+    const employeeToCompanyArray = Array.isArray(employeeToCompanyKeys)
+      ? employeeToCompanyKeys
+      : [employeeToCompanyKeys];
+
+    return [...companyArray, ...teamToCompanyArray, ...employeeToCompanyArray];
   }
 
   validateCompanyWithInteractions(companyItem) {
@@ -725,7 +782,9 @@ export class CompanyService implements ICompanyService {
       status: companyItem?.status ?? COMPANY_STATUS.NONE,
       // stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
       notes: companyItem?.notes ?? [],
-      interactionDetails: companyItem?.interactionDetails ?? {},
+      employeeInteractionDetails: companyItem?.employeeInteractionDetails ?? {},
+      stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
+      teamInteractionDetails: companyItem?.teamInteractionDetails ?? {},
     };
   }
 }

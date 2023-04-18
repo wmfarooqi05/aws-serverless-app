@@ -116,18 +116,31 @@ export const updateCompanyInteractionsHandler: ValidatedEventAPIGatewayProxyEven
   }
 };
 
-export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<ICompanyModel> =
-  middy(async (event) => {
-    try {
-      const { companyId } = event.pathParameters;
-      const response = await container
-        .resolve(CompanyService)
-        .deleteCompany(event?.employee, companyId);
-      return formatJSONResponse(response, 200);
-    } catch (e) {
-      return formatErrorResponse(e);
-    }
-  });
+const convertCompanyHandler = async (event) => {
+  try {
+    const { companyId } = event.pathParameters;
+    const response = await container
+      .resolve(CompanyService)
+      .convertCompany(event?.employee, companyId);
+    return formatJSONResponse(response, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
+  ICompanyModel
+> = async (event) => {
+  try {
+    const { companyId } = event.pathParameters;
+    const response = await container
+      .resolve(CompanyService)
+      .deleteCompany(event?.employee, companyId);
+    return formatJSONResponse(response, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
 
 const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
@@ -292,6 +305,11 @@ export const updateCompany = checkRolePermission(
 export const updateCompanyInteractions = checkRolePermission(
   updateCompanyInteractionsHandler,
   "COMPANY_READ"
+);
+
+export const convertCompany = checkRolePermission(
+  convertCompanyHandler,
+  "COMPANY_CONVERT"
 );
 
 export const createCompany = checkRolePermission(

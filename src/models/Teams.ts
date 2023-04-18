@@ -3,6 +3,14 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { TEAMS_TABLE } from "./commons";
 
+export interface ITeam {
+  id: string;
+  teamName: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @singleton()
 export default class TeamModel extends Model {
   static get tableName() {
@@ -18,7 +26,7 @@ export default class TeamModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        teamName: { type:"string" },
+        teamName: { type: "string" },
         updatedBy: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },

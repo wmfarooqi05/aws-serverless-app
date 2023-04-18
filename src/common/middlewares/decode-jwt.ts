@@ -78,7 +78,7 @@ export const jwtRequired = () => {
 
         // @DEV
         if (event.employee?.sub) {
-          event.employee.teamId = "team0"; // @TODO fix this with cognito auth
+          event.employee.teamId = "f861b2dc-b1b9-4c59-9047-99bcfeca9cda"; // @TODO fix this with cognito auth
         }
 
         if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
@@ -153,7 +153,9 @@ export const validatePermissions = (
         tableName,
       } = event.employee;
       if (!permitted) {
-        if (!specialPermissions && !createPendingApproval) {
+        if (!specialPermissions && createPendingApproval) {
+          return;
+        } else if (!specialPermissions && !createPendingApproval) {
           return returnUnAuthorizedError();
         }
         const specialPermitted = await checkIfPermittedWithSpecialPermission(
@@ -162,8 +164,7 @@ export const validatePermissions = (
           urlParamKey,
           employeeRelationKey
         );
-        if (!specialPermitted) {
-          
+        if (!specialPermitted && !createPendingApproval) {
           return returnUnAuthorizedError();
         }
       }

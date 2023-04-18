@@ -35,7 +35,7 @@ export async function up(knex: Knex): Promise<void> {
         .defaultTo(PendingApprovalsStatus.PENDING);
       table.integer("retry_count").defaultTo(0);
       table.jsonb("result_payload");
-      table.uuid("batch_approval_key");
+      table.uuid("batch_approval_key").nullable();
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

@@ -523,7 +523,7 @@ export const getObjectType = (tableName: string, key: string) => {
       status: "SIMPLE_KEY",
       notes: "JSONB",
       priorities: "SIMPLE_KEY",
-      interactionDetails: "SIMPLE_KEY",
+      employeeInteractionDetails: "SIMPLE_KEY",
     },
   };
 

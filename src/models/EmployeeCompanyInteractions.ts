@@ -8,7 +8,7 @@ import {
 } from "./commons";
 import { COMPANY_PRIORITY, COMPANY_STATUS } from "./interfaces/Company";
 
-export const getDefaultInteractionItem = (
+export const getDefaultEmployeeInteractionItem = (
   employeeId: string,
   companyId: string
 ) => {
@@ -23,7 +23,7 @@ export const defaultInteractionItem = {
   priority: COMPANY_PRIORITY.NO_PRIORITY,
   status: COMPANY_STATUS.NONE,
   notes: [],
-  interactionDetails: {},
+  employeeInteractionDetails: {},
 };
 
 export interface IEmployeeCompanyInteraction {
@@ -32,7 +32,7 @@ export interface IEmployeeCompanyInteraction {
   employeeId: string;
   priority: string;
   status: string;
-  interactionDetails: Object;
+  employeeInteractionDetails: Object;
   notes: Object[];
 }
 
@@ -55,7 +55,7 @@ export default class EmployeeCompanyInteractionsModel extends Model {
         employeeId: { type: "string" },
         priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
         status: { type: "string", default: COMPANY_STATUS.NONE },
-        interactionDetails: { type: "object", default: JSON.stringify({}) },
+        employeeInteractionDetails: { type: "object", default: JSON.stringify({}) },
         notes: { type: "array" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
@@ -66,7 +66,7 @@ export default class EmployeeCompanyInteractionsModel extends Model {
   }
 
   static get validSchemaKeys() {
-    return ["priority", "status", "interactionDetails", "notes"];
+    return ["priority", "status", "employeeInteractionDetails", "notes"];
   }
 
   // This object defines the relations to other models. The relationMappings
@@ -91,7 +91,7 @@ export default class EmployeeCompanyInteractionsModel extends Model {
   });
 
   static get jsonAttributes() {
-    return ["interactionDetails", "notes"];
+    return ["employeeInteractionDetails", "notes"];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();

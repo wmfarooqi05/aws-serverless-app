@@ -26,7 +26,10 @@ export const ACCESS_PERMISSIONS_TABLE =
   process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions";
 export const EMAIL_LIST_TABLE = process.env.EMAIL_LIST || "email_lists";
 export const EMPLOYEE_COMPANY_INTERACTIONS_TABLE =
-  process.env.EMPLOYEE_COMPANY_INTERACTIONS_TABLE || "employee_company_interactions";
+  process.env.EMPLOYEE_COMPANY_INTERACTIONS_TABLE ||
+  "employee_company_interactions";
+export const TEAM_COMPANY_INTERACTIONS_TABLE =
+  process.env.TEAM_COMPANY_INTERACTIONS_TABLE || "team_company_interactions";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

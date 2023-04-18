@@ -203,7 +203,6 @@ export class PendingApprovalService implements IPendingApprovalService {
       status: PendingApprovalsStatus.PENDING,
       retryCount: 0,
       resultPayload: [],
-      batchApprovalKey,
     };
     if (actionType === PendingApprovalType.CREATE) {
       delete item.tableRowId;
@@ -219,12 +218,17 @@ export class PendingApprovalService implements IPendingApprovalService {
     const knexClient = this.docClient.getKnexClient();
     // pendingApproval = await PendingApprovalModel.query().insert(item);
     await knexClient.transaction(async (trx) => {
-      pendingApproval = await PendingApprovalModel.query(trx).insert(item);
-      const notifItems = this.createNotificationItems(
-        pendingApproval,
-        employeeItem
-      );
-      notifObjects = await NotificationModel.query(trx).insert(notifItems);
+      try {
+        pendingApproval = await PendingApprovalModel.query(trx).insert(item);
+        const notifItems = this.createNotificationItems(
+          pendingApproval,
+          employeeItem
+        );
+        notifObjects = await NotificationModel.query(trx).insert(notifItems);
+        await trx.commit();
+      } catch (e) {
+        await trx.rollback();
+      }
     });
 
     try {
