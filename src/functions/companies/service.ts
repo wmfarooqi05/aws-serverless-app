@@ -621,7 +621,12 @@ export class CompanyService implements ICompanyService {
       .select(["notes"])
       .where({ companyId, employeeId: employee.sub })
       .first();
-    return interactionItem?.notes ?? [];
+    return (
+      interactionItem?.notes.sort(
+        (a: INotes, b: INotes) =>
+          Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+      ) ?? []
+    );
   }
 
   // Notes
