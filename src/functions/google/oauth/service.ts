@@ -49,24 +49,29 @@ export class GoogleOAuthService {
   async getGoogleOauthRequestTokenFromDB(
     employeeId: string
   ): Promise<IAuthToken | null> {
-    if (!employeeId) {
-      throw new Error("EmployeeId not provided");
-    }
-    const token: IAuthToken = await AuthTokenModel.query().findOne({
-      employeeId,
-    });
+    try {
+      if (!employeeId) {
+        throw new Error("EmployeeId not provided");
+      }
+      const token: IAuthToken = await AuthTokenModel.query().findOne({
+        employeeId,
+      });
 
-    if (!this.isTokenValid(token?.expiryDate)) {
-      const updatedToken = await this.getUpdatedTokenFromRefreshToken(
-        token.refreshToken
-      );
-      await this.storeTokenInDB(updatedToken, employeeId);
-      return {
-        ...updatedToken,
-        expiryDate: moment.utc(updatedToken.expiry_date).format(),
-      } as IAuthToken;
+      if (!this.isTokenValid(token?.expiryDate)) {
+        const updatedToken = await this.getUpdatedTokenFromRefreshToken(
+          token.refreshToken
+        );
+        await this.storeTokenInDB(updatedToken, employeeId);
+        return {
+          ...updatedToken,
+          expiryDate: moment.utc(updatedToken.expiry_date).format(),
+        } as IAuthToken;
+      }
+      return token;
+    } catch (e) {
+    } finally {
+      return null;
     }
-    return token;
   }
 
   async getUpdatedTokenFromRefreshToken(refresh_token: string) {
