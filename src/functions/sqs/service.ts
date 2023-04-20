@@ -26,8 +26,6 @@ if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
   queueUrl = "http://localhost:4566/000000000000/job-queue-local";
 }
 
-console.log("queueUrl", queueUrl);
-
 @injectable()
 export class SQSService {
   sqsClient: SQSClient = null;

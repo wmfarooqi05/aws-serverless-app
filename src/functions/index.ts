@@ -100,6 +100,7 @@ import {
   importData,
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
+  // processPendingJobs,
 } from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
@@ -137,6 +138,8 @@ export default {
   // Jobs
   importData,
   bulkCognitoSignup,
+  // processPendingJobs,
+
   // Activity
   getActivities,
   getActivityById,

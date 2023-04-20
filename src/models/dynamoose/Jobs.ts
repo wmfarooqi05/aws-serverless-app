@@ -5,7 +5,7 @@ import moment from "moment-timezone";
 // Define the schema for the first table
 export const JobsSchema = new Schema(
   {
-    id: {
+    jobId: {
       type: String,
       hashKey: true,
       default: randomUUID(),

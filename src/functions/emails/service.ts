@@ -74,6 +74,7 @@ export class EmailService implements IEmailService {
 
     const resp = await container.resolve(SQSService).enqueueItems(item);
 
+    // @TODO fix this
     return JobsModel.query().insert({
       jobType: "SEND_EMAIL",
       details: {
@@ -116,7 +117,7 @@ export class EmailService implements IEmailService {
 
     const jobItems = emailInputPayloads.map((x) => {
       return new JobsModel({
-        id: randomUUID(),
+        jobId: randomUUID(),
         uploadedBy: employee.sub,
         jobType: "BULK_EMAIL",
         details: x,

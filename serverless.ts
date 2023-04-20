@@ -41,6 +41,14 @@ const serverlessConfiguration: AWS = {
             Action: ["codedeploy:*"],
             Resource: "*",
           },
+          // {
+          //   Effect: "Allow",
+          //   Action: ["dynamodb:*", "sqs:SendMessage"],
+          //   Resource: [
+          //     `arn:aws:dynamodb:your-aws-region:your-account-id:table/your-dynamodb-table-name`,
+          //     `arn:aws:sqs:your-aws-region:your-account-id:your-sqs-queue-name`,
+          //   ],
+          // },
         ],
       },
     },
@@ -202,6 +210,30 @@ const serverlessConfiguration: AWS = {
         Type: "AWS::SQS::Queue",
         Properties: {
           QueueName: "${self:custom.JOB_QUEUE}",
+        },
+      },
+      JobTable: {
+        Type: "AWS::DynamoDB::Table",
+        Properties: {
+          AttributeDefinitions: [
+            {
+              AttributeName: "jobId",
+              AttributeType: "S",
+            },
+          ],
+          KeySchema: [
+            {
+              AttributeName: "jobId",
+              KeyType: "HASH",
+            },
+          ],
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 1,
+            WriteCapacityUnits: 1,
+          },
+          StreamSpecification: {
+            StreamViewType: "NEW_IMAGE",
+          },
         },
       },
       // MyRuleSet: {

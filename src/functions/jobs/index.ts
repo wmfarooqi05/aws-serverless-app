@@ -63,7 +63,9 @@ const bulkCognitoSignup = {
 };
 // dev only
 const bulkImportUsersProcessHandler = {
-  handler: `${handlerPath(__dirname)}/bulkSignupProcess.bulkImportUsersProcessHandler`,
+  handler: `${handlerPath(
+    __dirname
+  )}/bulkSignupProcess.bulkImportUsersProcessHandler`,
   events: [
     {
       http: {
@@ -75,4 +77,21 @@ const bulkImportUsersProcessHandler = {
   ],
 };
 
-export { importData, bulkCognitoSignup, bulkImportUsersProcessHandler };
+const processPendingJobs = {
+  handler: "src/processPendingJobs.processPendingJobs",
+  events: [
+    {
+      stream: {
+        type: "dynamodb",
+        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/latest",
+        // arn: `arn:aws:dynamodb:your-aws-region:your-account-id:table/your-dynamodb-table-name/stream/latest`,
+      },
+    },
+  ],
+  environment: {
+    QUEUE_URL: "your-sqs-queue-url",
+    TABLE_NAME: "your-dynamodb-table-name",
+  },
+};
+
+export { importData, bulkCognitoSignup, bulkImportUsersProcessHandler, processPendingJobs };
