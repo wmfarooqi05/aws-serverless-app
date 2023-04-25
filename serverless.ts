@@ -45,8 +45,7 @@ const serverlessConfiguration: AWS = {
           //   Effect: "Allow",
           //   Action: ["dynamodb:*", "sqs:SendMessage"],
           //   Resource: [
-          //     `arn:aws:dynamodb:your-aws-region:your-account-id:table/your-dynamodb-table-name`,
-          //     `arn:aws:sqs:your-aws-region:your-account-id:your-sqs-queue-name`,
+          //     `*`,
           //   ],
           // },
         ],

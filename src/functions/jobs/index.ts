@@ -78,7 +78,7 @@ const bulkImportUsersProcessHandler = {
 };
 
 const processPendingJobs = {
-  handler: "src/processPendingJobs.processPendingJobs",
+  handler: `${handlerPath(__dirname)}/processPendingJobs.processPendingJobs`,
   events: [
     {
       stream: {
@@ -94,4 +94,9 @@ const processPendingJobs = {
   },
 };
 
-export { importData, bulkCognitoSignup, bulkImportUsersProcessHandler, processPendingJobs };
+export {
+  importData,
+  bulkCognitoSignup,
+  bulkImportUsersProcessHandler,
+  processPendingJobs,
+};

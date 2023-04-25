@@ -499,6 +499,7 @@ export const getObjectType = (tableName: string, key: string) => {
       notes: "JSONB",
       tableRowId: "SIMPLE_KEY",
       tableName: "SIMPLE_KEY",
+      details: "SIMPLE_KEY",
     },
     activities: {
       id: "SIMPLE_KEY",
@@ -522,11 +523,17 @@ export const getObjectType = (tableName: string, key: string) => {
     employee_company_interactions: {
       status: "SIMPLE_KEY",
       notes: "JSONB",
-      priorities: "SIMPLE_KEY",
+      priority: "SIMPLE_KEY",
       employeeInteractionDetails: "SIMPLE_KEY",
+    },
+    team_company_interactions: {
+      stage: "SIMPLE_KEY",
     },
   };
 
+  if (!(map?.[tableName]?.[key])) {
+    throw new CustomError(`Invalid key provided, ${key}`, 400);
+  }
   return map[tableName][key];
 };
 

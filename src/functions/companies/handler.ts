@@ -28,13 +28,13 @@ export const createCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-const getCompaniesHandler: ValidatedEventAPIGatewayProxyEvent<
-  ICompanyPaginated
-> = async (event) => {
+export const getCompaniesHandler = async (event) => {
   try {
-    const companies = await container
-      .resolve(CompanyService)
-      .getAllCompanies(event.employee, event.queryStringParameters || {});
+    const service = container.resolve(CompanyService);
+    const companies = await service.getAllCompanies(
+      event.employee,
+      event.queryStringParameters || {}
+    );
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -54,7 +54,7 @@ const getCompaniesHandler: ValidatedEventAPIGatewayProxyEvent<
 
 const getCompaniesByEmployeeIdHandler = async (event) => {
   try {
-    const { employeeId } = event.pathParameters;
+    const { employeeId } = event.params;
     const companies = await container
       .resolve(CompanyService)
       .getCompaniesByEmployeeId(
@@ -71,7 +71,7 @@ const getCompaniesByEmployeeIdHandler = async (event) => {
 const getCompanyByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
-  const { companyId } = event.pathParameters;
+  const { companyId } = event.params;
   try {
     const companies = await container
       .resolve(CompanyService)
@@ -86,7 +86,7 @@ export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const updatedCompany = await container
       .resolve(CompanyService)
       .updateCompany(event?.employee, companyId, event.body);
@@ -101,7 +101,7 @@ export const updateCompanyInteractionsHandler: ValidatedEventAPIGatewayProxyEven
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const updatedCompany = await container
       .resolve(CompanyService)
       .updateCompanyEmployeeInteractions(
@@ -118,7 +118,7 @@ export const updateCompanyInteractionsHandler: ValidatedEventAPIGatewayProxyEven
 
 const convertCompanyHandler = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const response = await container
       .resolve(CompanyService)
       .convertCompany(event?.employee, companyId);
@@ -132,7 +132,7 @@ export const deleteCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const response = await container
       .resolve(CompanyService)
       .deleteCompany(event?.employee, companyId);
@@ -149,7 +149,7 @@ const updateCompanyAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
     // @TODO put auth guard
     // Employee must be there
     // Role guard of manager or above
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const company = await container
       .resolve(CompanyService)
       .updateCompanyAssignedEmployee(event?.employee, companyId, event.body);
@@ -178,7 +178,7 @@ const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const concernedPerson = await container
       .resolve(CompanyService)
       .createConcernedPersons(event?.employee, companyId, event.body);
@@ -192,7 +192,7 @@ const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId, concernedPersonId } = event.pathParameters;
+    const { companyId, concernedPersonId } = event.params;
     const concernedPerson = await container
       .resolve(CompanyService)
       .updateConcernedPerson(
@@ -212,7 +212,7 @@ const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { concernedPersonId, companyId } = event.pathParameters;
+    const { concernedPersonId, companyId } = event.params;
     // Add guard validation if required
     const concernedPerson = await container
       .resolve(CompanyService)
@@ -228,7 +228,7 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const notes = await container
       .resolve(CompanyService)
       .getNotes(event?.employee, companyId);
@@ -240,7 +240,7 @@ const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
 
 const createNotesHandler = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const notes = await container
       .resolve(CompanyService)
       .createNotes(event?.employee, companyId, event.body);
@@ -254,7 +254,7 @@ const updateNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId, notesId } = event.pathParameters;
+    const { companyId, notesId } = event.params;
     const notes = await container
       .resolve(CompanyService)
       .updateNotes(event?.employee, companyId, notesId, event.body);
@@ -269,7 +269,7 @@ const deleteNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { notesId, companyId } = event.pathParameters;
+    const { notesId, companyId } = event.params;
     // Add guard validation if required
     const notes = await container
       .resolve(CompanyService)

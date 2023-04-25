@@ -18,26 +18,7 @@ import {
   deleteRemarkFromActivity,
 } from "@functions/activities/activity-remarks";
 
-import {
-  createCompany,
-  deleteCompany,
-  getCompanyById,
-  getCompanies,
-  // getMyCompanies,
-  getCompaniesByEmployeeId,
-  updateCompany,
-  updateCompanyInteractions,
-  convertCompany,
-  updateCompanyAssignedEmployee,
-  updateCompaniesAssignedEmployee,
-  createConcernedPersons,
-  updateConcernedPerson,
-  deleteConcernedPerson,
-  getNotes,
-  createNotes,
-  updateNotes,
-  deleteNotes,
-} from "@functions/companies";
+import { companyHandler, } from "@functions/companies";
 
 import {
   sendWebSocketNotification,
@@ -100,7 +81,7 @@ import {
   importData,
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
-  // processPendingJobs,
+  processPendingJobs,
 } from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
@@ -116,29 +97,12 @@ import {
 } from "@functions/teams";
 
 export default {
-  createCompany,
-  deleteCompany,
-  getCompanyById,
-  getCompanies,
-  // getMyCompanies,
-  getCompaniesByEmployeeId,
-  updateCompany,
-  updateCompanyInteractions,
-  convertCompany,
-  updateCompanyAssignedEmployee,
-  updateCompaniesAssignedEmployee,
-  createConcernedPersons,
-  updateConcernedPerson,
-  deleteConcernedPerson,
-  getNotes,
-  createNotes,
-  updateNotes,
-  deleteNotes,
+  companyHandler,
 
   // Jobs
   importData,
   bulkCognitoSignup,
-  // processPendingJobs,
+  processPendingJobs,
 
   // Activity
   getActivities,

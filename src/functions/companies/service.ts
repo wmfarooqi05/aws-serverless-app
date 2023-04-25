@@ -310,6 +310,9 @@ export class CompanyService implements ICompanyService {
         })
         .first();
 
+    if (teamInteraction.stage === COMPANY_STAGES.CONTACT) {
+      throw new CustomError("Company is already converted to contact", 400);
+    }
     const id = teamInteraction?.id ?? null;
     const action = teamInteraction?.id
       ? PendingApprovalType.UPDATE

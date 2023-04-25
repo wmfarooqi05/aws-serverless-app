@@ -33,7 +33,9 @@ export const decodeJWTMiddleware = () => {
   return {
     before: ({ event }) => {
       // @TODO dont send extra things in event.employee
-      const token = event.headers?.Authorization?.split(" ")[1];
+      const authorization =
+        event.headers?.Authorization || event.headers?.authorization;
+      const token = authorization?.split(" ")[1];
       event.employee = decode(token);
       // we need to handle cognito auth custom way to gain more control
       // V2 will cover this

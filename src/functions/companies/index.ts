@@ -1,8 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-const createCompany = {
-  handler: `${handlerPath(__dirname)}/handler.createCompany`,
+const companyHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
@@ -11,63 +11,13 @@ const createCompany = {
         cors: true,
       },
     },
-  ],
-};
-
-const getCompanies = {
-  handler: `${handlerPath(__dirname)}/handler.getCompanies`,
-  events: [
     {
       http: {
         method: "get",
         path: "companies",
         cors: true,
-        // authorizer: {
-        //   type: "COGNITO_EMPLOYEE_POOLS",
-        //   authorizerId: {
-        //     Ref: "ApiGatewayAuthorizer"
-        //   }
-        // },
       },
     },
-  ],
-};
-
-// const getMyCompanies = {
-//   handler: `${handlerPath(__dirname)}/handler.getMyCompanies`,
-//   events: [
-//     {
-//       http: {
-//         method: "get",
-//         path: "companies/me",
-//         cors: true,
-//         // authorizer: {
-//         //   type: "COGNITO_EMPLOYEE_POOLS",
-//         //   authorizerId: {
-//         //     Ref: "ApiGatewayAuthorizer"
-//         //   }
-//         // },
-//       },
-//     },
-//   ],
-// };
-
-const getCompaniesByEmployeeId = {
-  handler: `${handlerPath(__dirname)}/handler.getCompaniesByEmployeeId`,
-  events: [
-    {
-      http: {
-        method: "get",
-        path: "companies/employee/{employeeId}",
-        cors: true,
-      },
-    },
-  ],
-};
-
-const getCompanyById = {
-  handler: `${handlerPath(__dirname)}/handler.getCompanyById`,
-  events: [
     {
       http: {
         method: "get",
@@ -75,12 +25,6 @@ const getCompanyById = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateCompany = {
-  handler: `${handlerPath(__dirname)}/handler.updateCompany`,
-  events: [
     {
       http: {
         method: "put",
@@ -88,12 +32,6 @@ const updateCompany = {
         cors: true,
       },
     },
-  ],
-};
-
-const deleteCompany = {
-  handler: `${handlerPath(__dirname)}/handler.deleteCompany`,
-  events: [
     {
       http: {
         method: "delete",
@@ -101,12 +39,6 @@ const deleteCompany = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateCompanyAssignedEmployee = {
-  handler: `${handlerPath(__dirname)}/handler.updateCompanyAssignedEmployee`,
-  events: [
     {
       http: {
         method: "put",
@@ -114,12 +46,6 @@ const updateCompanyAssignedEmployee = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateCompaniesAssignedEmployee = {
-  handler: `${handlerPath(__dirname)}/handler.updateCompaniesAssignedEmployee`,
-  events: [
     {
       http: {
         method: "put",
@@ -127,12 +53,13 @@ const updateCompaniesAssignedEmployee = {
         cors: true,
       },
     },
-  ],
-};
-
-const createConcernedPersons = {
-  handler: `${handlerPath(__dirname)}/handler.createConcernedPersons`,
-  events: [
+    {
+      http: {
+        method: "get",
+        path: "companies/employee/{employeeId}",
+        cors: true,
+      },
+    },
     {
       http: {
         method: "post",
@@ -140,12 +67,6 @@ const createConcernedPersons = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateConcernedPerson = {
-  handler: `${handlerPath(__dirname)}/handler.updateConcernedPerson`,
-  events: [
     {
       http: {
         method: "put",
@@ -153,25 +74,13 @@ const updateConcernedPerson = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateCompanyInteractions = {
-  handler: `${handlerPath(__dirname)}/handler.updateCompanyInteractions`,
-  events: [
     {
       http: {
         method: "put",
-        path: "/company/{companyId}/interactions",
+        path: "/company/{companyId}/employee-interactions",
         cors: true,
       },
     },
-  ],
-};
-
-const convertCompany = {
-  handler: `${handlerPath(__dirname)}/handler.convertCompany`,
-  events: [
     {
       http: {
         method: "put",
@@ -179,13 +88,6 @@ const convertCompany = {
         cors: true,
       },
     },
-  ],
-
-}
-
-const deleteConcernedPerson = {
-  handler: `${handlerPath(__dirname)}/handler.deleteConcernedPerson`,
-  events: [
     {
       http: {
         method: "delete",
@@ -193,14 +95,6 @@ const deleteConcernedPerson = {
         cors: true,
       },
     },
-  ],
-};
-
-// Notes
-
-const getNotes = {
-  handler: `${handlerPath(__dirname)}/handler.getNotes`,
-  events: [
     {
       http: {
         method: "get",
@@ -208,12 +102,6 @@ const getNotes = {
         cors: true,
       },
     },
-  ],
-};
-
-const createNotes = {
-  handler: `${handlerPath(__dirname)}/handler.createNotes`,
-  events: [
     {
       http: {
         method: "post",
@@ -221,12 +109,6 @@ const createNotes = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateNotes = {
-  handler: `${handlerPath(__dirname)}/handler.updateNotes`,
-  events: [
     {
       http: {
         method: "put",
@@ -234,12 +116,6 @@ const updateNotes = {
         cors: true,
       },
     },
-  ],
-};
-
-const deleteNotes = {
-  handler: `${handlerPath(__dirname)}/handler.deleteNotes`,
-  events: [
     {
       http: {
         method: "delete",
@@ -250,23 +126,4 @@ const deleteNotes = {
   ],
 };
 
-export {
-  getCompanies,
-  // getMyCompanies,
-  createCompany,
-  getCompanyById,
-  getCompaniesByEmployeeId,
-  updateCompany,
-  updateCompanyInteractions,
-  convertCompany,
-  deleteCompany,
-  updateCompanyAssignedEmployee,
-  updateCompaniesAssignedEmployee,
-  createConcernedPersons,
-  updateConcernedPerson,
-  deleteConcernedPerson,
-  getNotes,
-  createNotes,
-  updateNotes,
-  deleteNotes,
-};
+export { companyHandler };
