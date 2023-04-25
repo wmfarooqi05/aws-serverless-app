@@ -146,7 +146,7 @@ export const validateUpdateActivity = async (
     priority: Joi.string().valid(...Object.keys(ACTIVITY_PRIORITY)),
     activityId: Joi.string().guid().required(),
     employeeId: Joi.string().guid().required(),
-    dueDate: Joi.string().isoDate(),
+    dueDate: Joi.date().greater('now'),
     details: Joi.object(),
     title: Joi.string(),
 
@@ -274,8 +274,8 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS = {}) => {
     description: Joi.string().required(),
     location: Joi.string(),
     createVideoLink: Joi.boolean().required(),
-    startDateTime: Joi.string().required(),
-    endDateTime: Joi.string().required(),
+    startDateTime: Joi.date().greater("now").required(),
+    endDateTime: Joi.date().greater("now").required(),
     timezone: Joi.string()
       .required()
       .valid(...moment.tz.names()),

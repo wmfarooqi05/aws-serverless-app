@@ -5,6 +5,22 @@ const handleEBSchedulerLambdaInvoke = {
   handler: `${handlerPath(__dirname)}/handler.handleEBSchedulerLambdaInvoke`
 };
 
+const dailyReminderCleanup = {
+  handler: `${handlerPath(__dirname)}/handler.dailyReminderCleanup`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "reminder/cleanup",
+        cors: true,
+      },
+    },
+  ],
+};
+
+/**** DEV ENDPOINTS */
+
+
 const createReminder = {
   handler: `${handlerPath(__dirname)}/handler.createReminder`,
   events: [
@@ -76,18 +92,6 @@ const deleteReminder = {
   ],
 };
 
-const dailyReminderCleanup = {
-  handler: `${handlerPath(__dirname)}/handler.dailyReminderCleanup`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "reminder/cleanup",
-        cors: true,
-      },
-    },
-  ],
-};
 
 const updateScheduleReminder = {
   handler: `${handlerPath(__dirname)}/handler.updateScheduleReminder`,

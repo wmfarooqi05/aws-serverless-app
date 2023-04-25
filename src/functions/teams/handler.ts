@@ -12,19 +12,19 @@ import middy from "@middy/core";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
+import {
+  allowRoleWrapper,
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
 
-export const createTeamHandler: ValidatedEventAPIGatewayProxyEvent<
+const createTeamHandler: ValidatedEventAPIGatewayProxyEvent<
   ITeamModel
 > = async (event) => {
   try {
     const newTeam = await container
       .resolve(TeamService)
-      .createTeam(
-        event.employee?.sub,
-        event.body
-      );
+      .createTeam(event.employee?.sub, event.body);
     return formatJSONResponse(newTeam, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -44,10 +44,10 @@ const getTeamsHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getTeamById: ValidatedEventAPIGatewayProxyEvent<
+const getTeamByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   ITeamModel
 > = async (event) => {
-  const { teamId } = event.pathParameters;
+  const { teamId } = event.params;
   try {
     const teams = await container.resolve(TeamService).getTeam(teamId);
     return formatJSONResponse(teams, 200);
@@ -56,11 +56,11 @@ export const getTeamById: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const updateTeamHandler: ValidatedEventAPIGatewayProxyEvent<
+const updateTeamHandler: ValidatedEventAPIGatewayProxyEvent<
   ITeamModel
 > = async (event) => {
   try {
-    const { teamId } = event.pathParameters;
+    const { teamId } = event.params;
     const updatedTeam = await container
       .resolve(TeamService)
       .updateTeam(event?.employee, teamId, event.body);
@@ -71,19 +71,27 @@ export const updateTeamHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const deleteTeamHandler: ValidatedEventAPIGatewayProxyEvent<ITeamModel> =
-  middy(async (event) => {
+const deleteTeamHandler: ValidatedEventAPIGatewayProxyEvent<ITeamModel> = middy(
+  async (event) => {
     try {
-      const { teamId } = event.pathParameters;
+      const { teamId } = event.params;
       await container.resolve(TeamService).deleteTeam(teamId);
       return formatJSONResponse({ message: "Team deleted successfully" }, 200);
     } catch (e) {
       return formatErrorResponse(e);
     }
-  });
+  }
+);
 
-export const getTeams = allowRoleWrapper(getTeamsHandler);
-export const updateTeam = allowRoleWrapper(updateTeamHandler);
+export const getTeams = checkRolePermission(getTeamsHandler, "COMPANY_READ");
+export const getTeamById = checkRolePermission(
+  getTeamByIdHandler,
+  "COMPANY_READ"
+);
+export const updateTeam = allowRoleWrapper(
+  updateTeamHandler,
+  RolesEnum.ADMIN_GROUP
+);
 export const createTeam = allowRoleWrapper(
   createTeamHandler,
   RolesEnum.ADMIN_GROUP

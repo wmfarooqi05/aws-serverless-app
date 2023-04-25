@@ -34,7 +34,7 @@ const getActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
 
 const getAllActivitiesByCompanyHandler = async (event) => {
   try {
-    const { companyId } = event.pathParameters;
+    const { companyId } = event.params;
     const activities = await container
       .resolve(ActivityService)
       .getAllActivitiesByCompany(
@@ -65,7 +65,7 @@ const getMyActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
 };
 
 export const getTopActivitiesHandler = async (event) => {
-  const { companyId } = event.pathParameters;
+  const { companyId } = event.params;
   try {
     const activities = await container
       .resolve(ActivityService)
@@ -79,7 +79,7 @@ export const getTopActivitiesHandler = async (event) => {
 const getActivityByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
-  const { activityId } = event.pathParameters;
+  const { activityId } = event.params;
   try {
     const activities = await container.resolve(ActivityService).getActivityById(
       event?.employee?.sub,
@@ -134,7 +134,7 @@ const createActivityHandler: ValidatedEventAPIGatewayProxyEvent<
 
 const updateActivityHandler = async (event) => {
   try {
-    const { activityId } = event.pathParameters;
+    const { activityId } = event.params;
 
     const updatedActivity = await container
       .resolve(ActivityService)
@@ -147,7 +147,7 @@ const updateActivityHandler = async (event) => {
 
 export const updateStatusOfActivityHandler = async (event) => {
   try {
-    const { activityId, status } = event.pathParameters;
+    const { activityId, status } = event.params;
     const updatedStatus = await container
       .resolve(ActivityService)
       .updateStatusOfActivity(event?.employee, activityId, status);
@@ -161,7 +161,7 @@ const deleteActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
   try {
-    const { activityId } = event.pathParameters;
+    const { activityId } = event.params;
 
     const reminderResp = await container
       .resolve(ActivityService)

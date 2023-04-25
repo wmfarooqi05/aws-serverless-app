@@ -34,7 +34,7 @@ export class GoogleCalendarService {
     calendarId: string,
     eventId: string
   ) {
-    const client = await this.googleOAuthService.getAuthenticatedCalendarClient(
+    const client = await this.getAuthenticatedCalendarClient(
       employeeId
     );
     // 12 minute after 9 [9:32]
@@ -45,7 +45,7 @@ export class GoogleCalendarService {
   }
   async createMeeting(employeeId: string, calendarId: string, body: string) {
     const payload = JSON.parse(body);
-    const client = await this.googleOAuthService.getAuthenticatedCalendarClient(
+    const client = await this.getAuthenticatedCalendarClient(
       employeeId
     );
     // @TODO add joi validator
@@ -110,7 +110,7 @@ export class GoogleCalendarService {
       calendarId,
     } = activity.details as IMEETING_DETAILS;
 
-    const client = await this.googleOAuthService.getAuthenticatedCalendarClient(
+    const client = await this.getAuthenticatedCalendarClient(
       activity.createdBy
     );
 
@@ -150,7 +150,7 @@ export class GoogleCalendarService {
   getDateTime() {}
 
   async getAllCalendars(employeeId: string, nextSyncToken: string | null) {
-    const client = await this.googleOAuthService.getAuthenticatedCalendarClient(
+    const client = await this.getAuthenticatedCalendarClient(
       employeeId
     );
     const params: calendar_v3.Params$Resource$Calendarlist$List = {};

@@ -1,8 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-const createTeam = {
-  handler: `${handlerPath(__dirname)}/handler.createTeam`,
+const teamHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
@@ -11,25 +11,13 @@ const createTeam = {
         cors: true,
       },
     },
-  ],
-};
-
-const getTeams = {
-  handler: `${handlerPath(__dirname)}/handler.getTeams`,
-  events: [
     {
       http: {
         method: "get",
-        path: "teams",
+        path: "team",
         cors: true,
       },
     },
-  ],
-};
-
-const getTeamById = {
-  handler: `${handlerPath(__dirname)}/handler.getTeamById`,
-  events: [
     {
       http: {
         method: "get",
@@ -37,12 +25,6 @@ const getTeamById = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateTeam = {
-  handler: `${handlerPath(__dirname)}/handler.updateTeam`,
-  events: [
     {
       http: {
         method: "put",
@@ -50,12 +32,6 @@ const updateTeam = {
         cors: true,
       },
     },
-  ],
-};
-
-const deleteTeam = {
-  handler: `${handlerPath(__dirname)}/handler.deleteTeam`,
-  events: [
     {
       http: {
         method: "delete",
@@ -66,4 +42,4 @@ const deleteTeam = {
   ],
 };
 
-export { getTeams, createTeam, getTeamById, updateTeam, deleteTeam };
+export { teamHandler };

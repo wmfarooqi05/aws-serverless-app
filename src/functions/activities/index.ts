@@ -1,8 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-const getAllActivitiesByCompany = {
-  handler: `${handlerPath(__dirname)}/handler.getAllActivitiesByCompany`,
+const activitiesHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
@@ -11,12 +11,6 @@ const getAllActivitiesByCompany = {
         cors: true,
       },
     },
-  ],
-};
-
-const getActivities = {
-  handler: `${handlerPath(__dirname)}/handler.getActivities`,
-  events: [
     {
       http: {
         method: "get",
@@ -24,12 +18,6 @@ const getActivities = {
         cors: true,
       },
     },
-  ],
-};
-
-const getMyActivities = {
-  handler: `${handlerPath(__dirname)}/handler.getMyActivities`,
-  events: [
     {
       http: {
         method: "get",
@@ -37,12 +25,6 @@ const getMyActivities = {
         cors: true,
       },
     },
-  ],
-};
-
-const getTopActivities = {
-  handler: `${handlerPath(__dirname)}/handler.getTopActivities`,
-  events: [
     {
       http: {
         method: "get",
@@ -50,12 +32,6 @@ const getTopActivities = {
         cors: true,
       },
     },
-  ],
-};
-
-const getMyStaleActivityByStatus = {
-  handler: `${handlerPath(__dirname)}/handler.getMyStaleActivityByStatus`,
-  events: [
     {
       http: {
         method: "get",
@@ -63,12 +39,6 @@ const getMyStaleActivityByStatus = {
         cors: true,
       },
     },
-  ],
-};
-
-const getEmployeeStaleActivityByStatus = {
-  handler: `${handlerPath(__dirname)}/handler.getEmployeeStaleActivityByStatus`,
-  events: [
     {
       http: {
         method: "get",
@@ -76,13 +46,6 @@ const getEmployeeStaleActivityByStatus = {
         cors: true,
       },
     },
-  ],
-};
-
-
-const getActivityById = {
-  handler: `${handlerPath(__dirname)}/handler.getActivityById`,
-  events: [
     {
       http: {
         method: "get",
@@ -90,12 +53,6 @@ const getActivityById = {
         cors: true,
       },
     },
-  ],
-};
-
-const createActivity = {
-  handler: `${handlerPath(__dirname)}/handler.createActivity`,
-  events: [
     {
       http: {
         method: "post",
@@ -103,12 +60,6 @@ const createActivity = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateActivity = {
-  handler: `${handlerPath(__dirname)}/handler.updateActivity`,
-  events: [
     {
       http: {
         method: "put",
@@ -116,12 +67,6 @@ const updateActivity = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateStatusOfActivity = {
-  handler: `${handlerPath(__dirname)}/handler.updateStatusOfActivity`,
-  events: [
     {
       http: {
         method: "put",
@@ -129,12 +74,6 @@ const updateStatusOfActivity = {
         cors: true,
       },
     },
-  ],
-};
-
-const deleteActivity = {
-  handler: `${handlerPath(__dirname)}/handler.deleteActivity`,
-  events: [
     {
       http: {
         method: "delete",
@@ -142,20 +81,28 @@ const deleteActivity = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "activity/{activityId}/remarks",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "activity/{activityId}/remarks/{remarksId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "activity/{activityId}/remarks/{remarksId}",
+        cors: true,
+      },
+    },
   ],
 };
 
-export {
-  getActivities,
-  getActivityById,
-  createActivity,
-  updateActivity,
-  deleteActivity,
-  getTopActivities,
-  getMyActivities,
-  getAllActivitiesByCompany,
-
-  getMyStaleActivityByStatus,
-  updateStatusOfActivity,
-  getEmployeeStaleActivityByStatus,
-};
+export { activitiesHandler };

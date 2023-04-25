@@ -47,7 +47,7 @@ const updateEmailListHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
   try {
-    const { emailListId } = event.pathParameters;
+    const { emailListId } = event.params;
     const newRemarks = await container
       .resolve(EmailListService)
       .updateEmailList(event.employee, emailListId, event.body);
@@ -61,7 +61,7 @@ const deleteEmailListHandler: ValidatedEventAPIGatewayProxyEvent<
   IRemarks
 > = async (event) => {
   try {
-    const { emailListId } = event.pathParameters;
+    const { emailListId } = event.params;
 
     const deletedEmailList = await container
       .resolve(EmailListService)

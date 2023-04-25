@@ -46,7 +46,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getNotificationById: ValidatedEventAPIGatewayProxyEvent<
+const getNotificationByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   const { id } = event.pathParameters;
@@ -60,7 +60,7 @@ export const getNotificationById: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const updateNotificationsReadStatus: ValidatedEventAPIGatewayProxyEvent<
+const updateNotificationsReadStatusHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
@@ -75,25 +75,16 @@ export const updateNotificationsReadStatus: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const deleteNotification: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
-  try {
-    const { notificationId } = event.pathParameters;
-    await container
-      .resolve(NotificationService)
-      .deleteNotification(notificationId);
-    return formatJSONResponse(
-      { message: "Notification deleted successfully" },
-      200
-    );
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 export const getNotifications = checkRolePermission(
   getNotificationsHandler,
   "COMPANY_READ_ALL"
 );
+export const getNotificationById = checkRolePermission(
+  getNotificationByIdHandler,
+  "COMPANY_READ_ALL"
+);
 
+export const updateNotificationsReadStatus = checkRolePermission(
+  updateNotificationsReadStatusHandler,
+  "COMPANY_READ_ALL"
+);

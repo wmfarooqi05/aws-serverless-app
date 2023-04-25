@@ -69,7 +69,6 @@ export class GoogleOAuthService {
       }
       return token;
     } catch (e) {
-    } finally {
       return null;
     }
   }

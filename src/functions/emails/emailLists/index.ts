@@ -1,22 +1,17 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-const getAllEmailLists = {
-  handler: `${handlerPath(__dirname)}/handler.getAllEmailLists`,
+const emailHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
         method: "get",
-        path: "email-lists",
+        path: "email-list",
         cors: true,
       },
     },
-  ],
-};
 
-const addEmailList = {
-  handler: `${handlerPath(__dirname)}/handler.addEmailList`,
-  events: [
     {
       http: {
         method: "post",
@@ -24,12 +19,6 @@ const addEmailList = {
         cors: true,
       },
     },
-  ],
-};
-
-const updateEmailList = {
-  handler: `${handlerPath(__dirname)}/handler.updateEmailList`,
-  events: [
     {
       http: {
         method: "put",
@@ -37,12 +26,6 @@ const updateEmailList = {
         cors: true,
       },
     },
-  ],
-};
-
-const deleteEmailList = {
-  handler: `${handlerPath(__dirname)}/handler.deleteEmailList`,
-  events: [
     {
       http: {
         method: "delete",
@@ -53,4 +36,4 @@ const deleteEmailList = {
   ],
 };
 
-export { getAllEmailLists, addEmailList, updateEmailList, deleteEmailList };
+export { emailHandler };

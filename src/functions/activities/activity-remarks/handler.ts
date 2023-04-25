@@ -20,7 +20,7 @@ const addRemarksToActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IRemarks
 > = async (event) => {
   try {
-    const { activityId } = event.pathParameters;
+    const { activityId } = event.params;
     const newRemarks = await container
       .resolve(ActivityRemarksService)
       .addRemarksToActivity(event.employee, activityId, event.body);
@@ -34,7 +34,7 @@ const updateRemarksInActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IRemarks
 > = async (event) => {
   try {
-    const { activityId, remarksId } = event.pathParameters;
+    const { activityId, remarksId } = event.params;
     const newRemarks = await container
       .resolve(ActivityRemarksService)
       .updateRemarksInActivity(
@@ -53,7 +53,7 @@ const deleteRemarkFromActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   IRemarks
 > = async (event) => {
   try {
-    const { activityId, remarksId } = event.pathParameters;
+    const { activityId, remarksId } = event.params;
 
     const deletedRemark = await container
       .resolve(ActivityRemarksService)
