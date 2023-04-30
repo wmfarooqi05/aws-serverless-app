@@ -20,7 +20,7 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 import { container } from "@common/container";
 import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
 
-export const createNotification: ValidatedEventAPIGatewayProxyEvent<
+export const createNotificationHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
@@ -39,7 +39,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const notifications = await container
       .resolve(NotificationService)
-      .getNotifications(event.employee, event.queryStringParameters || {});
+      .getNotifications(event.employee, event.query || {});
     return formatJSONResponse(notifications, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -49,7 +49,7 @@ const getNotificationsHandler: ValidatedEventAPIGatewayProxyEvent<
 const getNotificationByIdHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
-  const { id } = event.pathParameters;
+  const { id } = event.params;
   try {
     const notifications = await container
       .resolve(NotificationService)
@@ -86,5 +86,10 @@ export const getNotificationById = checkRolePermission(
 
 export const updateNotificationsReadStatus = checkRolePermission(
   updateNotificationsReadStatusHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const createNotification = checkRolePermission(
+  createNotificationHandler,
   "COMPANY_READ_ALL"
 );

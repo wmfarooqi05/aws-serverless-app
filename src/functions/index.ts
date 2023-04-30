@@ -25,7 +25,6 @@ import {
   broadcastMessage,
   getAllWebSocketConnections,
 } from "@functions/websocket";
-
 import { notificationHandler } from "@functions/notifications";
 
 import {
@@ -53,6 +52,7 @@ import {
   importData,
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
+  uploadSignupBulkJob,
   //  processPendingJobs,
 } from "@functions/jobs";
 
@@ -61,6 +61,7 @@ import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
 import { sqsJobQueueInvokeHandler } from "@functions/sqs";
 
 import { teamHandler } from "@functions/teams";
+import { cognitoOAuthHandler } from "./auth";
 
 export default {
   companyHandler,
@@ -68,6 +69,7 @@ export default {
   teamHandler,
   emailHandler,
   notificationHandler,
+  cognitoOAuthHandler,
 
   // Jobs
   importData,
@@ -115,6 +117,7 @@ export default {
   //
   sqsJobQueueInvokeHandler,
   bulkImportUsersProcessHandler,
+  uploadSignupBulkJob,
 
   // schedulers
   updateScheduleReminder,

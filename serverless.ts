@@ -112,7 +112,7 @@ const serverlessConfiguration: AWS = {
     PUBLIC_SUBNET_1: process.env.PUBLIC_SUBNET_1,
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
     JOBS_FOLDER: process.env.JOBS_FOLDER,
-    userPoolId: process.env.USER_POOL_ID,
+    userPoolId: process.env.COGNITO_USER_POOL_ID,
     snsTopicArn: "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
 
     // cognitoAuthorizerArn:

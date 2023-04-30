@@ -7,7 +7,14 @@ const notificationHandler = {
     {
       http: {
         method: "get",
-        path: "notifications",
+        path: "notification",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "notification",
         cors: true,
       },
     },

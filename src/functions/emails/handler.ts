@@ -37,7 +37,7 @@ const getEmailsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   try {
     const teams = await container
       .resolve(EmailService)
-      .getAllEmails(event.queryStringParameters || {});
+      .getAllEmails(event.query || {});
     return formatJSONResponse(teams, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -47,7 +47,7 @@ const getEmailsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
 export const getEmailById: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
-  const { teamId } = event.pathParameters;
+  const { teamId } = event.params;
   try {
     const teams = await container.resolve(EmailService).getEmail(teamId);
     return formatJSONResponse(teams, 200);
@@ -60,7 +60,7 @@ export const updateEmailHandler: ValidatedEventAPIGatewayProxyEvent<
   any
 > = async (event) => {
   try {
-    const { teamId } = event.pathParameters;
+    const { teamId } = event.params;
     const updatedEmail = await container
       .resolve(EmailService)
       .updateEmail(event?.employee, teamId, event.body);
@@ -74,7 +74,7 @@ export const updateEmailHandler: ValidatedEventAPIGatewayProxyEvent<
 export const deleteEmailHandler: ValidatedEventAPIGatewayProxyEvent<any> =
   middy(async (event) => {
     try {
-      const { teamId } = event.pathParameters;
+      const { teamId } = event.params;
       await container.resolve(EmailService).deleteEmail(teamId);
       return formatJSONResponse({ message: "Email deleted successfully" }, 200);
     } catch (e) {

@@ -6,7 +6,7 @@ import { GenderArray, RolesArray, RolesEnum } from "./interfaces/Employees";
 @singleton()
 export default class EmployeeModel extends Model {
   static get tableName() {
-    return EMPLOYEES_TABLE_NAME;
+    return "employees_clone";
   }
 
   static get columnNames(): string[] {
@@ -40,17 +40,29 @@ export default class EmployeeModel extends Model {
           default: GenderArray[0],
           enum: GenderArray,
         },
-        address: { type: "string" },
+        addresses: {
+          type: "array",
+          default: [],
+          nullable: true,
+        },
         city: { type: "string" },
         state: { type: "string" },
         country: { type: "string" },
-        birthdate: { type: "string" },
+        // birthdate: { type: "string", nullable: true },
         emailVerified: { type: "boolean", default: false },
         phoneNumberVerified: { type: "boolean", default: false },
         phoneNumber: { type: "string" },
-        reportingManager: { type: "string" },
-        settings: { type: "jsonb" },
-        socialProfiles: { type: "jsonb" },
+        reportingManager: { type: "string", nullable: true },
+        settings: {
+          type: "object",
+          default: {},
+          nullable: true,
+        },
+        socialProfiles: {
+          type: "object",
+          default: {},
+          nullable: true,
+        },
         EmployeeStatus: { type: "string" },
         teamId: { type: "string" },
 
@@ -61,31 +73,34 @@ export default class EmployeeModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["id", "name", "email", "role"],
+      required: ["name", "email", "role"],
       additionalProperties: false,
     };
   }
 
-  static relationMappings = () => ({
-    addedBy: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: EmployeeModel,
-      join: {
-        from: `${EMPLOYEES_TABLE_NAME}.addedBy`,
-        to: `${EMPLOYEES_TABLE_NAME}.id`,
-      },
-    },
-    reportingManager: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: EmployeeModel,
-      join: {
-        from: `${EMPLOYEES_TABLE_NAME}.reportingManager`,
-        to: `${EMPLOYEES_TABLE_NAME}.id`,
-      },
-    },
-  });
+  static get jsonAttributes() {
+    return ["addresses", "settings", "socialProfiles"];
+  }
+  // static relationMappings = () => ({
+  //   addedBy: {
+  //     relation: Model.BelongsToOneRelation,
+  //     // The related model.
+  //     modelClass: EmployeeModel,
+  //     join: {
+  //       from: `${EMPLOYEES_TABLE_NAME}.addedBy`,
+  //       to: `${EMPLOYEES_TABLE_NAME}.id`,
+  //     },
+  //   },
+  //   reportingManager: {
+  //     relation: Model.BelongsToOneRelation,
+  //     // The related model.
+  //     modelClass: EmployeeModel,
+  //     join: {
+  //       from: `${EMPLOYEES_TABLE_NAME}.reportingManager`,
+  //       to: `${EMPLOYEES_TABLE_NAME}.id`,
+  //     },
+  //   },
+  // });
 
   // $beforeInsert() {
   //   this.createdAt = new Date();

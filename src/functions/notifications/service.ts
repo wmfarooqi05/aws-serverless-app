@@ -51,7 +51,7 @@ export class NotificationService implements INotificationService {
    *
    * @returns
    */
-  async createNotification(body: INotification) {
+  async createNotification(body: string) {
     // const payload = JSON.parse(body);
     // validateNotifPayload
     const {
@@ -62,7 +62,7 @@ export class NotificationService implements INotificationService {
       senderEmployee,
       receiverEmployee,
       subtitle,
-    } = body;
+    } = JSON.parse(body);
     // maybe we will take receive employee by running a loop on DB? here or maybe in parent service
     // for multiple receiver we will create an entry for each of them to tackle `read` status issue
     const notificationPayload: INotification = {
@@ -78,7 +78,14 @@ export class NotificationService implements INotificationService {
     };
 
     // const { senderEmployee, receiverEmployee }: { senderEmployee: any; receiverEmployee: any } = req.body
-    return NotificationModel.query().insert(notificationPayload);
+    const notifItem = await NotificationModel.query().insert(
+      notificationPayload
+    );
+    await this.webSocketService.sendPayloadByEmployeeId(
+      receiverEmployee,
+      notifItem
+    );
+    return notifItem;
   }
 
   async createNotifications(notifications: INotification[]) {
@@ -103,7 +110,7 @@ export class NotificationService implements INotificationService {
           builder.whereRaw(`details->>'readStatus' = ${readStatus}`);
         }
       })
-      .orderBy(...getOrderByItems(body))
+      .orderBy(...getOrderByItems({ ...body, sortBy: "createdAt" }))
       .paginate(getPaginateClauseObject(body));
   }
 
@@ -128,7 +135,7 @@ export class NotificationService implements INotificationService {
 
     const response = await NotificationModel.query()
       .patch({
-        read: payload.readStatus,
+        readStatus: payload.readStatus,
       })
       .whereIn("id", payload.ids);
     return response;

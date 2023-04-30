@@ -61,6 +61,22 @@ const bulkCognitoSignup = {
     },
   ],
 };
+
+const uploadSignupBulkJob = {
+  handler: `${handlerPath(
+    __dirname
+  )}/bulkSignupProcess.uploadSignupBulkJob`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "/jobs/bulk-signup-upload",
+        cors: true,
+      },
+    },
+  ],
+};
+
 // dev only
 const bulkImportUsersProcessHandler = {
   handler: `${handlerPath(
@@ -99,4 +115,5 @@ export {
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
   processPendingJobs,
+  uploadSignupBulkJob,
 };

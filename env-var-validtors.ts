@@ -55,7 +55,7 @@ export const ensureEnvConfigs = () => {
 
     "JOBS_FOLDER",
     "AWS_ACCOUNT_ID",
-    "USER_POOL_ID",
+    "COGNITO_USER_POOL_ID",
     "MAIL_QUEUE",
   ]);
 };

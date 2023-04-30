@@ -2,6 +2,17 @@ import { randomUUID } from "crypto";
 import { Schema, model } from "dynamoose";
 import moment from "moment-timezone";
 
+export interface IJobData {
+  jobId: string;
+  uploadedBy: string;
+  jobType: string;
+  details: Object;
+  result: string;
+  jobStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Define the schema for the first table
 export const JobsSchema = new Schema(
   {
@@ -21,8 +32,16 @@ export const JobsSchema = new Schema(
     summary: String,
     details: {
       type: Object,
+      options: {
+        convertClassInstanceToMap: true,
+      },
     },
-    result: Object,
+    result: {
+      type: Object,
+      options: {
+        convertClassInstanceToMap: true,
+      },
+    },
     jobStatus: {
       type: String,
       required: true,

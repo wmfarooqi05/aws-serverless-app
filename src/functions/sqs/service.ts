@@ -9,7 +9,7 @@ import {
 import { SQSEvent } from "aws-lambda";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { CustomError } from "@helpers/custom-error";
-import { bulkImportUsersProcess } from "@functions/jobs/bulkSignupProcess";
+import { bulkImportUsersProcessHandler } from "@functions/jobs/bulkSignupProcess";
 import {
   IEmailSqsEventInput,
   IJobSqsEventInput,
@@ -66,6 +66,8 @@ export class SQSService {
           return this.emailSqsEventHandler(payload);
         } else if (payload.eventType === "JOB") {
           return this.jobSqsEventHandler(payload);
+        } else if (payload.eventType === 'BULK_SIGNUP') {
+          return bulkImportUsersProcessHandler(payload);
         }
       });
 

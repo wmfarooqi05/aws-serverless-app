@@ -33,7 +33,7 @@ export const getCompaniesHandler = async (event) => {
     const service = container.resolve(CompanyService);
     const companies = await service.getAllCompanies(
       event.employee,
-      event.queryStringParameters || {}
+      event.query || {}
     );
     return formatJSONResponse(companies, 200);
   } catch (e) {
@@ -45,7 +45,7 @@ export const getCompaniesHandler = async (event) => {
 //   try {
 //     const companies = await container
 //       .resolve(CompanyService)
-//       .getMyCompanies(event.employee, event.queryStringParameters || {});
+//       .getMyCompanies(event.employee, event.query || {});
 //     return formatJSONResponse(companies, 200);
 //   } catch (e) {
 //     return formatErrorResponse(e);
@@ -60,7 +60,7 @@ const getCompaniesByEmployeeIdHandler = async (event) => {
       .getCompaniesByEmployeeId(
         event.employee,
         employeeId,
-        event.queryStringParameters || {}
+        event.query || {}
       );
     return formatJSONResponse(companies, 200);
   } catch (e) {

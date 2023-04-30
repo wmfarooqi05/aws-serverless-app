@@ -1,12 +1,39 @@
 import "reflect-metadata";
+import { DatabaseService } from "@libs/database/database-service-objection";
+import { EMPLOYEES_TABLE_NAME } from "@models/commons";
+import { PreTokenGenerationTriggerHandler } from "aws-lambda";
+import { container } from "tsyringe";
+import { IEmployee } from "@models/interfaces/Employees";
 
-import {
-  formatJSONResponse,
-  ValidatedEventAPIGatewayProxyEvent,
-} from "@libs/api-gateway";
-
-export const callback: ValidatedEventAPIGatewayProxyEvent<any> =
+export const preTokenGenerationHandler: PreTokenGenerationTriggerHandler =
   async (event) => {
-    console.log('event callback', event);
-    return formatJSONResponse({}, 200);
+    const sub = event?.request?.userAttributes?.sub;
+    try {
+      console.log("sub", sub);
+      const teamIdKey = "team_id";
+      const dbClient = container.resolve(DatabaseService);
+      const employee: IEmployee = await dbClient
+        .getKnexClient()(EMPLOYEES_TABLE_NAME)
+        .where({
+          id: sub,
+        })
+        .first();
+      console.log("employee", employee, "teamId", employee.teamId);
+      event.response = {
+        ...event.response,
+        claimsOverrideDetails: {
+          claimsToAddOrOverride: {
+            [`custom:${teamIdKey}`]: employee.teamId,
+          },
+        },
+      };
+      console.log(
+        "custom claim",
+        event.response?.claimsOverrideDetails?.claims
+      );
+    } catch (err) {
+      console.error(err);
+      // Handle errors here
+    }
+    return event;
   };

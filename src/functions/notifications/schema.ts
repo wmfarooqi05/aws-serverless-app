@@ -36,7 +36,7 @@ export const validateCreateNotification = async (obj: any) => {
 export const validateUpdateNotificationsReadStatus = async (obj: any) => {
   await Joi.object({
     ids: Joi.array().items(Joi.string().guid().required()),
-    status: Joi.boolean().required(),
+    readStatus: Joi.boolean().required(),
   }).validateAsync(obj, {
     abortEarly: true,
   });

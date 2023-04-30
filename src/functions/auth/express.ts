@@ -2,12 +2,7 @@ import express from "express";
 
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
-import {
-  createNotification,
-  getNotificationById,
-  getNotifications,
-  updateNotificationsReadStatus,
-} from "./handler";
+import {} from "./handler";
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -19,23 +14,23 @@ app.use((req, _, next) => {
   next(); // Call the next middleware or route handler
 });
 
-app.get("/notification", async (req, res) => {
-  const resp = await getNotifications(req, {} as any);
+app.post("/signup", async (req, res) => {
+  const resp = await signup(req, {} as any);
   resHelper(res, resp);
 });
 
-app.post("/notification", async (req, res) => {
-  const resp = await createNotification(req, {} as any);
+app.post("/login", async (req, res) => {
+  const resp = await login(req, {} as any);
   resHelper(res, resp);
 });
 
-app.get("/notification/:id", async (req, res) => {
-  const resp = await getNotificationById(req, {} as any);
+app.post("/forgot-password", async (req, res) => {
+  const resp = await login(req, {} as any);
   resHelper(res, resp);
 });
 
-app.put("/notification", async (req, res) => {
-  const resp = await updateNotificationsReadStatus(req, {} as any);
+app.post("/reset-password", async (req, res) => {
+  const resp = await login(req, {} as any);
   resHelper(res, resp);
 });
 

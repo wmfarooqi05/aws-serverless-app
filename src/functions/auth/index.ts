@@ -1,12 +1,36 @@
-import { handlerPath } from '@libs/handler-resolver';
+import { handlerPath } from "@libs/handler-resolver";
 
-const authCallback = {
-  handler: `${handlerPath(__dirname)}/handler.callback`,
+const cognitoOAuthHandler = {
+  handler: `${handlerPath(__dirname)}/handler.preTokenGenerationHandler`,
   events: [
     {
-      httpApi: 'POST /auth/callback',
-    }
+      http: {
+        method: "post",
+        path: "/token-generation",
+        cors: true,
+      },
+    },
+    {
+      cognitoUserPool: {
+        pool: "ca-central-1_0BjGZxtC1",
+        trigger: "PreTokenGeneration" as COGNITO_TRIGGER,
+      },
+    },
   ],
 };
 
-export { authCallback };
+type COGNITO_TRIGGER =
+  | "PreSignUp"
+  | "PostConfirmation"
+  | "PreAuthentication"
+  | "PostAuthentication"
+  | "PreTokenGeneration"
+  | "CustomMessage"
+  | "DefineAuthChallenge"
+  | "CreateAuthChallenge"
+  | "VerifyAuthChallengeResponse"
+  | "UserMigration"
+  | "CustomSMSSender"
+  | "CustomEmailSender";
+
+export { cognitoOAuthHandler };

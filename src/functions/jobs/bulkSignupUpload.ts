@@ -13,9 +13,6 @@ import { IEmployeeJwt, RolesEnum } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { uploadToS3 } from "./upload";
-import { container } from "tsyringe";
-import { SQSService } from "@functions/sqs/service";
-import { DatabaseService } from "@libs/database/database-service-objection";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)

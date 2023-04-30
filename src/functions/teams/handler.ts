@@ -37,7 +37,7 @@ const getTeamsHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const teams = await container
       .resolve(TeamService)
-      .getAllTeams(event.queryStringParameters || {});
+      .getAllTeams(event.query || {});
     return formatJSONResponse(teams, 200);
   } catch (e) {
     return formatErrorResponse(e);

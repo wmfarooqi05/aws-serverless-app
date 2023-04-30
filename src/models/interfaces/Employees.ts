@@ -42,28 +42,25 @@ export type GenderType = "Male" | "Female" | "Other";
 export const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
 export interface IEmployee {
-  id: string;
+  id?: string;
   name: string;
   picture?: string;
   email: string;
-  enabled: boolean;
-  jobTitle: string;
-  role: string;
-  gender: GenderType;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  birthdate: string;
-  emailVerified: boolean;
-  phoneNumberVerified: boolean;
-  phoneNumber: string;
-  reportingManager: string;
-  teamId: string;
+  enabled?: boolean;
+  jobTitle?: string;
+  role: string;// IRoles;
+  gender?: GenderType;
+  birthdate?: string;
+  emailVerified?: boolean;
+  phoneNumberVerified?: boolean;
+  phoneNumber?: string;
+  reportingManager?: string;
+  teamId?: string;
+  addedBy?: string;
 
-  settings: JSON;
-  socialProfiles: JSON;
-  EmployeeStatus: string;
-  createdAt: string;
-  updatedAt: string;
+  settings?: JSON;
+  socialProfiles?: JSON;
+  EmployeeStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
