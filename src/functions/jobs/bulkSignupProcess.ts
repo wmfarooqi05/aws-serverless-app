@@ -50,6 +50,13 @@ export const bulkImportUsersProcessHandler = async (event) => {
     let employeeFromSheet: ITmpEmployee[] = await importDataFromXlsx(
       signupFile
     );
+    employeeFromSheet.push({
+      name: "tmp user",
+      email: "some@email.com",
+      phone_number: "1234",
+      role: RolesArray[0],
+      team_id: "213",
+    });
     if (!employeeFromSheet.length) {
       return formatErrorResponse({
         message: "File doesn't exists or empty",
@@ -215,7 +222,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
 
         const s3Promises = [];
         const resultKeys = [];
-        const key = Date.now().toLocaleString();
+        const key = Date.now().toString();
         if (employeeToBeCreated.length) {
           s3Promises.push(
             uploadJsonAsXlsx(
@@ -250,9 +257,12 @@ export const bulkImportUsersProcessHandler = async (event) => {
         });
 
         const userInsertPromises = employeeToBeCreated.map((e) =>
-          EmployeeModel.query(trx).insert({
-            ...e,
-          })
+          EmployeeModel.query(trx)
+            .insert({
+              ...e,
+            })
+            .onConflict("username")
+            .ignore()
         );
         await Promise.all(userInsertPromises);
         const newManagers: IEmployee[] = await EmployeeModel.query(trx).whereIn(
