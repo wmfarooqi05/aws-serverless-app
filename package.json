@@ -71,6 +71,7 @@
     "@types/lodash.clone": "^4.5.7",
     "@types/lodash.groupby": "^4.6.7",
     "@types/lodash.merge": "^4.6.7",
+    "@types/lodash.snakecase": "^4.1.7",
     "@types/node": "^18.13.0",
     "@types/pg": "^8.6.6",
     "@types/uuid": "^9.0.0",

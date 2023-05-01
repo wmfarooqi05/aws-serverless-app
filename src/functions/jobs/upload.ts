@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import * as stream from "stream";
 import * as fs from "fs";
 import * as XLSX from "xlsx";
+import snakeCase from "lodash.snakecase";
 
 const s3 = new S3Client({
   region: process.env.REGION,
@@ -73,9 +74,11 @@ export const uploadJsonAsXlsx = async (
   Key: string,
   content: any
 ): Promise<{ fileUrl: string; fileKey: string }> => {
-  const rows = [Object.keys(content)];
+  const rows = [];
+  const headers = Object.keys(content[0]);
+  rows.push(headers.map((x) => snakeCase(x)));
   for (const item of content) {
-    const row: any = Object.values(item);
+    const row = headers.map((header) => item[header]); // Map the item's values based on the headers
     rows.push(row);
   }
 

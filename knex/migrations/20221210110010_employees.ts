@@ -15,8 +15,10 @@ const tableName = Tables.employees;
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable(tableName, (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+    table.uuid("sub").unique().notNullable();
     table.string("picture");
-    table.string("email").notNullable();
+    table.string("username").unique().notNullable();
+    table.string("email").unique().notNullable();
     table.string("name").notNullable();
     table.string("enabled");
     table.string("job_title");

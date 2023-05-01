@@ -18,6 +18,8 @@ export default class EmployeeModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
+        sub: { type: "string" },
+        username: { type: "string" },
         name: { type: "string" },
         email: {
           type: "string",

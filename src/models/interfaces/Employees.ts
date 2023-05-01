@@ -43,6 +43,8 @@ export const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
 export interface IEmployee {
   id?: string;
+  username?:string;
+  sub?:string;
   name: string;
   picture?: string;
   email: string;
