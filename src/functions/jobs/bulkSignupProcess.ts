@@ -4,6 +4,7 @@ import { CustomError } from "@helpers/custom-error";
 import {
   downloadFromS3Readable,
   fileExists,
+  uploadContentToS3,
   uploadFileToS3,
   uploadJsonAsXlsx,
 } from "./upload";
@@ -27,6 +28,8 @@ import {
   AdminGetUserCommandOutput,
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
+import * as fs from "fs";
+import { chunk } from "@utils/lodash";
 
 const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   {
@@ -233,7 +236,7 @@ const insertIntoCognito = async (employees: any[]) => {
         Value: phoneNumber,
       });
     }
-    
+
     const params: AdminCreateUserCommandInput = {
       UserPoolId: userPoolId,
       Username: username,
@@ -410,24 +413,76 @@ const importDataFromXlsx = async (buffer: Buffer) => {
   return jsonData;
 };
 
+const importDataFromXlsxFile = (filePath: string) => {
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = xlsx.utils.sheet_to_json(worksheet);
+  return jsonData;
+};
+
 const uploadSignupBulkJobHandler = async (event) => {
   const { employee, body } = event;
   const payload = JSON.parse(body);
   await fileExists(payload.filePath);
-  const jobId = randomUUID();
-  const details = await uploadFileToS3(
-    payload.filePath,
-    `jobs/bulk_signup/${jobId}/data.xlsx`
-  );
-  const job = new JobsModel({
-    jobId,
-    uploadedBy: employee.sub,
-    jobType: "BULK_SIGNUP",
-    details,
-    jobStatus: "PENDING",
+  const employeeFromSheet = importDataFromXlsxFile(payload.filePath);
+
+  await Joi.array()
+    .items({
+      name: Joi.string().required().min(3),
+      email: Joi.string().email().required(),
+      phone_number: Joi.string().required(),
+      team_id: Joi.string(),
+      reporting_manager: Joi.string().email(),
+      role: Joi.string()
+        .valid(...RolesArray)
+        .required(),
+    })
+    .validateAsync(employeeFromSheet);
+
+  const chunks = chunk(employeeFromSheet, 1);
+  const jobPayload = chunks.map((x) => {
+    return {
+      jobId: randomUUID(),
+      data: x,
+    };
   });
-  await job.save();
-  return formatJSONResponse(job, 201);
+
+  // const details = await Promise.all(
+  //   jobPayload.map((x) =>
+  //     uploadContentToS3(
+  //       `jobs/bulk_signup/${x.jobId}/data.xlsx`,
+  //       jsonToXlsxBuffer(x.data)
+  //     )
+  //   )
+  // );
+
+  const details = [
+    { val: "key" },
+    { val: "key2" },
+    { val: "key3" },
+    { val: "key4" },
+  ];
+
+  const jobsPayload = details.map(
+    (x, index) =>
+      new JobsModel({
+        jobId: jobPayload[index].jobId,
+        uploadedBy: employee.sub,
+        jobType: "BULK_SIGNUP",
+        details: x,
+        jobStatus: "PENDING",
+      })
+  );
+  const jobs = await JobsModel.batchPut(jobsPayload);
+  return formatJSONResponse({ jobs }, 201);
+};
+
+const jsonToXlsxBuffer = (data) => {
+  const worksheet = xlsx.utils.json_to_sheet(data);
+  const workbook = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  return xlsx.write(workbook, { type: "buffer" });
 };
 
 export const uploadSignupBulkJob = checkRolePermission(
