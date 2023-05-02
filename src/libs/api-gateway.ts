@@ -34,7 +34,7 @@ export const responseHeaders = () => {
 };
 
 export const formatErrorResponse = (
-  error: ICustomErrorArgs
+  error: ICustomErrorArgs | any[] | any
 ): APIGatewayProxyResult => {
   return {
     statusCode: error.statusCode,

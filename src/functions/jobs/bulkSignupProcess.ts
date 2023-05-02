@@ -28,6 +28,12 @@ import {
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
 
+const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
+  {
+    region: process.env.REGION,
+  }
+);
+
 export const bulkImportUsersProcessHandler = async (event) => {
   const errors = [];
   const payload = JSON.parse(event.body);
@@ -47,16 +53,9 @@ export const bulkImportUsersProcessHandler = async (event) => {
       role: string;
     }
 
-    let employeeFromSheet: ITmpEmployee[] = await importDataFromXlsx(
+    const employeeFromSheet: ITmpEmployee[] = await importDataFromXlsx(
       signupFile
     );
-    employeeFromSheet.push({
-      name: "tmp user",
-      email: "some@email.com",
-      phone_number: "1234",
-      role: RolesArray[0],
-      team_id: "213",
-    });
     if (!employeeFromSheet.length) {
       return formatErrorResponse({
         message: "File doesn't exists or empty",
@@ -123,139 +122,16 @@ export const bulkImportUsersProcessHandler = async (event) => {
         addedBy: jobData.uploadedBy,
       });
     }
-
+    const cognitoSignupResult = await insertIntoCognito(employeesPayload);
+    const { s3Result, employeeToBeCreated } = await handleCognitoResponse(
+      jobData.jobId,
+      existingDbEmployees,
+      employeesPayload,
+      cognitoSignupResult
+    );
+    result = { ...result, ...s3Result };
     await docClient.getKnexClient().transaction(async (trx) => {
       try {
-        const userPoolId = process.env.COGNITO_USER_POOL_ID;
-        const payloads = [];
-        const password = "Password@123";
-
-        const client = new CognitoIdentityProviderClient({
-          region: process.env.REGION,
-        });
-
-        if (payload.deleteAll === true || payload.deleteAll === "true") {
-          await deleteUsers(client, payload.deleteArr);
-        }
-
-        const signupPromises = employeesPayload.map((employee) => {
-          const { email, name, phoneNumber, username } = employee;
-          const UserAttributes = [
-            {
-              Name: "email",
-              Value: email,
-            },
-            {
-              Name: "name",
-              Value: name,
-            },
-          ];
-          if (phoneNumber) {
-            UserAttributes.push({
-              Name: "phone_number",
-              Value: phoneNumber,
-            });
-          }
-          const params: AdminCreateUserCommandInput = {
-            UserPoolId: userPoolId,
-            Username: username,
-            TemporaryPassword: password,
-            UserAttributes,
-          };
-
-          payloads.push({
-            email,
-            name,
-            password,
-            phoneNumber,
-          });
-          AdminDeleteUserCommand;
-          const command = new AdminCreateUserCommand(params);
-          return client.send(command);
-        });
-
-        const cognitoSignupResult = await Promise.allSettled(signupPromises);
-        // run foreach on this to sepearte fullfilled and rejected
-        const employeeToBeCreated: IEmployee[] = [];
-        const failedEmployeeArray = [];
-        let existingCognitoEmployees: IEmployee[] = [];
-        cognitoSignupResult.forEach((r, index) => {
-          if (r.status === "fulfilled") {
-            const sub = r.value.User.Attributes.find(
-              (x) => x.Name === "sub"
-            ).Value;
-            employeesPayload[index].id = sub; //@TODO remove
-            employeesPayload[index].sub = sub;
-            employeeToBeCreated.push(employeesPayload[index]);
-          } else if (r?.reason?.name === "UsernameExistsException") {
-            existingCognitoEmployees.push(employeesPayload[index]);
-          } else {
-            failedEmployeeArray.push(employeesPayload[index]);
-          }
-        });
-
-        const nonCognitoUsersExistingInDB = [];
-        const usersOnCognitoAndDB = [];
-        existingCognitoEmployees.forEach((x) => {
-          const emp = existingDbEmployees.find((y) => y.email === x.email);
-          if (!emp) {
-            nonCognitoUsersExistingInDB.push(x);
-          } else {
-            usersOnCognitoAndDB.push(emp);
-          }
-        });
-        if (nonCognitoUsersExistingInDB.length) {
-          const cognitoUsers = await getUsers(
-            client,
-            nonCognitoUsersExistingInDB.map((x) => x.username)
-          );
-
-          cognitoUsers?.forEach((x) => {
-            const index = employeesPayload.findIndex(
-              (y) => y.username === x.username
-            );
-            employeesPayload[index].id = x.sub; // @TODO remove
-            employeesPayload[index].sub = x.sub;
-            employeeToBeCreated.push(employeesPayload[index]);
-          });
-        }
-
-        const s3Promises = [];
-        const resultKeys = [];
-        const key = Date.now().toString();
-        if (employeeToBeCreated.length) {
-          s3Promises.push(
-            uploadJsonAsXlsx(
-              `jobs/bulk_signup/${jobData.jobId}/result/successful_${key}.xlsx`,
-              employeeToBeCreated
-            )
-          );
-          resultKeys.push("successful");
-        }
-
-        if (failedEmployeeArray.length) {
-          s3Promises.push(
-            uploadJsonAsXlsx(
-              `jobs/bulk_signup/${jobData.jobId}/result/failed_${key}.xlsx`,
-              failedEmployeeArray
-            )
-          );
-          resultKeys.push("failed");
-        }
-        if (usersOnCognitoAndDB.length) {
-          s3Promises.push(
-            uploadJsonAsXlsx(
-              `jobs/bulk_signup/${jobData.jobId}/result/existing_${key}.xlsx`,
-              usersOnCognitoAndDB
-            )
-          );
-          resultKeys.push("existing");
-        }
-        const s3Results = await Promise.all(s3Promises);
-        s3Results.forEach((x, index) => {
-          result[resultKeys[index]] = x;
-        });
-
         const userInsertPromises = employeeToBeCreated.map((e) =>
           EmployeeModel.query(trx)
             .insert({
@@ -289,9 +165,23 @@ export const bulkImportUsersProcessHandler = async (event) => {
         errors.push({
           message: e.message,
         });
+        /**
+         * @NOTES
+         * We can call delete users here, but let's say someone by mistake put an old and
+         * very important account in sheet and transaction somehow crashes. that will
+         * delete that important account as well. so we will not delete anything in cognito
+         * unless specified with great great great care
+         */
         await trx.rollback();
       }
     });
+    await JobsModel.update(
+      { jobId: jobData.jobId },
+      {
+        jobStatus: "SUCCESSFUL",
+        result,
+      }
+    );
   } catch (e) {
     errors.push({ message: e.message });
   }
@@ -312,25 +202,152 @@ export const bulkImportUsersProcessHandler = async (event) => {
         statusCode: 400,
         body: JSON.stringify(errors),
       };
-    } else {
-      await JobsModel.update(
-        { jobId: payload.jobId },
-        {
-          jobStatus: "SUCCESSFUL",
-          result,
-        }
-      );
     }
+    return formatJSONResponse({ result }, 200);
   } catch (e) {
     console.log("[JobsModel] result not saved due to errors", e);
   }
-  return formatJSONResponse({ result }, 200);
+  return formatErrorResponse(errors);
 };
 
-const deleteUsers = async (
-  client: CognitoIdentityProviderClient,
-  usernames: string[]
+const insertIntoCognito = async (employees: any[]) => {
+  const userPoolId = process.env.COGNITO_USER_POOL_ID;
+  const payloads = [];
+  const password = "Password@123";
+
+  const signupPromises = employees.map((employee) => {
+    const { email, name, phoneNumber, username } = employee;
+    const UserAttributes = [
+      {
+        Name: "email",
+        Value: email,
+      },
+      {
+        Name: "name",
+        Value: name,
+      },
+    ];
+    if (phoneNumber) {
+      UserAttributes.push({
+        Name: "phone_number",
+        Value: phoneNumber,
+      });
+    }
+    
+    const params: AdminCreateUserCommandInput = {
+      UserPoolId: userPoolId,
+      Username: username,
+      TemporaryPassword: password,
+      UserAttributes,
+    };
+
+    payloads.push({
+      email,
+      name,
+      password,
+      phoneNumber,
+    });
+    AdminDeleteUserCommand;
+    const command = new AdminCreateUserCommand(params);
+    return client.send(command);
+  });
+
+  return Promise.allSettled(signupPromises);
+};
+
+const handleCognitoResponse = async (
+  jobId: string,
+  existingDbEmployees: IEmployee[],
+  employeesPayload: any[],
+  cognitoSignupResult: any[]
 ) => {
+  const result = {};
+  // run foreach on this to sepearte fullfilled and rejected
+  const employeeToBeCreated: IEmployee[] = [];
+  const failedEmployeeArray = [];
+  let existingCognitoEmployees: IEmployee[] = [];
+  cognitoSignupResult.forEach((r, index) => {
+    if (r.status === "fulfilled") {
+      const sub = r.value.User.Attributes.find((x) => x.Name === "sub").Value;
+      employeesPayload[index].id = sub; //@TODO remove
+      employeesPayload[index].sub = sub;
+      employeeToBeCreated.push(employeesPayload[index]);
+    } else if (r?.reason?.name === "UsernameExistsException") {
+      existingCognitoEmployees.push(employeesPayload[index]);
+    } else {
+      failedEmployeeArray.push(employeesPayload[index]);
+    }
+  });
+
+  const nonCognitoUsersExistingInDB = [];
+  const usersOnCognitoAndDB = [];
+  existingCognitoEmployees.forEach((x) => {
+    const emp = existingDbEmployees.find((y) => y.email === x.email);
+    if (!emp) {
+      nonCognitoUsersExistingInDB.push(x);
+    } else {
+      usersOnCognitoAndDB.push(emp);
+    }
+  });
+  if (nonCognitoUsersExistingInDB.length) {
+    const cognitoUsers = await getUsers(
+      nonCognitoUsersExistingInDB.map((x) => x.username)
+    );
+
+    cognitoUsers?.forEach((x) => {
+      const index = employeesPayload.findIndex(
+        (y) => y.username === x.username
+      );
+      employeesPayload[index].id = x.sub; // @TODO remove
+      employeesPayload[index].sub = x.sub;
+      employeeToBeCreated.push(employeesPayload[index]);
+    });
+  }
+
+  const s3Promises = [];
+  const resultKeys = [];
+  const key = Date.now().toString();
+  if (employeeToBeCreated.length) {
+    s3Promises.push(
+      uploadJsonAsXlsx(
+        `jobs/bulk_signup/${jobId}/result/successful_${key}.xlsx`,
+        employeeToBeCreated
+      )
+    );
+    resultKeys.push("successful");
+  }
+
+  if (failedEmployeeArray.length) {
+    s3Promises.push(
+      uploadJsonAsXlsx(
+        `jobs/bulk_signup/${jobId}/result/failed_${key}.xlsx`,
+        failedEmployeeArray
+      )
+    );
+    resultKeys.push("failed");
+  }
+  if (usersOnCognitoAndDB.length) {
+    s3Promises.push(
+      uploadJsonAsXlsx(
+        `jobs/bulk_signup/${jobId}/result/existing_${key}.xlsx`,
+        usersOnCognitoAndDB
+      )
+    );
+    resultKeys.push("existing");
+  }
+  const s3Results = await Promise.all(s3Promises);
+  s3Results.forEach((x, index) => {
+    result[resultKeys[index]] = x;
+  });
+
+  return { s3Result: result, employeeToBeCreated };
+};
+
+/**
+ * @deprecated
+ * @param usernames
+ */
+const deleteUsers = async (usernames: string[]) => {
   const promises = usernames.map((username) => {
     const command = new AdminDeleteUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -348,7 +365,6 @@ const deleteUsers = async (
 };
 
 const getUsers = async (
-  client: CognitoIdentityProviderClient,
   usernames: string[]
 ): Promise<
   {
