@@ -37,16 +37,18 @@ const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   }
 );
 
-export const bulkImportUsersProcessHandler = async (event) => {
+export const bulkImportUsersProcessHandler = async (jobId: string) => {
   const errors = [];
-  const payload = JSON.parse(event.body);
   let result = {};
+  console.log("[bulkImportUsersProcessHandler] jobId", jobId);
   try {
-    const jobData: IJobData = await JobsModel.get(payload.jobId);
+    const jobData: IJobData = await JobsModel.get(jobId);
     // if (jobData.jobStatus === "SUCCESSFUL") {
     //   return formatJSONResponse({ message: "Job already completed" }, 200);
     // }
+    console.log("[bulkImportUsersProcessHandler] jobData", jobData);
     const signupFile = await downloadFromS3Readable(jobData?.details?.fileKey);
+    console.log("signupFile downloaded");
     interface ITmpEmployee {
       name: string;
       email: string;
@@ -59,6 +61,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
     const employeeFromSheet: ITmpEmployee[] = await importDataFromXlsx(
       signupFile
     );
+    console.log("employeeFromSheet length", employeeFromSheet.length);
     if (!employeeFromSheet.length) {
       return formatErrorResponse({
         message: "File doesn't exists or empty",
@@ -85,7 +88,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
           .required(),
       })
       .validateAsync(employeeFromSheet);
-
+    console.log("joi validated");
     const allManagerEmails = [
       ...new Set(
         employeeFromSheet.map((x) => x.reporting_manager).filter((x) => x)
@@ -125,7 +128,9 @@ export const bulkImportUsersProcessHandler = async (event) => {
         addedBy: jobData.uploadedBy,
       });
     }
+
     const cognitoSignupResult = await insertIntoCognito(employeesPayload);
+    console.log("cognitoSignupResult", cognitoSignupResult);
     const { s3Result, employeeToBeCreated } = await handleCognitoResponse(
       jobData.jobId,
       existingDbEmployees,
@@ -179,7 +184,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
       }
     });
     await JobsModel.update(
-      { jobId: jobData.jobId },
+      { jobId },
       {
         jobStatus: "SUCCESSFUL",
         result,
@@ -192,7 +197,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
     if (errors.length) {
       try {
         await JobsModel.update(
-          { jobId: payload.jobId },
+          { jobId },
           {
             jobStatus: "ERROR",
             result: { errors },
@@ -215,6 +220,7 @@ export const bulkImportUsersProcessHandler = async (event) => {
 
 const insertIntoCognito = async (employees: any[]) => {
   const userPoolId = process.env.COGNITO_USER_POOL_ID;
+  console.log("[insertIntoCognito] userPoolId", userPoolId);
   const payloads = [];
   const password = "Password@123";
 
@@ -343,6 +349,7 @@ const handleCognitoResponse = async (
     result[resultKeys[index]] = x;
   });
 
+  console.log("[handleCognitoResponse]", result);
   return { s3Result: result, employeeToBeCreated };
 };
 
@@ -440,7 +447,7 @@ const uploadSignupBulkJobHandler = async (event) => {
     })
     .validateAsync(employeeFromSheet);
 
-  const chunks = chunk(employeeFromSheet, 1);
+  const chunks = chunk(employeeFromSheet, 100);
   const jobPayload = chunks.map((x) => {
     return {
       jobId: randomUUID(),
@@ -448,21 +455,13 @@ const uploadSignupBulkJobHandler = async (event) => {
     };
   });
 
-  // const details = await Promise.all(
-  //   jobPayload.map((x) =>
-  //     uploadContentToS3(
-  //       `jobs/bulk_signup/${x.jobId}/data.xlsx`,
-  //       jsonToXlsxBuffer(x.data)
-  //     )
-  //   )
-  // );
-
-  const details = [
-    { val: "key" },
-    { val: "key2" },
-    { val: "key3" },
-    { val: "key4" },
-  ];
+  const promises = jobPayload.map((x) =>
+    uploadContentToS3(
+      `jobs/bulk_signup/${x.jobId}/data.xlsx`,
+      jsonToXlsxBuffer(x.data)
+    )
+  );
+  const details = await Promise.all(promises);
 
   const jobsPayload = details.map(
     (x, index) =>

@@ -53,7 +53,8 @@ import {
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
   uploadSignupBulkJob,
-  //  processPendingJobs,
+  streamRecordHelper,
+  handleDynamoStreamRecords,
 } from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
@@ -74,7 +75,8 @@ export default {
   // Jobs
   importData,
   bulkCognitoSignup,
-  // processPendingJobs,
+  streamRecordHelper,
+  handleDynamoStreamRecords,
 
   sendWebSocketNotification,
   getMyPendingApprovals,

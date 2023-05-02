@@ -96,6 +96,7 @@ export const downloadFromS3Readable = async (keyName): Promise<Buffer> => {
     Bucket: process.env.DEPLOYMENT_BUCKET,
     Key: keyName,
   };
+  console.log("[downloadFromS3Readable] params", params);
   const getObjectCommand = new GetObjectCommand(params);
   const objectData = await s3.send(getObjectCommand);
 

@@ -14,6 +14,7 @@ import {
   IEmailSqsEventInput,
   IJobSqsEventInput,
   I_SQS_EVENT_INPUT,
+  SQSEventType,
 } from "@models/interfaces/Reminders";
 import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
 import { ReminderService } from "@functions/reminders/service";
@@ -56,8 +57,11 @@ export class SQSService {
 
         console.log("[sqsJobQueueInvokeHandler] record", record);
 
+        // BULK SIGNUP will look like this
+        // const message: { MessageBody: I_SQS_EVENT_INPUT; QueueUrl: string } =
+        //   JSON.parse(record.body);
         const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
-
+        console.log("payload", payload);
         deleteEvent.push(this.deleteMessage(record.receiptHandle));
 
         if (payload.eventType === "REMINDER") {
@@ -66,12 +70,13 @@ export class SQSService {
           return this.emailSqsEventHandler(payload);
         } else if (payload.eventType === "JOB") {
           return this.jobSqsEventHandler(payload);
-        } else if (payload.eventType === 'BULK_SIGNUP') {
-          return bulkImportUsersProcessHandler(payload);
+        } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
+          return bulkImportUsersProcessHandler(payload?.MessageBody?.jobId);
         }
       });
 
       const resps = await Promise.all(promises);
+      console.log('resps', resps);
       await Promise.all(deleteEvent);
       return resps;
     } catch (error) {
@@ -101,22 +106,28 @@ export class SQSService {
     // }
   }
 
-  async addJobToQueue(jobId: string) {
+  async addJobToQueue(
+    jobId: string,
+    eventType: SQSEventType,
+    queueUrl: string = "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev"
+  ) {
     try {
-      const messageBody = JSON.stringify({ jobId });
       const params = {
-        MessageBody: messageBody,
+        MessageBody: { jobId, eventType },
         QueueUrl: queueUrl,
       };
 
-      return this.sendMessage(JSON.stringify(params));
+      return this.sendMessage(JSON.stringify(params), queueUrl);
     } catch (e) {
       console.log("error", e);
     }
   }
 
   // @TODO make these other functions private
-  private async sendMessage(messageBody: string) {
+  private async sendMessage(
+    messageBody: string,
+    queueUrl: string = "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev"
+  ) {
     try {
       // return this.sqsClient.send(
       //   new SendMessageCommand({
@@ -128,8 +139,7 @@ export class SQSService {
       // return data; // For unit tests.
 
       const command = new SendMessageCommand({
-        QueueUrl:
-          "https://sqs.ca-central-1.amazonaws.com/524073432557/job-queue-dev",
+        QueueUrl: queueUrl,
         MessageBody: messageBody,
       });
       const response = await this.sqsClient.send(command);

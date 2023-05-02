@@ -6,7 +6,7 @@ import { GenderArray, RolesArray, RolesEnum } from "./interfaces/Employees";
 @singleton()
 export default class EmployeeModel extends Model {
   static get tableName() {
-    return "employees_clone";
+    return EMPLOYEES_TABLE_NAME;
   }
 
   static get columnNames(): string[] {

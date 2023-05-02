@@ -211,30 +211,30 @@ const serverlessConfiguration: AWS = {
           QueueName: "${self:custom.JOB_QUEUE}",
         },
       },
-      JobTable: {
-        Type: "AWS::DynamoDB::Table",
-        Properties: {
-          AttributeDefinitions: [
-            {
-              AttributeName: "jobId",
-              AttributeType: "S",
-            },
-          ],
-          KeySchema: [
-            {
-              AttributeName: "jobId",
-              KeyType: "HASH",
-            },
-          ],
-          ProvisionedThroughput: {
-            ReadCapacityUnits: 1,
-            WriteCapacityUnits: 1,
-          },
-          StreamSpecification: {
-            StreamViewType: "NEW_IMAGE",
-          },
-        },
-      },
+      // JobTable: {
+      //   Type: "AWS::DynamoDB::Table",
+      //   Properties: {
+      //     AttributeDefinitions: [
+      //       {
+      //         AttributeName: "jobId",
+      //         AttributeType: "S",
+      //       },
+      //     ],
+      //     KeySchema: [
+      //       {
+      //         AttributeName: "jobId",
+      //         KeyType: "HASH",
+      //       },
+      //     ],
+      //     ProvisionedThroughput: {
+      //       ReadCapacityUnits: 1,
+      //       WriteCapacityUnits: 1,
+      //     },
+      //     StreamSpecification: {
+      //       StreamViewType: "NEW_IMAGE", // @TODO change this
+      //     },
+      //   },
+      // },
       // MyRuleSet: {
       //   Type: "AWS::SES::ReceiptRuleSet",
       //   Properties: {

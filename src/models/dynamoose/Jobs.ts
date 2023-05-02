@@ -1,3 +1,4 @@
+import { SQSEventType } from "@models/interfaces/Reminders";
 import { randomUUID } from "crypto";
 import { Schema, model } from "dynamoose";
 import moment from "moment-timezone";
@@ -5,7 +6,7 @@ import moment from "moment-timezone";
 export interface IJobData {
   jobId: string;
   uploadedBy: string;
-  jobType: string;
+  jobType: SQSEventType;
   details: Object;
   result: string;
   jobStatus: string;
@@ -32,15 +33,9 @@ export const JobsSchema = new Schema(
     summary: String,
     details: {
       type: Object,
-      options: {
-        convertClassInstanceToMap: true,
-      },
     },
     result: {
       type: Object,
-      options: {
-        convertClassInstanceToMap: true,
-      },
     },
     jobStatus: {
       type: String,

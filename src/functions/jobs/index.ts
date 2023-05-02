@@ -62,10 +62,21 @@ const bulkCognitoSignup = {
   ],
 };
 
+const streamRecordHelper = {
+  handler: `${handlerPath(__dirname)}/dynamoDbStreamHandler.streamRecordHelper`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "/dynamo-stream",
+        cors: true,
+      },
+    },
+  ],
+};
+
 const uploadSignupBulkJob = {
-  handler: `${handlerPath(
-    __dirname
-  )}/bulkSignupProcess.uploadSignupBulkJob`,
+  handler: `${handlerPath(__dirname)}/bulkSignupProcess.uploadSignupBulkJob`,
   events: [
     {
       http: {
@@ -93,27 +104,24 @@ const bulkImportUsersProcessHandler = {
   ],
 };
 
-const processPendingJobs = {
-  handler: `${handlerPath(__dirname)}/processPendingJobs.processPendingJobs`,
+const handleDynamoStreamRecords = {
+  handler: `${handlerPath(__dirname)}/dynamoDbStreamHandler.handleStreamRecords`,
   events: [
     {
       stream: {
         type: "dynamodb",
-        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/latest",
-        // arn: `arn:aws:dynamodb:your-aws-region:your-account-id:table/your-dynamodb-table-name/stream/latest`,
+        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+        batchSize: 100,
       },
     },
   ],
-  environment: {
-    QUEUE_URL: "your-sqs-queue-url",
-    TABLE_NAME: "your-dynamodb-table-name",
-  },
 };
 
 export {
   importData,
   bulkCognitoSignup,
   bulkImportUsersProcessHandler,
-  processPendingJobs,
+  handleDynamoStreamRecords,
   uploadSignupBulkJob,
+  streamRecordHelper,
 };
