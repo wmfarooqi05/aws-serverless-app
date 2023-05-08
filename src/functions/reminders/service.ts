@@ -399,6 +399,7 @@ export class ReminderService implements IReminderService {
       errorDoc[errorIndex++] = error;
     } finally {
       if (errorIndex > 0) {
+        // @TODO fix this
         const resp = await this.uploadToS3(errorLogsPath, errorDoc);
         console.log("s3resp", resp);
         return resp;

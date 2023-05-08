@@ -3,7 +3,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { EMPLOYEES_TABLE_NAME } from "@models/commons";
 import { PreTokenGenerationTriggerHandler } from "aws-lambda";
 import { container } from "tsyringe";
-import { IEmployee } from "@models/interfaces/Employees";
+import { IEmployee, roleKey } from "@models/interfaces/Employees";
 
 export const preTokenGenerationHandler: PreTokenGenerationTriggerHandler =
   async (event) => {
@@ -23,7 +23,8 @@ export const preTokenGenerationHandler: PreTokenGenerationTriggerHandler =
         ...event.response,
         claimsOverrideDetails: {
           claimsToAddOrOverride: {
-            [`custom:${teamIdKey}`]: employee.teamId,
+            teamId: employee.teamId,
+            role: employee.role,
           },
         },
       };

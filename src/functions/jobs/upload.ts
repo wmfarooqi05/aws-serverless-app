@@ -10,6 +10,8 @@ import * as fs from "fs";
 import * as XLSX from "xlsx";
 import snakeCase from "lodash.snakecase";
 
+// @TODO rename this to s3-utils
+
 const s3 = new S3Client({
   region: process.env.REGION,
 });

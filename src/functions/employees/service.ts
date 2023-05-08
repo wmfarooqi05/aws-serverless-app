@@ -119,8 +119,8 @@ export class EmployeeService implements IEmployeeService {
 
     if (
       !(
-        RolesEnum[employeeJwt[roleKey][0]] >= RolesEnum.ADMIN_GROUP ||
-        RolesEnum[employeeJwt[roleKey][0]] > RolesEnum[employeeRole.role]
+        RolesEnum[employeeJwt.role] >= RolesEnum.ADMIN_GROUP ||
+        RolesEnum[employeeJwt.role] > RolesEnum[employeeRole.role]
       )
     ) {
       throw new CustomError(

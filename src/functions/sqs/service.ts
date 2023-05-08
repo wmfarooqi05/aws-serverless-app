@@ -72,6 +72,8 @@ export class SQSService {
           return this.jobSqsEventHandler(payload);
         } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
           return bulkImportUsersProcessHandler(payload?.MessageBody?.jobId);
+        } else if (payload?.MessageBody.eventType === "BULK_EMAIL") {
+          return this.bulkEmailSqsEventHandler(payload);
         }
       });
 
@@ -82,6 +84,10 @@ export class SQSService {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  bulkEmailSqsEventHandler() {
+    // const emailPromises = 
   }
 
   async emailSqsEventHandler(record: IEmailSqsEventInput) {

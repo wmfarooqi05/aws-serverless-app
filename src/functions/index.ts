@@ -45,7 +45,11 @@ import {
   // deleteMeetingById,
 } from "@functions/google/calendar";
 
-import { sendEmail, sendBulkEmails } from "@functions/emails";
+import {
+  sendEmail,
+  sendBulkEmails,
+  //  sendEmailText
+} from "@functions/emails";
 import { emailHandler } from "@functions/emails/emailLists";
 
 import {
@@ -55,6 +59,7 @@ import {
   uploadSignupBulkJob,
   streamRecordHelper,
   handleDynamoStreamRecords,
+  handleSESEmailToSNSEvent,
 } from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
@@ -77,6 +82,7 @@ export default {
   bulkCognitoSignup,
   streamRecordHelper,
   handleDynamoStreamRecords,
+  handleSESEmailToSNSEvent,
 
   sendWebSocketNotification,
   getMyPendingApprovals,
@@ -111,6 +117,7 @@ export default {
   /// emails
   sendEmail,
   sendBulkEmails,
+  //  sendEmailText,
 
   // employees
   getEmployees,

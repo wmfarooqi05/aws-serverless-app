@@ -218,7 +218,7 @@ export class EmailService implements IEmailService {
     } = event.details[0];
     try {
       await validateSendEmail(event);
-      const respEmail = await this.sesEmailService.sendEmails(
+      const respEmail = await this.sesEmailService.sendEmail(
         senderEmail,
         [recipientEmail],
         subject,
@@ -264,4 +264,23 @@ export class EmailService implements IEmailService {
       }
     }
   }
+
+  async sendEmailTest(body: any) {
+    const payload = JSON.parse(body);
+    const { from, recipients, subject, body: emailBody } = payload;
+
+    const resp = await this.sesEmailService.sendEmail(
+      from,
+      recipients,
+      subject,
+      emailBody,
+      "email_sns_config",
+      [],
+      [],
+      [from]
+    );
+    return resp;
+  }
+
+  async se
 }

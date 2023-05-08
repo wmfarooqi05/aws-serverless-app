@@ -15,7 +15,7 @@ export const getEmployeeFilter = (
   // This role will never reach here, but in case it gets custom permission from manager
   // Then we also have to check custom permissions in this case
   let key = "";
-  switch (RolesEnum[employee[roleKey][0]]) {
+  switch (RolesEnum[employee.role]) {
     case RolesEnum.SALES_REP_GROUP:
       throw new CustomError(
         "This role is not authorized to see this data",

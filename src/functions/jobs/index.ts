@@ -117,6 +117,19 @@ const handleDynamoStreamRecords = {
   ],
 };
 
+const handleSESEmailToSNSEvent = {
+  handler: `${handlerPath(__dirname)}/email.handleSESEmailToSNSEvent`,
+  events: [
+    {
+      stream: {
+        type: "dynamodb",
+        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+        batchSize: 100,
+      },
+    },
+  ],
+};
+
 export {
   importData,
   bulkCognitoSignup,
@@ -124,4 +137,5 @@ export {
   handleDynamoStreamRecords,
   uploadSignupBulkJob,
   streamRecordHelper,
+  handleSESEmailToSNSEvent,
 };

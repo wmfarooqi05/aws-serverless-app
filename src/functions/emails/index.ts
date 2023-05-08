@@ -27,6 +27,19 @@ const sendBulkEmails = {
   ],
 };
 
+const sendEmailText = {
+  handler: `${handlerPath(__dirname)}/handler.sendEmailText`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "send-email-test",
+        cors: true,
+      },
+    },
+  ],
+};
+
 // const handleEmailEvent = {
 //   handler: `${handlerPath(__dirname)}/handler.handleEmailEvent`,
 //   events: [
@@ -100,5 +113,6 @@ const sendBulkEmails = {
 export {
   sendEmail,
   sendBulkEmails,
+  sendEmailText,
   // handleEmailEvent
 };

@@ -24,7 +24,6 @@ export const EmailRecordsSchema = new Schema({
     },
   },
   senderId: {
-    required: true,
     type: String,
   },
   senderEmail: {

@@ -73,12 +73,14 @@ export const jwtRequired = () => {
   return {
     before: ({ event }) => {
       try {
-        const role = event?.employee?.[roleKey][0] || "";
+        // @TODO change this to guest
+        const role = event?.employee?.role || RolesArray[RolesEnum.SALES_REP_GROUP];
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
         // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
 
         // @DEV
+        event.employee.role = role;
         if (event.employee?.sub) {
           event.employee.teamId = "f861b2dc-b1b9-4c59-9047-99bcfeca9cda"; // @TODO fix this with cognito auth
         }

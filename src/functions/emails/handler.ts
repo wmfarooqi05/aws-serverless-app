@@ -125,6 +125,17 @@ export const sendBulkEmailsHandler = async (event) => {
   }
 };
 
+export const sendEmailText = async (event) => {
+  try {
+    const resp = await container
+      .resolve(EmailService)
+      .sendEmailTest(event.body);
+    return formatJSONResponse(resp, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getEmails = allowRoleWrapper(getEmailsHandler);
 export const updateEmail = allowRoleWrapper(updateEmailHandler);
 export const sendEmail = checkRolePermission(

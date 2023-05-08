@@ -35,7 +35,7 @@ export class SESEmailService implements ISESEmailService {
    * @param BccAddresses
    * @returns
    */
-  async sendEmails(
+  async sendEmail(
     from: string,
     recipients: string[],
     subject: string,

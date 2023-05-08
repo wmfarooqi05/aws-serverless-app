@@ -1,6 +1,6 @@
 export interface IEmployeeJwt {
   sub: string;
-  "cognito:groups": string;
+  role: IRoles;
   teamId: string;
   permitted: boolean;
   createPendingApproval: boolean;
@@ -10,6 +10,8 @@ export interface IEmployeeJwt {
   auth_time: string;
   phone_number: string;
   exp: string;
+  /**@deprecated */
+  roleKey: string;
 }
 
 export const roleKey = "cognito:groups";
@@ -43,14 +45,14 @@ export const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
 export interface IEmployee {
   id?: string;
-  username?:string;
-  sub?:string;
+  username?: string;
+  sub?: string;
   name: string;
   picture?: string;
   email: string;
   enabled?: boolean;
   jobTitle?: string;
-  role: string;// IRoles;
+  role: string; // IRoles;
   gender?: GenderType;
   birthdate?: string;
   emailVerified?: boolean;
