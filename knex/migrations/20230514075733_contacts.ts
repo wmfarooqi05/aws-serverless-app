@@ -3,18 +3,6 @@ import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 const tableName = Tables.contacts;
 
-export interface IContact {
-  id: string;
-  name: string;
-  designation: string;
-  phoneNumbers: string[];
-  emails: string[];
-  timezone: string;
-  createdAt: string;
-  updatedAt: string;
-  emailList: string[];
-}
-
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
@@ -25,11 +13,11 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(Tables.companies)
         .notNullable();
 
-      table.string("name").defaultTo(JSON.stringify([]));
-      table.string("designation").defaultTo(JSON.stringify([]));
+      table.string("name").notNullable();
+      table.string("designation");
       table.jsonb("phone_numbers").defaultTo(JSON.stringify([]));
       table.jsonb("details").defaultTo(JSON.stringify({}));
-      table.string("timezone").defaultTo(JSON.stringify([]));
+      table.string("timezone");
 
       table
         .timestamp("created_at", { useTz: true })

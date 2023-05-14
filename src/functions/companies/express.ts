@@ -18,14 +18,17 @@ import {
   convertCompany,
   updateCompanyAssignedEmployee,
   updateCompaniesAssignedEmployee,
-  createContacts,
-  updateContact,
-  deleteContact,
   getNotes,
   createNotes,
   updateNotes,
   deleteNotes,
 } from "./handler";
+
+import {
+  createContacts,
+  updateContact,
+  deleteContact,
+} from "./contacts/handler";
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -82,13 +85,10 @@ app.post("/company/:companyId/contact", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.put(
-  "/company/:companyId/contact/:contactId",
-  async (req, res) => {
-    const resp = await updateContact(req, {} as any);
-    resHelper(res, resp);
-  }
-);
+app.put("/company/:companyId/contact/:contactId", async (req, res) => {
+  const resp = await updateContact(req, {} as any);
+  resHelper(res, resp);
+});
 
 app.put("/company/:companyId/employee-interactions", async (req, res) => {
   const resp = await updateCompanyInteractions(req, {} as any);
@@ -100,13 +100,10 @@ app.put("/company/:companyId/convert", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.delete(
-  "/company/:companyId/contact/:contactId",
-  async (req, res) => {
-    const resp = await deleteContact(req, {} as any);
-    resHelper(res, resp);
-  }
-);
+app.delete("/company/:companyId/contact/:contactId", async (req, res) => {
+  const resp = await deleteContact(req, {} as any);
+  resHelper(res, resp);
+});
 
 app.get("/company/:companyId/notes", async (req, res) => {
   const resp = await getNotes(req, {} as any);

@@ -8,11 +8,11 @@ export interface IContact {
   name: string;
   designation: string;
   phoneNumbers: string[];
-  emails: string[];
   timezone: string;
+  details: any;
+  companyId: string;
   createdAt: string;
   updatedAt: string;
-  emailList: string[];
 }
 
 @singleton()
@@ -57,7 +57,7 @@ export default class ContactModel extends Model {
   });
 
   static get jsonAttributes() {
-    return ["phoneNumbers", "emails", "emailList", "details"];
+    return ["phoneNumbers", "details"];
   }
 }
 

@@ -174,56 +174,6 @@ const updateCompaniesAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent
   }
 };
 
-const createContactsHandler: ValidatedEventAPIGatewayProxyEvent<
-  ICompanyModel
-> = async (event) => {
-  try {
-    const { companyId } = event.params;
-    const contact = await container
-      .resolve(CompanyService)
-      .createContacts(event?.employee, companyId, event.body);
-    return formatJSONResponse(contact, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const updateContactHandler: ValidatedEventAPIGatewayProxyEvent<
-  ICompanyModel
-> = async (event) => {
-  try {
-    const { companyId, contactId } = event.params;
-    const contact = await container
-      .resolve(CompanyService)
-      .updateContact(
-        companyId,
-        contactId,
-        event?.employee,
-        event.body
-      );
-
-    return formatJSONResponse(contact, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const deleteContactHandler: ValidatedEventAPIGatewayProxyEvent<
-  ICompanyModel
-> = async (event) => {
-  try {
-    const { contactId, companyId } = event.params;
-    // Add guard validation if required
-    const contact = await container
-      .resolve(CompanyService)
-      .deleteContact(event.employee, companyId, contactId);
-
-    return formatJSONResponse(contact, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 const getNotesHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
@@ -329,26 +279,6 @@ export const updateCompanyAssignedEmployee = checkRolePermission(
 export const updateCompaniesAssignedEmployee = checkRolePermission(
   updateCompaniesAssignedEmployeeHandler,
   "COMPANY_UPDATE"
-);
-
-export const createContacts = checkRolePermission(
-  createContactsHandler,
-  "CONTACT_CREATE",
-  "companyId",
-  "assignedTo"
-);
-
-export const updateContact = checkRolePermission(
-  updateContactHandler,
-  "CONTACT_UPDATE",
-  "companyId",
-  "assignedTo"
-);
-export const deleteContact = checkRolePermission(
-  deleteContactHandler,
-  "CONTACT_DELETE",
-  "companyId",
-  "assignedTo"
 );
 
 export const createNotes = checkRolePermission(

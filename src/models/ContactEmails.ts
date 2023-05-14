@@ -33,9 +33,10 @@ export default class ContactEmailsModel extends Model {
         id: { type: "string" },
         contactId: { type: "string" },
         email: { type: "string" },
+        emailType: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["email", "contactId"],
+      required: ["email", "contactId", "emailType"],
       additionalProperties: false,
     };
   }
