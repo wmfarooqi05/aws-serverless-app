@@ -3,7 +3,7 @@ import { formatJSONResponse } from "@libs/api-gateway";
 import {
   IAddress,
   ICompany,
-  IConcernedPerson,
+  IContact,
 } from "@models/interfaces/Company";
 import { canadaData, cities, ICityData } from "./canadaData";
 import { randomUUID } from "crypto";
@@ -76,8 +76,8 @@ const transformDataHelper = async (
   // @Note not adding extra use cases without discussion
   const transformedData = [];
   transformData?.forEach((record) => {
-    const concernedPersons: IConcernedPerson[] =
-      createConcernedPersonHelper(record);
+    const contacts: IContact[] =
+      createContactHelper(record);
     record["Remarks"] = "This is first remark";
     const notes =
       record["Remarks"]?.trim().length > 0
@@ -98,7 +98,7 @@ const transformDataHelper = async (
         record["Address"]?.trim().length > 0
           ? [createAddress(record["Address"])]
           : [],
-      concernedPersons,
+      contacts,
       createdBy: employeeId,
       notes,
     };
@@ -127,26 +127,26 @@ function createAddress(address: string | null): IAddress {
   };
 }
 
-function createConcernedPersonHelper(record: importType): IConcernedPerson[] {
-  const persons: IConcernedPerson[] = [];
+function createContactHelper(record: importType): IContact[] {
+  const contacts: IContact[] = [];
   const names = record["HR/PLANT MANAGER NAME"]
     ?.replace("\\n", "/")
     ?.split("/");
-  names?.forEach((personName) => {
+  names?.forEach((contactName) => {
     const time = moment().utc().format();
-    const person: IConcernedPerson = {
+    const contact: IContact = {
       id: randomUUID(),
-      name: personName,
+      name: contactName,
       phoneNumbers: record["Phone"]?.replace("\\n", " ")?.split(/\/|,/),
       emails: record["Email"]?.replace("\\n", " ")?.split(/\/|,|\n|[ ]+/),
-      designation: personName?.match(/\(([^)]+)\)/)?.[0] || "not found",
+      designation: contactName?.match(/\(([^)]+)\)/)?.[0] || "not found",
       timezone: process.env.CANADA_DEFAULT_TIMEZONE || "America/Toronto",
       createdAt: time,
       updatedAt: time,
     };
-    persons.push(person);
+    contacts.push(contact);
   });
-  return persons;
+  return contacts;
 }
 // const jsObject = [];
 // canadaData.forEach((item, index) => {

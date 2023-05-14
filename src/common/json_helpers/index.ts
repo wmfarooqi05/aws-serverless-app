@@ -80,11 +80,11 @@ export const updateJsonbObjectWithObjectHelper = async (
     throw new CustomError(`${tableName} item doesn't exists.`, 404);
   }
 
-  // @TODO check if concernedPersons is null
+  // @TODO check if contacts is null
   const index = item?.[jsonKey]?.findIndex((x) => x.id === jsonObjId);
 
   if (index === -1) {
-    throw new CustomError("Concerned Person doesn't exist", 404);
+    throw new CustomError("Contact doesn't exist", 404);
   }
 
   const keySnakeCase = jsonKey
@@ -491,7 +491,7 @@ export const getObjectType = (tableName: string, key: string) => {
   const map: Record<string, Record<string, OBJECT_KEY_TYPE>> = {
     companies: {
       companyName: "SIMPLE_KEY",
-      concernedPersons: "JSONB",
+      contacts: "JSONB",
       addresses: "SIMPLE_KEY",
       assignedTo: "SIMPLE_KEY",
       assignedBy: "SIMPLE_KEY",
@@ -508,7 +508,7 @@ export const getObjectType = (tableName: string, key: string) => {
       companyId: "SIMPLE_KEY",
       createdBy: "SIMPLE_KEY",
       remarks: "JSONB",
-      concernedPersonDetails: "JSONB",
+      contactDetails: "JSONB",
       activityType: "SIMPLE_KEY",
       priority: "SIMPLE_KEY",
 

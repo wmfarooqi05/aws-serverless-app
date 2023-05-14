@@ -59,7 +59,7 @@ import { Knex } from "knex";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
-  addConcernedPerson(): Promise<IActivityModel>;
+  addContact(): Promise<IActivityModel>;
   addRemarksToActivity(
     employeeId: string,
     activityId: string,
@@ -222,7 +222,7 @@ export class ActivityService implements IActivityService {
       details,
       companyId: payload.companyId,
       createdBy: createdBy.sub,
-      concernedPersonDetails: [payload.concernedPersonDetails],
+      contactDetails: [payload.contactDetails],
       activityType: payload.activityType,
       priority: payload.priority || ACTIVITY_PRIORITY.NORMAL,
       // @TODO remove this

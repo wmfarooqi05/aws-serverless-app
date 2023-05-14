@@ -18,9 +18,9 @@ import {
   convertCompany,
   updateCompanyAssignedEmployee,
   updateCompaniesAssignedEmployee,
-  createConcernedPersons,
-  updateConcernedPerson,
-  deleteConcernedPerson,
+  createContacts,
+  updateContact,
+  deleteContact,
   getNotes,
   createNotes,
   updateNotes,
@@ -77,15 +77,15 @@ app.put("/company/assign", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.post("/company/:companyId/concerned-person", async (req, res) => {
-  const resp = await createConcernedPersons(req, {} as any);
+app.post("/company/:companyId/contact", async (req, res) => {
+  const resp = await createContacts(req, {} as any);
   resHelper(res, resp);
 });
 
 app.put(
-  "/company/:companyId/concerned-person/:concernedPersonId",
+  "/company/:companyId/contact/:contactId",
   async (req, res) => {
-    const resp = await updateConcernedPerson(req, {} as any);
+    const resp = await updateContact(req, {} as any);
     resHelper(res, resp);
   }
 );
@@ -101,9 +101,9 @@ app.put("/company/:companyId/convert", async (req, res) => {
 });
 
 app.delete(
-  "/company/:companyId/concerned-person/:concernedPersonId",
+  "/company/:companyId/contact/:contactId",
   async (req, res) => {
-    const resp = await deleteConcernedPerson(req, {} as any);
+    const resp = await deleteContact(req, {} as any);
     resHelper(res, resp);
   }
 );

@@ -103,7 +103,7 @@ export const validateCreateActivity = async (
     companyId: Joi.string().guid().required(),
     createdBy: Joi.string().guid().required(),
     details: Joi.object(), // add 4 validations
-    concernedPersonDetails: Joi.object({
+    contactDetails: Joi.object({
       id: Joi.string().required(),
       name: Joi.string().required(),
       designation: Joi.string().required(),

@@ -1,4 +1,4 @@
-import { IConcernedPerson } from "./Company";
+import { IContact } from "./Company";
 import { IEmployee } from "./Employees";
 
 export enum ACTIVITY_TYPE {
@@ -69,7 +69,7 @@ export interface IActivity {
   companyId: string;
   createdBy: string;
   remarks?: IRemarks[];
-  concernedPersonDetails: IConcernedPerson[];
+  contactDetails: IContact[];
   activityType: ACTIVITY_TYPE;
   priority: ACTIVITY_PRIORITY;
 

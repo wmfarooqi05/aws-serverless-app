@@ -57,7 +57,7 @@ export const validateCreateCompany = async (obj: any) => {
     companyName: Joi.string(),
     addresses: AddressJoi,
     createdBy: Joi.string().guid().required(),
-    concernedPersons: Joi.array().items(
+    contacts: Joi.array().items(
       Joi.object()
         .keys({
           name: Joi.string().required(),
@@ -139,7 +139,7 @@ export const validateUpdateCompanyAssignedEmployee = async (
   );
 };
 
-export const validateCreateConcernedPerson = async (
+export const validateCreateContact = async (
   companyId: string,
   employeeId: string,
   payload: any
@@ -162,23 +162,23 @@ export const validateCreateConcernedPerson = async (
     );
 };
 
-export const validateUpdateConcernedPerson = async (
+export const validateUpdateContact = async (
   employeeId: string,
   companyId: string,
-  concernedPersonId: string,
+  contactId: string,
   payload: any
 ) => {
   await Joi.object({
     employeeId: Joi.string().guid().required(),
     companyId: Joi.string().guid().required(),
-    concernedPersonId: Joi.string().guid().required(),
+    contactId: Joi.string().guid().required(),
     name: Joi.string(),
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
     emails: Joi.array().items(Joi.string().email()),
     emailLists: Joi.array().items(Joi.string().guid()),
   }).validateAsync(
-    { ...payload, companyId, employeeId, concernedPersonId },
+    { ...payload, companyId, employeeId, contactId },
     {
       abortEarly: true,
     }

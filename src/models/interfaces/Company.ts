@@ -15,7 +15,7 @@ export interface IAssignmentHistory {
   date: string;
 }
 
-export interface IConcernedPerson {
+export interface IContact {
   id: string;
   name: string;
   designation: string;
@@ -40,7 +40,7 @@ export interface ICompany {
   id?: string;
   companyName: string;
   createdBy?: string;
-  concernedPersons?: IConcernedPerson[];
+  contacts?: IContact[];
   addresses?: IAddress[];
   assignedTo?: string;
   assignedBy?: string;

@@ -34,7 +34,7 @@ export default class ActivityModel extends Model {
         createdBy: { type: "string" },
         dueDate: { type: "string" },
         remarks: { type: "array", default: [] },
-        concernedPersonDetails: { type: "array", default: JSON.stringify([]) },
+        contactDetails: { type: "array", default: JSON.stringify([]) },
         activityType: { type: "string", default: ACTIVITY_TYPE.EMAIL },
         priority: { type: "string", default: ACTIVITY_PRIORITY.NORMAL },
         status: { type: "string", default: ACTIVITY_STATUS.NOT_STARTED }, // will turn false after scheduled work is done
@@ -76,7 +76,7 @@ export default class ActivityModel extends Model {
       "callDetails",
       "emailDetails",
       "remarks",
-      "concernedPersonDetails",
+      "contactDetails",
       "reminders",
       "tags",
     ];

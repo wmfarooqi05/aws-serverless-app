@@ -17,7 +17,7 @@ export const validateGetNotifications = async (obj: any = {}) => {
 export const validateCreateNotification = async (obj: any) => {
   await Joi.object({
     notificationName: Joi.string(),
-    concernedPersons: Joi.array().items(
+    contacts: Joi.array().items(
       Joi.object()
         .keys({
           name: Joi.string().required(),
@@ -60,7 +60,7 @@ export const validateUpdateNotificationAssignedEmployee = async (
   );
 };
 
-export const validateCreateConcernedPerson = async (
+export const validateCreateContact = async (
   notificationId: string,
   employeeId: string,
   payload: any
@@ -82,22 +82,22 @@ export const validateCreateConcernedPerson = async (
     );
 };
 
-export const validateUpdateConcernedPerson = async (
+export const validateUpdateContact = async (
   employeeId: string,
   notificationId: string,
-  concernedPersonId: string,
+  contactId: string,
   payload: any
 ) => {
   await Joi.object({
     employeeId: Joi.string().guid().required(),
     notificationId: Joi.string().guid().required(),
-    concernedPersonId: Joi.string().guid().required(),
+    contactId: Joi.string().guid().required(),
     name: Joi.string(),
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
     emails: Joi.array().items(Joi.string().email()),
   }).validateAsync(
-    { ...payload, notificationId, employeeId, concernedPersonId },
+    { ...payload, notificationId, employeeId, contactId },
     {
       abortEarly: true,
     }

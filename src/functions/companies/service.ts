@@ -4,7 +4,7 @@ import CompanyModel, {
   ICompanyPaginated,
 } from "@models/Company";
 import {
-  IConcernedPerson,
+  IContact,
   ICompany,
   INotes,
   COMPANY_PRIORITY,
@@ -18,8 +18,8 @@ import {
   validateUpdateCompanyAssignedEmployee,
   validateGetCompanies,
   validateUpdateCompanies,
-  validateCreateConcernedPerson,
-  validateUpdateConcernedPerson,
+  validateCreateContact,
+  validateUpdateContact,
   validateCreateCompany,
   validateGetNotes,
   validateAddNotes,
@@ -177,14 +177,14 @@ export class CompanyService implements ICompanyService {
     await validateCreateCompany(payload);
 
     const timeNow = moment().utc().format();
-    payload.concernedPersons = payload.concernedPersons?.map((x: any) => {
+    payload.contacts = payload.contacts?.map((x: any) => {
       return {
         ...x,
         id: randomUUID(),
         createdAt: timeNow,
         updatedAt: timeNow,
         emailList: x.emailList ?? [],
-      } as IConcernedPerson;
+      } as IContact;
     });
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
@@ -473,9 +473,9 @@ export class CompanyService implements ICompanyService {
     return { company: { ...company, assignedTo: payload?.assignTo ?? null } };
   }
 
-  async createConcernedPersons(employee: IEmployeeJwt, companyId, body) {
+  async createContacts(employee: IEmployeeJwt, companyId, body) {
     const payload = JSON.parse(body);
-    await validateCreateConcernedPerson(companyId, employee.sub, payload);
+    await validateCreateContact(companyId, employee.sub, payload);
 
     const date = moment().utc().format();
 
@@ -497,7 +497,7 @@ export class CompanyService implements ICompanyService {
         companyId,
         employee,
         CompanyModel.tableName,
-        { concernedPersons: payload },
+        { contacts: payload },
         PendingApprovalType.JSON_PUSH,
         null
       );
@@ -509,17 +509,17 @@ export class CompanyService implements ICompanyService {
       employee.sub,
       CompanyModel.tableName,
       this.docClient.getKnexClient(),
-      { concernedPersons: payload },
+      { contacts: payload },
       PendingApprovalType.JSON_PUSH,
       null
     );
 
-    return { concernedPersons: payload };
+    return { contacts: payload };
   }
 
-  async updateConcernedPerson(
+  async updateContact(
     companyId: string,
-    concernedPersonId: string,
+    contactId: string,
     employee: IEmployeeJwt,
     body
   ) {
@@ -528,10 +528,10 @@ export class CompanyService implements ICompanyService {
      */
 
     const payload = JSON.parse(body);
-    await validateUpdateConcernedPerson(
+    await validateUpdateContact(
       employee.sub,
       companyId,
-      concernedPersonId,
+      contactId,
       payload
     );
 
@@ -539,12 +539,12 @@ export class CompanyService implements ICompanyService {
       this.docClient.getKnexClient(),
       CompanyModel.tableName,
       companyId,
-      "concernedPersons",
-      concernedPersonId
+      "contacts",
+      contactId
     );
 
     const newPayload = {
-      ...originalObject["concernedPersons"][index],
+      ...originalObject["contacts"][index],
       ...payload,
       updatedAt: moment().utc().format(),
     };
@@ -555,9 +555,9 @@ export class CompanyService implements ICompanyService {
         companyId,
         employee,
         CompanyModel.tableName,
-        { concernedPersons: newPayload },
+        { contacts: newPayload },
         PendingApprovalType.JSON_UPDATE,
-        concernedPersonId
+        contactId
       );
     }
 
@@ -567,25 +567,25 @@ export class CompanyService implements ICompanyService {
       employee.sub,
       CompanyModel.tableName,
       this.docClient.getKnexClient(),
-      { concernedPersons: newPayload },
+      { contacts: newPayload },
       PendingApprovalType.JSON_UPDATE,
-      concernedPersonId
+      contactId
     );
-    return { concernedPersons: newPayload };
+    return { contacts: newPayload };
   }
 
-  async deleteConcernedPerson(
+  async deleteContact(
     employee: IEmployeeJwt,
     companyId: string,
-    concernedPersonId: string
+    contactId: string
   ) {
-    const key = "concernedPersons";
+    const key = "contacts";
     const { originalObject, index } = await validateJSONItemAndGetIndex(
       this.docClient.getKnexClient(),
       CompanyModel.tableName,
       companyId,
       key,
-      concernedPersonId
+      contactId
     );
 
     const { permitted, createPendingApproval } = employee;
@@ -597,7 +597,7 @@ export class CompanyService implements ICompanyService {
         CompanyModel.tableName,
         { [key]: null },
         PendingApprovalType.JSON_DELETE,
-        concernedPersonId
+        contactId
       );
     }
 
@@ -609,10 +609,10 @@ export class CompanyService implements ICompanyService {
       this.docClient.getKnexClient(),
       { [key]: null },
       PendingApprovalType.JSON_DELETE,
-      concernedPersonId
+      contactId
     );
 
-    return { concernedPersons: originalObject[key][index] };
+    return { contacts: originalObject[key][index] };
   }
 
   /*** Notes are personal items, so no validations */

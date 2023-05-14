@@ -174,51 +174,51 @@ const updateCompaniesAssignedEmployeeHandler: ValidatedEventAPIGatewayProxyEvent
   }
 };
 
-const createConcernedPersonsHandler: ValidatedEventAPIGatewayProxyEvent<
+const createContactsHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
     const { companyId } = event.params;
-    const concernedPerson = await container
+    const contact = await container
       .resolve(CompanyService)
-      .createConcernedPersons(event?.employee, companyId, event.body);
-    return formatJSONResponse(concernedPerson, 200);
+      .createContacts(event?.employee, companyId, event.body);
+    return formatJSONResponse(contact, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-const updateConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
+const updateContactHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { companyId, concernedPersonId } = event.params;
-    const concernedPerson = await container
+    const { companyId, contactId } = event.params;
+    const contact = await container
       .resolve(CompanyService)
-      .updateConcernedPerson(
+      .updateContact(
         companyId,
-        concernedPersonId,
+        contactId,
         event?.employee,
         event.body
       );
 
-    return formatJSONResponse(concernedPerson, 200);
+    return formatJSONResponse(contact, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-const deleteConcernedPersonHandler: ValidatedEventAPIGatewayProxyEvent<
+const deleteContactHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
   try {
-    const { concernedPersonId, companyId } = event.params;
+    const { contactId, companyId } = event.params;
     // Add guard validation if required
-    const concernedPerson = await container
+    const contact = await container
       .resolve(CompanyService)
-      .deleteConcernedPerson(event.employee, companyId, concernedPersonId);
+      .deleteContact(event.employee, companyId, contactId);
 
-    return formatJSONResponse(concernedPerson, 200);
+    return formatJSONResponse(contact, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -331,22 +331,22 @@ export const updateCompaniesAssignedEmployee = checkRolePermission(
   "COMPANY_UPDATE"
 );
 
-export const createConcernedPersons = checkRolePermission(
-  createConcernedPersonsHandler,
-  "CONCERNED_PERSON_CREATE",
+export const createContacts = checkRolePermission(
+  createContactsHandler,
+  "CONTACT_CREATE",
   "companyId",
   "assignedTo"
 );
 
-export const updateConcernedPerson = checkRolePermission(
-  updateConcernedPersonHandler,
-  "CONCERNED_PERSON_UPDATE",
+export const updateContact = checkRolePermission(
+  updateContactHandler,
+  "CONTACT_UPDATE",
   "companyId",
   "assignedTo"
 );
-export const deleteConcernedPerson = checkRolePermission(
-  deleteConcernedPersonHandler,
-  "CONCERNED_PERSON_DELETE",
+export const deleteContact = checkRolePermission(
+  deleteContactHandler,
+  "CONTACT_DELETE",
   "companyId",
   "assignedTo"
 );

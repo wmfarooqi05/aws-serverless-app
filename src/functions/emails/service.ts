@@ -124,7 +124,7 @@ export class EmailService implements IEmailService {
     // const companies: ICompany[] = await this.docClient
     //   .getKnexClient()(COMPANIES_TABLE_NAME)
     //   .where(
-    //     "concerned_persons",
+    //     "contacts",
     //     "@>",
     //     JSON.stringify([{ emailList: [emailListId] }])
     //   );
@@ -206,7 +206,7 @@ export class EmailService implements IEmailService {
   ): IEmailSqsEventInput["details"]["toList"] {
     const emailIds = [];
     companies.forEach((company: ICompany) => {
-      company.concernedPersons.forEach((x) => {
+      company.contacts.forEach((x) => {
         if (x?.emailList?.includes(emailListId)) {
           emailIds.push(
             ...x.emailList.map((e) => {

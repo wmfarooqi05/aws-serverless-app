@@ -63,14 +63,14 @@ const companyHandler = {
     {
       http: {
         method: "post",
-        path: "/company/{companyId}/concerned-person",
+        path: "/company/{companyId}/contact",
         cors: true,
       },
     },
     {
       http: {
         method: "put",
-        path: "/company/{companyId}/concerned-person/{concernedPersonId}",
+        path: "/company/{companyId}/contact/{contactId}",
         cors: true,
       },
     },
@@ -91,7 +91,7 @@ const companyHandler = {
     {
       http: {
         method: "delete",
-        path: "/company/{companyId}/concerned-person/{concernedPersonId}",
+        path: "/company/{companyId}/contact/{contactId}",
         cors: true,
       },
     },

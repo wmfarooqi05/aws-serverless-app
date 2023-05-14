@@ -134,9 +134,9 @@ export type PERMISSION_KEY =
   | "COMPANY_UPDATE"
   | "COMPANY_CONVERT"
   | "COMPANY_DELETE"
-  | "CONCERNED_PERSON_CREATE"
-  | "CONCERNED_PERSON_UPDATE"
-  | "CONCERNED_PERSON_DELETE"
+  | "CONTACT_CREATE"
+  | "CONTACT_UPDATE"
+  | "CONTACT_DELETE"
   | "NOTES_CREATE"
   | "NOTES_UPDATE"
   | "NOTES_DELETE"
@@ -156,9 +156,9 @@ export const accessPermissionsCacheMap: IAccessPermissionsCacheMap = {
   COMPANY_UPDATE: defaultPermissions,
   COMPANY_CONVERT: allowedManagers,
   COMPANY_DELETE: defaultPermissions,
-  CONCERNED_PERSON_CREATE: defaultPermissions,
-  CONCERNED_PERSON_UPDATE: defaultPermissions,
-  CONCERNED_PERSON_DELETE: defaultPermissions,
+  CONTACT_CREATE: defaultPermissions,
+  CONTACT_UPDATE: defaultPermissions,
+  CONTACT_DELETE: defaultPermissions,
   NOTES_CREATE: defaultPermissions,
   NOTES_UPDATE: defaultPermissions,
   NOTES_DELETE: defaultPermissions,

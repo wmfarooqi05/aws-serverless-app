@@ -47,7 +47,7 @@ export default class AppAuditLogsModel extends Model {
 
         tableName: { type: "string" },
         moduleName: { type: "string" }, // e.g. Company, in some cases it will be similar like table name
-        relatedModuleName: { type: "string" }, // e.g. concernedPersons (which are right now child of Company table)
+        relatedModuleName: { type: "string" }, // e.g. contacts (which are right now child of Company table)
 
         // Null in case of bulk-company operation
         companyId: { type: "string" },

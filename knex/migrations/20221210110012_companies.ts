@@ -33,7 +33,7 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("company_name").notNullable();
-      table.jsonb("concerned_persons").defaultTo([]);
+      table.jsonb("contacts").defaultTo([]);
       table
         .uuid("created_by")
         .index()

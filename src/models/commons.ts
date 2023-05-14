@@ -79,7 +79,7 @@ export const globalPermissions: IPermissions = {
       update: false,
     },
     childModules: {
-      concernedPersons: {
+      contacts: {
         permissions: {
           create: false,
           read: true,

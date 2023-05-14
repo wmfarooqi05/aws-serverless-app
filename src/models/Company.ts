@@ -22,7 +22,7 @@ export default class CompanyModel extends Model {
         companyName: { type: "string" },
         createdBy: { type: "string" },
         // @TODO Put it in separate table
-        concernedPersons: {
+        contacts: {
           type: "array",
           default: [],
         },
@@ -65,7 +65,7 @@ export default class CompanyModel extends Model {
 
   static get jsonAttributes() {
     return [
-      "concernedPersons",
+      "contacts",
       "activities",
       "assignmentHistory",
       "addresses",
