@@ -21,11 +21,6 @@ export default class CompanyModel extends Model {
         id: { type: "string" },
         companyName: { type: "string" },
         createdBy: { type: "string" },
-        // @TODO Put it in separate table
-        contacts: {
-          type: "array",
-          default: [],
-        },
         addresses: { type: "array" },
         assignedTo: { type: "string" },
         assignedBy: { type: "string" },
@@ -65,7 +60,6 @@ export default class CompanyModel extends Model {
 
   static get jsonAttributes() {
     return [
-      "contacts",
       "activities",
       "assignmentHistory",
       "addresses",

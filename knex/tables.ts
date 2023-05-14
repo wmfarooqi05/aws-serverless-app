@@ -10,10 +10,18 @@ export const tableName = {
   jobs: process.env.JOBS_TABLE || "jobs",
   updateHistory: process.env.UPDATE_HISTORY_TABLE || "update_history",
   teams: process.env.TEAMS || "teams",
-  accessPermissions: process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions",
+  accessPermissions:
+    process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions",
   // emails: process.env.EMAILS || "emails",
   // emailHistory: process.env.EMAIL_HISTORY || "email_history",
   emailList: process.env.EMAIL_LIST || "email_lists",
-  employeeCompanyInteraction: process.env.EMPLOYEE_COMPANY_INTERACTIONS || "employee_company_interactions",
-  teamCompanyInteraction: process.env.TEAM_COMPANY_INTERACTIONS || "team_company_interactions",
+  employeeCompanyInteraction:
+    process.env.EMPLOYEE_COMPANY_INTERACTIONS ||
+    "employee_company_interactions",
+  teamCompanyInteraction:
+    process.env.TEAM_COMPANY_INTERACTIONS || "team_company_interactions",
+  contacts: process.env.CONTACTS_TABLE || "contacts",
+  contactEmails: process.env.CONTACT_EMAILS_TABLE || "contact_emails",
+  emailListToContactEmails:
+    process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails",
 };
