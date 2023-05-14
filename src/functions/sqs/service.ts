@@ -64,7 +64,9 @@ export class SQSService {
         console.log("payload", payload);
         deleteEvent.push(this.deleteMessage(record.receiptHandle));
 
-        if (payload.eventType === "REMINDER") {
+        if (payload.Type === "Notification" && payload.MessageId) {
+          return container.resolve(EmailService).receiveEmailHelper(record);
+        } else if (payload.eventType === "REMINDER") {
           return this.reminderSqsEventHandler(payload);
         } else if (payload.eventType === "SEND_EMAIL") {
           return this.emailSqsEventHandler(payload);
@@ -78,7 +80,7 @@ export class SQSService {
       });
 
       const resps = await Promise.all(promises);
-      console.log('resps', resps);
+      console.log("resps", resps);
       await Promise.all(deleteEvent);
       return resps;
     } catch (error) {
@@ -86,8 +88,8 @@ export class SQSService {
     }
   }
 
-  bulkEmailSqsEventHandler() {
-    // const emailPromises = 
+  bulkEmailSqsEventHandler(payload) {
+    // const emailPromises =
   }
 
   async emailSqsEventHandler(record: IEmailSqsEventInput) {

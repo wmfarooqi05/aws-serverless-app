@@ -70,6 +70,7 @@ export default class CompanyModel extends Model {
       "assignmentHistory",
       "addresses",
       "notes",
+      "details"
     ];
   }
   // $beforeInsert() {

@@ -48,9 +48,10 @@ import {
 import {
   sendEmail,
   sendBulkEmails,
-  //  sendEmailText
+  // sendEmailText,
+  // receiveEmailHandler,
 } from "@functions/emails";
-import { emailHandler } from "@functions/emails/emailLists";
+import { emailHandler } from "@functions/emails";
 
 import {
   importData,
@@ -59,7 +60,7 @@ import {
   uploadSignupBulkJob,
   streamRecordHelper,
   handleDynamoStreamRecords,
-  handleSESEmailToSNSEvent,
+  // handleSESEmailToSNSEvent,
 } from "@functions/jobs";
 
 import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
@@ -82,7 +83,7 @@ export default {
   bulkCognitoSignup,
   streamRecordHelper,
   handleDynamoStreamRecords,
-  handleSESEmailToSNSEvent,
+  // handleSESEmailToSNSEvent,
 
   sendWebSocketNotification,
   getMyPendingApprovals,
@@ -117,7 +118,8 @@ export default {
   /// emails
   sendEmail,
   sendBulkEmails,
-  //  sendEmailText,
+  // sendEmailText,
+  // receiveEmailHandler,
 
   // employees
   getEmployees,

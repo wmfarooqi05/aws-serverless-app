@@ -1,0 +1,54 @@
+{
+  "NatGateways": [
+      {
+          "CreateTime": "2023-03-20T21:48:08+00:00",
+          "NatGatewayAddresses": [
+              {
+                  "AllocationId": "eipalloc-04f8b53fa82a63f97",
+                  "NetworkInterfaceId": "eni-09a6b6c6e9a6aa553",
+                  "PrivateIp": "10.0.7.170",
+                  "PublicIp": "3.97.212.13",
+                  "AssociationId": "eipassoc-085487939bad36563",
+                  "IsPrimary": true,
+                  "Status": "succeeded"
+              }
+          ],
+          "NatGatewayId": "nat-0dc07c3b4025de9d0",
+          "State": "available",
+          "SubnetId": "subnet-02752e6de3a0e8a16",
+          "VpcId": "vpc-05126227d046548e1",
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-nat-gateway"
+              }
+          ],
+          "ConnectivityType": "public"
+      },
+      {
+          "CreateTime": "2023-03-20T19:18:31+00:00",
+          "NatGatewayAddresses": [
+              {
+                  "AllocationId": "eipalloc-08140b084c56b0fe2",
+                  "NetworkInterfaceId": "eni-0dbd4a6bcbf27a696",
+                  "PrivateIp": "172.31.9.105",
+                  "PublicIp": "3.97.137.120",
+                  "AssociationId": "eipassoc-06095ca4760639832",
+                  "IsPrimary": true,
+                  "Status": "succeeded"
+              }
+          ],
+          "NatGatewayId": "nat-088b9d543d6541287",
+          "State": "available",
+          "SubnetId": "subnet-08b4521bc0da095f4",
+          "VpcId": "vpc-0a6b2ca6098eb32dc",
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "public-api-natgw"
+              }
+          ],
+          "ConnectivityType": "public"
+      }
+  ]
+}

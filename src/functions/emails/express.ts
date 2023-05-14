@@ -1,22 +1,34 @@
+import { decode } from "jsonwebtoken";
+import { APIGatewayProxyResult } from "aws-lambda";
 import express from "express";
-
-const app = express();
-const awsSlsExpress = require("@vendia/serverless-express");
+import { createEmailTemplate } from "./emailTemplates/handler";
 import {
   addEmailList,
   deleteEmailList,
   getAllEmailLists,
   updateEmailList,
-} from "./handler";
+} from "./emailLists/handler";
+
+// import awsSlsExpress from '@vendia/serverless-express';
+const app = express();
+// import awsSlsExpress from 'aws-serverless-express';
+const awsSlsExpress = require("@vendia/serverless-express");
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     req.body = req.body.toString();
   } else if (typeof req.body === "string") {
     req.body = JSON.parse(req.body);
+  } else {
+    req.body = null;
   }
   // Do something with the request, such as logging or modifying headers
   next(); // Call the next middleware or route handler
+});
+
+app.post("/emails/template", async (req, res) => {
+  const resp = await createEmailTemplate(req, {} as any);
+  resHelper(res, resp);
 });
 
 app.get("/email-list", async (req, res) => {

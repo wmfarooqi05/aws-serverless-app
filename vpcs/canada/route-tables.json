@@ -1,0 +1,132 @@
+{
+  "RouteTables": [
+      {
+          "Associations": [
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-0b61c127efd794fc2",
+                  "RouteTableId": "rtb-096aaa0a5fd9ce885",
+                  "SubnetId": "subnet-0bf9443e724778d81",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              },
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-0f756e092179326ad",
+                  "RouteTableId": "rtb-096aaa0a5fd9ce885",
+                  "SubnetId": "subnet-0553628384d3adf0a",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              },
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-01341356a9fd94907",
+                  "RouteTableId": "rtb-096aaa0a5fd9ce885",
+                  "SubnetId": "subnet-029afa431f7f325f6",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              }
+          ],
+          "PropagatingVgws": [],
+          "RouteTableId": "rtb-096aaa0a5fd9ce885",
+          "Routes": [
+              {
+                  "DestinationCidrBlock": "172.31.0.0/16",
+                  "Origin": "CreateRoute",
+                  "State": "active",
+                  "VpcPeeringConnectionId": "pcx-0038ac9e2ae003c66"
+              },
+              {
+                  "DestinationCidrBlock": "10.0.0.0/16",
+                  "GatewayId": "local",
+                  "Origin": "CreateRouteTable",
+                  "State": "active"
+              },
+              {
+                  "DestinationCidrBlock": "20.0.0.0/16",
+                  "Origin": "CreateRoute",
+                  "State": "active",
+                  "VpcPeeringConnectionId": "pcx-0b526295668e141d7"
+              },
+              {
+                  "DestinationCidrBlock": "0.0.0.0/0",
+                  "NatGatewayId": "nat-0dc07c3b4025de9d0",
+                  "Origin": "CreateRoute",
+                  "State": "active"
+              }
+          ],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-rtb-private1-ca-central-1a"
+              }
+          ],
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557"
+      },
+      {
+          "Associations": [
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-022dfcae9f7703d45",
+                  "RouteTableId": "rtb-0cc4b8363a588ded2",
+                  "SubnetId": "subnet-02752e6de3a0e8a16",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              },
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-0d6ee23ff53eb9962",
+                  "RouteTableId": "rtb-0cc4b8363a588ded2",
+                  "SubnetId": "subnet-0d9040076c2e6fc9a",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              },
+              {
+                  "Main": false,
+                  "RouteTableAssociationId": "rtbassoc-02e66df9a46e411a6",
+                  "RouteTableId": "rtb-0cc4b8363a588ded2",
+                  "SubnetId": "subnet-0803209af3915f116",
+                  "AssociationState": {
+                      "State": "associated"
+                  }
+              }
+          ],
+          "PropagatingVgws": [],
+          "RouteTableId": "rtb-0cc4b8363a588ded2",
+          "Routes": [
+              {
+                  "DestinationCidrBlock": "10.0.0.0/16",
+                  "GatewayId": "local",
+                  "Origin": "CreateRouteTable",
+                  "State": "active"
+              },
+              {
+                  "DestinationCidrBlock": "20.0.0.0/16",
+                  "Origin": "CreateRoute",
+                  "State": "active",
+                  "VpcPeeringConnectionId": "pcx-0b526295668e141d7"
+              },
+              {
+                  "DestinationCidrBlock": "0.0.0.0/0",
+                  "GatewayId": "igw-066d4902717d3a289",
+                  "Origin": "CreateRoute",
+                  "State": "active"
+              }
+          ],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-rtb-public"
+              }
+          ],
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557"
+      }
+  ]
+}

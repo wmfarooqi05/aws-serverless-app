@@ -1,5 +1,48 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
+//@ts-ignore
+
+const emailHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "emails/template",
+        cors: true,
+      },
+    },
+    // Email Lists
+    {
+      http: {
+        method: "get",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "email-list/{emailListId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "email-list/{emailListId}",
+        cors: true,
+      },
+    },
+  ],
+};
 
 const sendEmail = {
   handler: `${handlerPath(__dirname)}/handler.sendEmail`,
@@ -34,6 +77,19 @@ const sendEmailText = {
       http: {
         method: "post",
         path: "send-email-test",
+        cors: true,
+      },
+    },
+  ],
+};
+
+const receiveEmailHandler = {
+  handler: `${handlerPath(__dirname)}/handler.receiveEmailHandler`,
+  events: [
+    {
+      http: {
+        method: "post",
+        path: "receive-email-test",
         cors: true,
       },
     },
@@ -111,8 +167,10 @@ const sendEmailText = {
 // };
 
 export {
+  emailHandler,
   sendEmail,
   sendBulkEmails,
   sendEmailText,
+  receiveEmailHandler,
   // handleEmailEvent
 };

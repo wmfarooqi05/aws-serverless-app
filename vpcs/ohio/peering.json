@@ -1,0 +1,94 @@
+{
+  "VpcPeeringConnections": [
+      {
+          "AccepterVpcInfo": {
+              "CidrBlock": "10.0.0.0/16",
+              "CidrBlockSet": [
+                  {
+                      "CidrBlock": "10.0.0.0/16"
+                  }
+              ],
+              "OwnerId": "524073432557",
+              "PeeringOptions": {
+                  "AllowDnsResolutionFromRemoteVpc": false,
+                  "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                  "AllowEgressFromLocalVpcToRemoteClassicLink": false
+              },
+              "VpcId": "vpc-05126227d046548e1",
+              "Region": "ca-central-1"
+          },
+          "RequesterVpcInfo": {
+              "CidrBlock": "172.31.0.0/16",
+              "CidrBlockSet": [
+                  {
+                      "CidrBlock": "172.31.0.0/16"
+                  }
+              ],
+              "OwnerId": "524073432557",
+              "PeeringOptions": {
+                  "AllowDnsResolutionFromRemoteVpc": false,
+                  "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                  "AllowEgressFromLocalVpcToRemoteClassicLink": false
+              },
+              "VpcId": "vpc-0dc50efedc0300511",
+              "Region": "us-east-2"
+          },
+          "Status": {
+              "Code": "active",
+              "Message": "Active"
+          },
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "vpc-peer-east-2-to-ca-central"
+              }
+          ],
+          "VpcPeeringConnectionId": "pcx-0038ac9e2ae003c66"
+      },
+      {
+          "AccepterVpcInfo": {
+              "CidrBlock": "10.0.0.0/16",
+              "CidrBlockSet": [
+                  {
+                      "CidrBlock": "10.0.0.0/16"
+                  }
+              ],
+              "OwnerId": "524073432557",
+              "PeeringOptions": {
+                  "AllowDnsResolutionFromRemoteVpc": false,
+                  "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                  "AllowEgressFromLocalVpcToRemoteClassicLink": false
+              },
+              "VpcId": "vpc-05126227d046548e1",
+              "Region": "ca-central-1"
+          },
+          "RequesterVpcInfo": {
+              "CidrBlock": "20.0.0.0/16",
+              "CidrBlockSet": [
+                  {
+                      "CidrBlock": "20.0.0.0/16"
+                  }
+              ],
+              "OwnerId": "524073432557",
+              "PeeringOptions": {
+                  "AllowDnsResolutionFromRemoteVpc": false,
+                  "AllowEgressFromLocalClassicLinkToRemoteVpc": false,
+                  "AllowEgressFromLocalVpcToRemoteClassicLink": false
+              },
+              "VpcId": "vpc-0c0f49f6864df9653",
+              "Region": "us-east-2"
+          },
+          "Status": {
+              "Code": "active",
+              "Message": "Active"
+          },
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "ohio-to-canada-peer"
+              }
+          ],
+          "VpcPeeringConnectionId": "pcx-0b526295668e141d7"
+      }
+  ]
+}

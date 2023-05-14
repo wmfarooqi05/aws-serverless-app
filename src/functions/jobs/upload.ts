@@ -3,6 +3,9 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   PutObjectCommandInput,
+  CopyObjectCommandInput,
+  CopyObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -45,20 +48,28 @@ export const uploadToS3 = async (path, body) => {
  * @param Key S3 file key (folder_path/filename)
  * @returns
  */
-export const uploadFileToS3 = async (filePath: string, Key: string) => {
+export const uploadFileToS3 = async (
+  filePath: string,
+  Key: string,
+  ACL: string = null
+) => {
   const fileContent = await fs.promises.readFile(filePath);
-  return uploadContentToS3(Key, fileContent);
+  return uploadContentToS3(Key, fileContent, ACL);
 };
 
 export const uploadContentToS3 = async (
   Key: string,
-  fileContent: any
+  fileContent: any,
+  ACL: string = null
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const uploadParams: PutObjectCommandInput = {
     Bucket: process.env.DEPLOYMENT_BUCKET,
     Key,
     Body: fileContent,
   };
+  if (ACL) {
+    uploadParams.ACL = ACL;
+  }
 
   try {
     const command = new PutObjectCommand(uploadParams);
@@ -74,7 +85,8 @@ export const uploadContentToS3 = async (
 
 export const uploadJsonAsXlsx = async (
   Key: string,
-  content: any
+  content: any,
+  ACL: string = null
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const rows = [];
   const headers = Object.keys(content[0]);
@@ -88,10 +100,66 @@ export const uploadJsonAsXlsx = async (
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
   const buffer = XLSX.write(workbook, { type: "buffer" });
-  return uploadContentToS3(Key, buffer);
+  return uploadContentToS3(Key, buffer, ACL);
 };
 
+export const copyS3Object = async (
+  sourceKey: string,
+  destinationKey: string,
+  ACL: string = null,
+  deleteOriginal: boolean = false,
+  sourceBucket: string = process.env.DEPLOYMENT_BUCKET,
+  sourceRegion: string = process.env.REGION,
+  destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
+  destinationRegion: string = process.env.REGION
+) => {
+  const copyParams: CopyObjectCommandInput = {
+    Bucket: destinationBucket,
+    CopySource: `${sourceBucket}/${sourceKey}`,
+    Key: destinationKey,
+  };
+
+  if (ACL) {
+    copyParams.ACL = ACL;
+  }
+
+  try {
+    let sourceClient = s3;
+    let destinationClient = s3;
+    if (sourceRegion !== process.env.REGION) {
+      sourceClient = new S3Client({ region: sourceRegion });
+    }
+    if (destinationRegion !== process.env.REGION) {
+      destinationClient = new S3Client({ region: destinationRegion });
+    }
+
+    await destinationClient.send(new CopyObjectCommand(copyParams));
+
+    // Delete the object from the old location
+    if (deleteOriginal) {
+      const deleteParams = {
+        Bucket: sourceBucket,
+        Key: sourceKey,
+      };
+      await s3.send(new DeleteObjectCommand(deleteParams));
+    }
+  } catch (e) {}
+};
 // make a download function and write file to some folder
+
+export const getKeysFromS3Url = (
+  url: string
+): { region: string; bucketName: string; fileKey: string } => {
+  const parsedUrl = new URL(url);
+  // Extract the S3 bucket name and object key from the URL
+  const bucketName = parsedUrl.hostname.split(".")[0];
+  const fileKey = parsedUrl.pathname.substring(1);
+
+  // Extract the region from the URL
+  const region = parsedUrl.hostname.split(".")[1];
+
+  return { region, bucketName, fileKey };
+};
 
 export const downloadFromS3Readable = async (keyName): Promise<Buffer> => {
   const params = {

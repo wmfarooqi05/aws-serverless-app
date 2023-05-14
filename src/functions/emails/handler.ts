@@ -16,7 +16,7 @@ import {
   checkRolePermission,
 } from "@middlewares/jwtMiddleware";
 import { RolesEnum } from "@models/interfaces/Employees";
-import { SESEvent } from "aws-lambda";
+import { SESEvent, SQSEvent } from "aws-lambda";
 
 export const sendEmailHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
@@ -133,6 +133,25 @@ export const sendEmailText = async (event) => {
     return formatJSONResponse(resp, 200);
   } catch (e) {
     return formatErrorResponse(e);
+  }
+};
+
+export const receiveEmailHandler = async (event: SQSEvent) => {
+  try {
+    // This is for dev testing
+    if (event.body) {
+      event.Records = [{ body: event.body }];
+    }
+    ///////////////////////
+    const resp = await container
+      .resolve(EmailService)
+      .receiveEmailHelper(event.Records);
+    return formatJSONResponse(resp, 200);
+  } catch (error) {
+    return formatErrorResponse({
+      message: error.message,
+      statusCode: 400,
+    });
   }
 };
 

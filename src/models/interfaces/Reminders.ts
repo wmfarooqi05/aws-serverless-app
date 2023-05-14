@@ -19,6 +19,11 @@ export interface IEBSchedulerEventInput extends I_SQS_EVENT_INPUT {
   };
 }
 
+export interface IRecipientItem {
+  recipientName: string;
+  recipientEmail: string;
+}
+
 export interface IEmailSqsEventInput extends I_SQS_EVENT_INPUT {
   name?: string;
   details: {
@@ -27,16 +32,11 @@ export interface IEmailSqsEventInput extends I_SQS_EVENT_INPUT {
     //    replyHeader: string;
     ConfigurationSetName?: string;
     replyTo?: string[];
-    recipients: {
-      recipientId?: string;
-      recipientEmail: string;
-      companyId?: string;
-      recipientName: string;
-    }[];
+    toList: IRecipientItem[];
     subject: string;
     body: string;
-    ccList?: string[];
-    bccList?: string[];
+    ccList?: IRecipientItem[];
+    bccList?: IRecipientItem[];
   };
   /**
    * SQS Message Id

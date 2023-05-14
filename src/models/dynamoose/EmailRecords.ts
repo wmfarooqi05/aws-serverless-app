@@ -23,6 +23,7 @@ export const EmailRecordsSchema = new Schema({
       },
     },
   },
+  
   senderId: {
     type: String,
   },

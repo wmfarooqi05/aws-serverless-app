@@ -1,0 +1,178 @@
+{
+  "Subnets": [
+      {
+          "AvailabilityZone": "ca-central-1a",
+          "AvailabilityZoneId": "cac1-az1",
+          "AvailableIpAddressCount": 4089,
+          "CidrBlock": "10.0.0.0/20",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-02752e6de3a0e8a16",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-public1-ca-central-1a"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-02752e6de3a0e8a16",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      },
+      {
+          "AvailabilityZone": "ca-central-1a",
+          "AvailabilityZoneId": "cac1-az1",
+          "AvailableIpAddressCount": 4089,
+          "CidrBlock": "10.0.128.0/20",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-0bf9443e724778d81",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-private1-ca-central-1a"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-0bf9443e724778d81",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      },
+      {
+          "AvailabilityZone": "ca-central-1d",
+          "AvailabilityZoneId": "cac1-az4",
+          "AvailableIpAddressCount": 250,
+          "CidrBlock": "10.0.32.0/24",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-029afa431f7f325f6",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-private1-ca-central-1d"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-029afa431f7f325f6",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      },
+      {
+          "AvailabilityZone": "ca-central-1b",
+          "AvailabilityZoneId": "cac1-az2",
+          "AvailableIpAddressCount": 250,
+          "CidrBlock": "10.0.16.0/24",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-0553628384d3adf0a",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-private1-ca-central-1b"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-0553628384d3adf0a",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      },
+      {
+          "AvailabilityZone": "ca-central-1b",
+          "AvailabilityZoneId": "cac1-az2",
+          "AvailableIpAddressCount": 251,
+          "CidrBlock": "10.0.255.0/24",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-0d9040076c2e6fc9a",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-public1-ca-central-1b"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-0d9040076c2e6fc9a",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      },
+      {
+          "AvailabilityZone": "ca-central-1d",
+          "AvailabilityZoneId": "cac1-az4",
+          "AvailableIpAddressCount": 4089,
+          "CidrBlock": "10.0.64.0/20",
+          "DefaultForAz": false,
+          "MapPublicIpOnLaunch": false,
+          "MapCustomerOwnedIpOnLaunch": false,
+          "State": "available",
+          "SubnetId": "subnet-0803209af3915f116",
+          "VpcId": "vpc-05126227d046548e1",
+          "OwnerId": "524073432557",
+          "AssignIpv6AddressOnCreation": false,
+          "Ipv6CidrBlockAssociationSet": [],
+          "Tags": [
+              {
+                  "Key": "Name",
+                  "Value": "project-subnet-public1-ca-central-1d"
+              }
+          ],
+          "SubnetArn": "arn:aws:ec2:ca-central-1:524073432557:subnet/subnet-0803209af3915f116",
+          "EnableDns64": false,
+          "Ipv6Native": false,
+          "PrivateDnsNameOptionsOnLaunch": {
+              "HostnameType": "ip-name",
+              "EnableResourceNameDnsARecord": false,
+              "EnableResourceNameDnsAAAARecord": false
+          }
+      }
+  ]
+}
