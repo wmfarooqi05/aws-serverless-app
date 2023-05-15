@@ -32,7 +32,9 @@ import {
   deleteEmail,
 } from "./contacts/handler";
 import {
+  addContactEmailToEmailList,
   addEmailList,
+  deleteContactEmailFromEmailList,
   deleteEmailList,
   getAllEmailLists,
   updateEmailList,
@@ -167,6 +169,22 @@ app.delete("/email-list/:emailListId", async (req, res) => {
   const resp = await deleteEmailList(req, {} as any);
   resHelper(res, resp);
 });
+
+app.post(
+  "/email-list/:emailListId/contact-email/:contactEmailId",
+  async (req, res) => {
+    const resp = await addContactEmailToEmailList(req, {} as any);
+    resHelper(res, resp);
+  }
+);
+
+app.delete(
+  "/email-list/:emailListId/contact-email/:contactEmailId",
+  async (req, res) => {
+    const resp = await deleteContactEmailFromEmailList(req, {} as any);
+    resHelper(res, resp);
+  }
+);
 
 exports.handler = awsSlsExpress({ app });
 

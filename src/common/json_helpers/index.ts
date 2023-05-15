@@ -168,6 +168,26 @@ export const createKnexTransactionsWithPendingPayload = (
           finalQueries.push(
             knexClient(tableName).where("id", "=", tableRowId).del()
           );
+        } else if (actionType === PendingApprovalType.ADD_RELATION_IN_PIVOT) {
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            oldValue: null,
+            newValue: JSON.stringify(originalObject),
+          };
+          finalQueries.push(
+            knexClient(tableName)
+              .insert(transformJSONKeys(actionItem.payload))
+              .returning("*")
+          );
+        } else if (
+          actionType === PendingApprovalType.DELETE_RELATION_FROM_PIVOT
+        ) {
+          updateHistoryObj = {
+            ...updateHistoryObj,
+            oldValue: JSON.stringify(originalObject),
+            newValue: null,
+          };
+          finalQueries.push(knexClient(tableName).where(originalObject).del());
         } else {
           simpleKeys = { ...simpleKeys, ...actionItem.payload };
 
@@ -368,6 +388,16 @@ export const convertPayloadToArray = (
       objectType: "SIMPLE_KEY",
       payload,
     });
+  } else if (actionType === PendingApprovalType.ADD_RELATION_IN_PIVOT) {
+    approvalActions.actionsRequired.push({
+      objectType: "SIMPLE_KEY",
+      payload,
+    });
+  } else if (actionType === PendingApprovalType.DELETE_RELATION_FROM_PIVOT) {
+    approvalActions.actionsRequired.push({
+      objectType: "SIMPLE_KEY",
+      payload,
+    });
   } else {
     Object.keys(payload).forEach((key) => {
       let objectType = getObjectType(tableName, key);
@@ -422,7 +452,13 @@ export const createKnexTransactionQueries = async (
   );
 
   let originalObject = null;
-  if (actionType !== PendingApprovalType.CREATE) {
+  if (
+    !(
+      actionType === PendingApprovalType.CREATE ||
+      actionType === PendingApprovalType.ADD_RELATION_IN_PIVOT ||
+      actionType === PendingApprovalType.DELETE_RELATION_FROM_PIVOT
+    )
+  ) {
     originalObject = await knexClient(tableName)
       .where({ id: tableRowId })
       .first();

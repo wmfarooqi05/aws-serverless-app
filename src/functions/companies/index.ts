@@ -170,6 +170,20 @@ const companyHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+        cors: true,
+      },
+    },
   ],
 };
 

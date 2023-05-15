@@ -72,6 +72,36 @@ const deleteEmailListHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+const addContactEmailToEmailListHandler = async (event) => {
+  try {
+    const { emailListId, contactEmailId } = event.params;
+
+    const emailListToContactId = await container
+      .resolve(EmailListService)
+      .addContactEmailToEmailList(event.employee, emailListId, contactEmailId);
+    return formatJSONResponse(emailListToContactId, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const deleteContactEmailFromEmailListHandler = async (event) => {
+  try {
+    const { emailListId, contactEmailId } = event.params;
+
+    const emailListToContactId = await container
+      .resolve(EmailListService)
+      .deleteContactEmailFromEmailList(
+        event.employee,
+        emailListId,
+        contactEmailId
+      );
+    return formatJSONResponse(emailListToContactId, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getAllEmailLists = checkRolePermission(
   getAllEmailListsHandler,
   "ACTIVITY_UPDATE"
@@ -88,4 +118,13 @@ export const updateEmailList = checkRolePermission(
 export const deleteEmailList = checkRolePermission(
   deleteEmailListHandler,
   "ACTIVITY_UPDATE"
+);
+
+export const addContactEmailToEmailList = checkRolePermission(
+  addContactEmailToEmailListHandler,
+  "COMPANY_READ"
+);
+export const deleteContactEmailFromEmailList = checkRolePermission(
+  deleteContactEmailFromEmailListHandler,
+  "COMPANY_READ"
 );

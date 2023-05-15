@@ -4,6 +4,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import {
   validateAddContactEmailToEmailList,
   validateAddEmailList,
+  validateContactEmailToEmailList,
   validateDeleteEmailList,
   validateGetEmailLists,
   validateUpdateEmailList,
@@ -19,6 +20,9 @@ import {
   getPaginateClauseObject,
   sanitizeColumnNames,
 } from "@common/query";
+import { updateHistoryHelper } from "@common/json_helpers";
+import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
+import { EMAIL_LIST_TO_CONTACT_EMAILS } from "@models/commons";
 
 // @TODO fix this
 export interface IEmailListServiceService {}
@@ -135,18 +139,45 @@ export class EmailListService implements IEmailListServiceService {
   async addContactEmailToEmailList(
     employee: IEmployeeJwt,
     emailListId: string,
-    emailContactId: string
+    contactEmailId: string
   ) {
-    await validateAddContactEmailToEmailList(
+    await validateContactEmailToEmailList(
       employee.sub,
       emailListId,
-      emailContactId
+      contactEmailId
     );
-    const resp = await EmailListModel.relatedQuery("contactEmails")
-      .for(emailListId)
-      .relate(emailContactId);
 
-    return resp;
+    await updateHistoryHelper(
+      PendingApprovalType.ADD_RELATION_IN_PIVOT,
+      null,
+      employee.sub,
+      EMAIL_LIST_TO_CONTACT_EMAILS,
+      this.docClient.getKnexClient(),
+      { emailListId, contactEmailId }
+    );
+
+    return { emailListToContactId: { emailListId, contactEmailId } };
   }
-  async deleteContactEmailFromEmailList() {}
+  async deleteContactEmailFromEmailList(
+    employee: IEmployeeJwt,
+    emailListId: string,
+    contactEmailId: string
+  ) {
+    await validateContactEmailToEmailList(
+      employee.sub,
+      emailListId,
+      contactEmailId
+    );
+
+    await updateHistoryHelper(
+      PendingApprovalType.DELETE_RELATION_FROM_PIVOT,
+      null,
+      employee.sub,
+      EMAIL_LIST_TO_CONTACT_EMAILS,
+      this.docClient.getKnexClient(),
+      { emailListId, contactEmailId }
+    );
+
+    return { emailListToContactId: { emailListId, contactEmailId } };
+  }
 }
