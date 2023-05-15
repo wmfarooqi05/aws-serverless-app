@@ -5,14 +5,13 @@ import {
   downloadFromS3Readable,
   fileExists,
   uploadContentToS3,
-  uploadFileToS3,
   uploadJsonAsXlsx,
 } from "./upload";
 import { container } from "tsyringe";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import xlsx from "xlsx";
 import Joi from "joi";
-import { IEmployeeJwt, RolesArray } from "@models/interfaces/Employees";
+import { RolesArray } from "@models/interfaces/Employees";
 import { IEmployee, RolesEnum } from "@models/interfaces/Employees";
 import EmployeeModel from "@models/Employees";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
@@ -25,11 +24,9 @@ import {
   AdminDeleteUserCommand,
   AdminGetUserCommand,
   AdminGetUserCommandInput,
-  AdminGetUserCommandOutput,
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
-import * as fs from "fs";
-import { chunk } from "@utils/lodash";
+import { chunk } from "lodash";
 
 const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   {

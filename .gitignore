@@ -21,3 +21,8 @@ layers/nodejs
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+googleapis
+googleapis.zip
+jobsPackages
+jobsPackages.zip

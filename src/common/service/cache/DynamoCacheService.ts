@@ -11,7 +11,6 @@ import {
   DeleteItemCommand,
   ScanCommand,
   GetItemCommand,
-  PutItemCommandInput,
   DeleteItemCommandInput,
   PutItemCommandOutput,
   GetItemCommandOutput,

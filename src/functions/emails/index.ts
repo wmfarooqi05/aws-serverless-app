@@ -13,6 +13,7 @@ const emailHandler = {
       },
     },
   ],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
 };
 
 const sendEmail = {

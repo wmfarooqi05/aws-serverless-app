@@ -2,12 +2,6 @@ import { APIGatewayEvent, APIGatewayProxyResult } from "aws-lambda";
 import { HandlerLambda, MiddlewareObject } from "middy";
 // import createHttpError from "http-errors";
 import { decode } from "jsonwebtoken";
-import {
-  Actions,
-  getPermissionsForEmployeeRole2,
-  ModuleTypeForCasl,
-} from "@libs/casl";
-import { ForbiddenError } from "@casl/ability";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
@@ -216,42 +210,6 @@ export const allowMeOrRole = (
 
       if (!isAllowed) {
         throwUnAuthorizedError();
-      }
-    },
-  };
-};
-
-/**
- @deprecated do not use this
-*/
-export const permissionMiddleware2 = (
-  actions: Actions[],
-  subject: ModuleTypeForCasl
-) => {
-  return {
-    before: async ({ event }) => {
-      const { employee } = event;
-      employee.role = "manager";
-      // Why are we fetching this???
-      // const resp: ICompany[] = await container
-      //   .resolve(DatabaseService)
-      //   .get(COMPANIES_TABLE_NAME);
-      // console.log("employee", resp[0]?.companyName);
-      const permissions = getPermissionsForEmployeeRole2();
-      const abc = permissions["manager"].rulesFor("all", "COMPANY");
-      console.log("rules", abc);
-      try {
-        // add a pending-approval permission in header
-        // service will check which action is permitted.
-        // to keep logic separate
-        actions.forEach((action) =>
-          ForbiddenError.from(permissions[employee.role]).throwUnlessCan(
-            action,
-            subject
-          )
-        );
-      } catch (e) {
-        return formatErrorResponse(e);
       }
     },
   };

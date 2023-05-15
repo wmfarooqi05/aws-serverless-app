@@ -1,7 +1,6 @@
 import { throwUnAuthorizedError } from "@common/errors";
 import {
   getOrderByItems,
-  getPaginateClauseObject,
   sanitizeColumnNames,
 } from "@common/query";
 import ActivityModel from "@models/Activity";
@@ -9,10 +8,8 @@ import {
   ACTIVITY_TYPE,
   IACTIVITY_DETAILS,
   IEMAIL_DETAILS,
-  ICALL_DETAILS,
   IStatusHistory,
   ITASK_DETAILS,
-  CALL_TYPE,
 } from "@models/interfaces/Activity";
 import {
   IEmployee,
@@ -20,7 +17,6 @@ import {
   RolesEnum,
 } from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
-import { calendar_v3 } from "googleapis";
 import { Knex } from "knex";
 import moment from "moment-timezone";
 
@@ -85,7 +81,7 @@ export const createMeetingPayload = (payload) => {
     sendUpdates,
   } = payload;
 
-  const event: calendar_v3.Schema$Event = {
+  const event = {
     summary: summary,
     attendees: attendees,
     description: description,

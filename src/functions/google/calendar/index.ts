@@ -1,7 +1,6 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-
 const getAllCalendars = {
   handler: `${handlerPath(__dirname)}/handler.getAllCalendars`,
   events: [
@@ -13,8 +12,10 @@ const getAllCalendars = {
       },
     },
   ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+  ],
 };
-
 
 const getMeetings = {
   handler: `${handlerPath(__dirname)}/handler.getMeetings`,
@@ -26,6 +27,9 @@ const getMeetings = {
         cors: true,
       },
     },
+  ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
   ],
 };
 
@@ -40,6 +44,9 @@ const getMeetingById = {
       },
     },
   ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+  ],
 };
 const createMeeting = {
   handler: `${handlerPath(__dirname)}/handler.createMeeting`,
@@ -51,6 +58,9 @@ const createMeeting = {
         cors: true,
       },
     },
+  ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
   ],
 };
 
@@ -65,6 +75,9 @@ const updateMeetingById = {
       },
     },
   ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+  ],
 };
 const deleteMeetingById = {
   handler: `${handlerPath(__dirname)}/handler.deleteMeetingById`,
@@ -76,6 +89,9 @@ const deleteMeetingById = {
         cors: true,
       },
     },
+  ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
   ],
 };
 

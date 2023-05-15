@@ -16,7 +16,7 @@ import {
 import { SQSService } from "@functions/sqs/service";
 import { COMPANIES_TABLE_NAME } from "@models/commons";
 import { ICompany } from "@models/interfaces/Company";
-import { chunk } from "@utils/lodash";
+import { chunk } from "lodash";
 import { SQSEvent } from "aws-lambda";
 import * as fs from "fs";
 import { simpleParser, Attachment, EmailAddress } from "mailparser";

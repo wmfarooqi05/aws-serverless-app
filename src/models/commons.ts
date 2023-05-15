@@ -4,7 +4,7 @@ import { NotificationService } from "@functions/notifications/service";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import { ReminderService } from "@functions/reminders/service";
 // @OTODO remove this logic and remove this library from package.json
-import get from "lodash.get";
+import { get } from "lodash";
 
 export const COMPANIES_TABLE_NAME = process.env.COMPANIES_TABLE || "companies";
 export const ACTIVITIES_TABLE = process.env.ACTIVITIES_TABLE || "activities";
@@ -35,7 +35,7 @@ export const CONTACT_EMAILS_TABLE =
   process.env.CONTACT_EMAILS_TABLE || "contact_emails";
 export const EMAIL_LIST_TO_CONTACT_EMAILS =
   process.env.CONTACT_EMAILS_TABLE || "email_list_to_contact_emails";
-  
+
 export type ModuleType =
   | "PENDING_APPROVALS"
   | "COMPANIES"

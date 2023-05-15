@@ -1679,15 +1679,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@casl/ability@npm:^6.3.3":
-  version: 6.3.3
-  resolution: "@casl/ability@npm:6.3.3"
-  dependencies:
-    "@ucast/mongo2js": ^1.3.0
-  checksum: b260e3352109eed3f34f446c5fd81d24393ddad44a2eb78936b70ba6c4974ef1aacf71eb576f336c36287daa7125f02e55bb8706fe8a505c6c48a96dd3ab99c2
-  languageName: node
-  linkType: hard
-
 "@cloudcmd/copy-file@npm:^1.1.0":
   version: 1.1.1
   resolution: "@cloudcmd/copy-file@npm:1.1.1"
@@ -2716,43 +2707,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash.clone@npm:^4.5.7":
-  version: 4.5.7
-  resolution: "@types/lodash.clone@npm:4.5.7"
-  dependencies:
-    "@types/lodash": "*"
-  checksum: 3c9b89854afde0b5e5d03eb3427b649222f3a8d46121b0483573ccc44659946ae154d96761b4ce89eff64ee5ee235aa6135dcde5506b6ceb4f4d28713743cd8a
-  languageName: node
-  linkType: hard
-
-"@types/lodash.groupby@npm:^4.6.7":
-  version: 4.6.7
-  resolution: "@types/lodash.groupby@npm:4.6.7"
-  dependencies:
-    "@types/lodash": "*"
-  checksum: 2dd7f5c43ca4e2202c73a1217ea550fd54746909c19ef38ababe1a3c851c40b1ba66c027397551f9a6f7acf7217507496e316e6de38f3208f4a1f4548b81933b
-  languageName: node
-  linkType: hard
-
-"@types/lodash.merge@npm:^4.6.7":
-  version: 4.6.7
-  resolution: "@types/lodash.merge@npm:4.6.7"
-  dependencies:
-    "@types/lodash": "*"
-  checksum: 94cd6fb8e606756a28f45d63c658aacfbce11a151f7fa322c4a3e87aa50d8bf26e0ae8cba0250070a7c5a6792fc51f79abf4c648bbb1850692be386cd76cd0ca
-  languageName: node
-  linkType: hard
-
-"@types/lodash.snakecase@npm:^4.1.7":
-  version: 4.1.7
-  resolution: "@types/lodash.snakecase@npm:4.1.7"
-  dependencies:
-    "@types/lodash": "*"
-  checksum: 02a246ea5984ea60e29a8f023b2b4440150118e6c082dd7c40c7e4aad5b86b2d124fdaddab671ced50e2eaf84f6490010fb8815bed76bc08ef828dd59885d651
-  languageName: node
-  linkType: hard
-
-"@types/lodash@npm:*, @types/lodash@npm:^4.14.123":
+"@types/lodash@npm:^4.14.123":
   version: 4.14.194
   resolution: "@types/lodash@npm:4.14.194"
   checksum: 113f34831c461469d91feca2dde737f88487732898b4d25e9eb23b087bb193985f864d1e1e0f3b777edc5022e460443588b6000a3b2348c966f72d17eedc35ea
@@ -2777,16 +2732,16 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.1.3
-  resolution: "@types/node@npm:20.1.3"
-  checksum: abdb593f662a079715b4e9df0c706822e49814dd641fa5a6226ab73fb931cbfc9cfd5df92e09c13dbc90dbc8fce680d29cb735b88899d661481d93e09a8df2be
+  version: 20.1.4
+  resolution: "@types/node@npm:20.1.4"
+  checksum: bffa6a6e92831cc805b13658c55be8e04abe3202d5e57ddd7fee4cfbe269656a1f475909a9f9514e1aff50310d0d90c516ac2c649cb6f1c77d4b1079c2fd1e88
   languageName: node
   linkType: hard
 
 "@types/node@npm:^18.13.0":
-  version: 18.16.8
-  resolution: "@types/node@npm:18.16.8"
-  checksum: d2ec9b61abd260b0fa1e33e4eca8f0089ebb6f6ec1ad2f036a4d01af11dba4f1dbff95b2a1f5dbe9eab3a6f38ed4bd8bf95eb2de9ad96b1caa1f67671e623c1d
+  version: 18.16.9
+  resolution: "@types/node@npm:18.16.9"
+  checksum: 7fe0ef372ba8b157bd646efe29b0ece92ccb9f455171a7ceb4c92d6b490789ff0f14411b1dc6ad203351a0efa2b435072dfab5566fb6eaaaa5cd549e1fb22afa
   languageName: node
   linkType: hard
 
@@ -2872,42 +2827,6 @@ __metadata:
   dependencies:
     "@types/node": "*"
   checksum: 55d27ae5d346ea260e40121675c24e112ef0247649073848e5d4e03182713ae4ec8142b98f61a1c6cbe7d3b72fa99bbadb65d8b01873e5e605cdc30f1ff70ef2
-  languageName: node
-  linkType: hard
-
-"@ucast/core@npm:^1.0.0, @ucast/core@npm:^1.4.1, @ucast/core@npm:^1.6.1":
-  version: 1.10.2
-  resolution: "@ucast/core@npm:1.10.2"
-  checksum: 5081194db186bdc4ce774c42d097452b6dcf7329996bea3c8b06a47ff1c45f1d2a997c1cd02c967187b46de5172f0e052a8a2163a4116237ace30d50c61faff8
-  languageName: node
-  linkType: hard
-
-"@ucast/js@npm:^3.0.0":
-  version: 3.0.3
-  resolution: "@ucast/js@npm:3.0.3"
-  dependencies:
-    "@ucast/core": ^1.0.0
-  checksum: 579d2e3bdb6643afe11403bd74b432327dc85cd19d4b5017db608696868605e6b299aa7e510463affcedb9a42779d2867936f92bd6ec252e9a0132c6385127bd
-  languageName: node
-  linkType: hard
-
-"@ucast/mongo2js@npm:^1.3.0":
-  version: 1.3.4
-  resolution: "@ucast/mongo2js@npm:1.3.4"
-  dependencies:
-    "@ucast/core": ^1.6.1
-    "@ucast/js": ^3.0.0
-    "@ucast/mongo": ^2.4.0
-  checksum: db2b97b85e8ed6f1103566a69e01ab547365406473550a03f2f0f47d58b9dbb1962d8af094327a9a990a9a3854ac86afa1d0cd0408a5adacb3b66e5131d5d285
-  languageName: node
-  linkType: hard
-
-"@ucast/mongo@npm:^2.4.0":
-  version: 2.4.3
-  resolution: "@ucast/mongo@npm:2.4.3"
-  dependencies:
-    "@ucast/core": ^1.4.1
-  checksum: 1817d7dc525eda48c911960a89cf9c820afbf12b3ab0610d856fc66fb27e02d2dd4a773a33ca0a328d6fcc0c9ccb2f1fe093e59546ebb57af093b8f8d2a70a4d
   languageName: node
   linkType: hard
 
@@ -3308,8 +3227,8 @@ __metadata:
   linkType: hard
 
 "aws-sdk@npm:^2.1234.0, aws-sdk@npm:^2.1352.0":
-  version: 2.1377.0
-  resolution: "aws-sdk@npm:2.1377.0"
+  version: 2.1378.0
+  resolution: "aws-sdk@npm:2.1378.0"
   dependencies:
     buffer: 4.9.2
     events: 1.1.1
@@ -3321,7 +3240,7 @@ __metadata:
     util: ^0.12.4
     uuid: 8.0.0
     xml2js: 0.5.0
-  checksum: 4ebc5ad4feb72219febd751dce320e940323acaa3de7e047bd2e2f4497e03651a99924dff4be9a86ea3362e5a3f3e407784cbbdd09a8d1b91fb7b0d2e05d8b35
+  checksum: 2dd5f9c5fda78b19d5d034edbe5b96532875a362d147ce8c0a2e621526f4ab1b3e84f86d93d39028e679c6da7f96be2f79379fe98a572079c7221d1c598140e8
   languageName: node
   linkType: hard
 
@@ -3342,17 +3261,6 @@ __metadata:
   dependencies:
     follow-redirects: ^1.14.0
   checksum: 44245f24ac971e7458f3120c92f9d66d1fc695e8b97019139de5b0cc65d9b8104647db01e5f46917728edfc0cfd88eb30fc4c55e6053eef4ace76768ce95ff3c
-  languageName: node
-  linkType: hard
-
-"axios@npm:^1.3.4":
-  version: 1.3.4
-  resolution: "axios@npm:1.3.4"
-  dependencies:
-    follow-redirects: ^1.15.0
-    form-data: ^4.0.0
-    proxy-from-env: ^1.1.0
-  checksum: 7440edefcf8498bc3cdf39de00443e8101f249972c83b739c6e880d9d669fea9486372dbe8739e88b3bf8bb1ad15f6106693f206f078f4516fe8fd47b1c3093c
   languageName: node
   linkType: hard
 
@@ -5378,7 +5286,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.15.0":
+"follow-redirects@npm:^1.14.0":
   version: 1.15.2
   resolution: "follow-redirects@npm:1.15.2"
   peerDependenciesMeta:
@@ -5622,7 +5530,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gcp-metadata@npm:^5.0.0":
+"gcp-metadata@npm:^5.2.0":
   version: 5.2.0
   resolution: "gcp-metadata@npm:5.2.0"
   dependencies:
@@ -5649,7 +5557,6 @@ __metadata:
     "@aws-sdk/client-sqs": ^3.321.1
     "@aws-sdk/lib-dynamodb": ^3.321.1
     "@aws-sdk/util-dynamodb": ^3.321.1
-    "@casl/ability": ^6.3.3
     "@joi/date": ^2.1.0
     "@middy/core": ^4.2.3
     "@middy/http-json-body-parser": ^4.2.3
@@ -5658,10 +5565,6 @@ __metadata:
     "@types/aws-serverless-express": ^3.3.5
     "@types/express": ^4.17.17
     "@types/jsonwebtoken": ^9.0.1
-    "@types/lodash.clone": ^4.5.7
-    "@types/lodash.groupby": ^4.6.7
-    "@types/lodash.merge": ^4.6.7
-    "@types/lodash.snakecase": ^4.1.7
     "@types/mailparser": ^3.4.0
     "@types/node": ^18.13.0
     "@types/pg": ^8.6.6
@@ -5670,7 +5573,6 @@ __metadata:
     "@types/uuid": ^9.0.0
     "@vendia/serverless-express": ^4.10.1
     aws-serverless-express: ^3.4.0
-    axios: ^1.3.4
     dotenv: ^16.0.3
     dynamoose: ^3.1.0
     esbuild: ^0.16.17
@@ -5678,18 +5580,13 @@ __metadata:
     esbuild-plugin-lodash: ^1.2.0
     express: ^4.18.2
     generate-password: ^1.7.0
-    googleapis: ^111.0.0
+    googleapis: ^118.0.0
     joi: ^17.7.1
     json-schema-to-ts: ^2.6.2
     jsonwebtoken: ^9.0.0
     knex: ^2.4.2
     knex-paginate: ^3.0.2
     knex-stringcase: ^1.4.6
-    lodash.clone: ^4.5.0
-    lodash.get: ^4.4.2
-    lodash.groupby: ^4.6.0
-    lodash.merge: ^4.6.2
-    lodash.snakecase: ^4.1.1
     mailparser: ^3.6.4
     middy: ^0.36.0
     moment-timezone: ^0.5.40
@@ -5736,13 +5633,14 @@ __metadata:
   linkType: hard
 
 "get-intrinsic@npm:^1.0.2, get-intrinsic@npm:^1.1.1, get-intrinsic@npm:^1.1.3, get-intrinsic@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "get-intrinsic@npm:1.2.0"
+  version: 1.2.1
+  resolution: "get-intrinsic@npm:1.2.1"
   dependencies:
     function-bind: ^1.1.1
     has: ^1.0.3
+    has-proto: ^1.0.1
     has-symbols: ^1.0.3
-  checksum: 78fc0487b783f5c58cf2dccafc3ae656ee8d2d8062a8831ce4a95e7057af4587a1d4882246c033aca0a7b4965276f4802b45cc300338d1b77a73d3e3e3f4877d
+  checksum: 5b61d88552c24b0cf6fa2d1b3bc5459d7306f699de060d76442cce49a4721f52b8c560a33ab392cf5575b7810277d54ded9d4d39a1ea61855619ebc005aa7e5f
   languageName: node
   linkType: hard
 
@@ -5870,19 +5768,19 @@ __metadata:
   linkType: hard
 
 "google-auth-library@npm:^8.0.2":
-  version: 8.7.0
-  resolution: "google-auth-library@npm:8.7.0"
+  version: 8.8.0
+  resolution: "google-auth-library@npm:8.8.0"
   dependencies:
     arrify: ^2.0.0
     base64-js: ^1.3.0
     ecdsa-sig-formatter: ^1.0.11
     fast-text-encoding: ^1.0.0
     gaxios: ^5.0.0
-    gcp-metadata: ^5.0.0
+    gcp-metadata: ^5.2.0
     gtoken: ^6.1.0
     jws: ^4.0.0
     lru-cache: ^6.0.0
-  checksum: 978d1c5f763aceddbc0218cd76fa578c8ba54a0653cefffaf61847bb8d246ebf26e7fcd276d8885b8a3354c17eef0a11cfae9e60e4df62c01cae4378d4eb78e4
+  checksum: 4552805466679e258febc4c0621d401d510df267f2f105957b8925b79c1454d9a2e5d53af211dd90a1848658f608babac7f5bc2f3c536c441ba32ba3641d335d
   languageName: node
   linkType: hard
 
@@ -5911,13 +5809,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"googleapis@npm:^111.0.0":
-  version: 111.0.0
-  resolution: "googleapis@npm:111.0.0"
+"googleapis@npm:^118.0.0":
+  version: 118.0.0
+  resolution: "googleapis@npm:118.0.0"
   dependencies:
     google-auth-library: ^8.0.2
     googleapis-common: ^6.0.0
-  checksum: d50876b146018704897c53656f7646fcf0a59085186d67509f60b153f324fa614b67e7cd92db9308ca473cc9ca744301097a9c50e671c448b7635969e6fbaf21
+  checksum: 9f415214504858ce5ca733d27d0888a837e342ac11f181e2084789275dc0344e73567db0698f34e9c02ed1fc2bd4c71d71abab27f7d91c710011a7f55b0ca86e
   languageName: node
   linkType: hard
 
@@ -7094,13 +6992,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.clone@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "lodash.clone@npm:4.5.0"
-  checksum: 5839f22acf3a43c026ac4325f7bcd378f34967415cd0b9fd7efa9bbbf38dc665900d36e040944c5afab94a51ff8a24f6cfc3781fe439705cbad5c722e9506b16
-  languageName: node
-  linkType: hard
-
 "lodash.defaults@npm:^4.2.0":
   version: 4.2.0
   resolution: "lodash.defaults@npm:4.2.0"
@@ -7129,31 +7020,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.groupby@npm:^4.6.0":
-  version: 4.6.0
-  resolution: "lodash.groupby@npm:4.6.0"
-  checksum: e2d4d13d12790a1cacab3f5f120b7c072a792224e83b2f403218866d18efde76024b2579996dfebb230a61ce06469332e16639103669a35a605287e19ced6b9b
-  languageName: node
-  linkType: hard
-
 "lodash.isplainobject@npm:^4.0.6":
   version: 4.0.6
   resolution: "lodash.isplainobject@npm:4.0.6"
   checksum: 29c6351f281e0d9a1d58f1a4c8f4400924b4c79f18dfc4613624d7d54784df07efaff97c1ff2659f3e085ecf4fff493300adc4837553104cef2634110b0d5337
-  languageName: node
-  linkType: hard
-
-"lodash.merge@npm:^4.6.2":
-  version: 4.6.2
-  resolution: "lodash.merge@npm:4.6.2"
-  checksum: ad580b4bdbb7ca1f7abf7e1bce63a9a0b98e370cf40194b03380a46b4ed799c9573029599caebc1b14e3f24b111aef72b96674a56cfa105e0f5ac70546cdc005
-  languageName: node
-  linkType: hard
-
-"lodash.snakecase@npm:^4.1.1":
-  version: 4.1.1
-  resolution: "lodash.snakecase@npm:4.1.1"
-  checksum: 1685ed3e83dda6eae5a4dcaee161a51cd210aabb3e1c09c57150e7dd8feda19e4ca0d27d0631eabe8d0f4eaa51e376da64e8c018ae5415417c5890d42feb72a8
   languageName: node
   linkType: hard
 
@@ -8334,10 +8204,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg-connection-string@npm:2.5.0, pg-connection-string@npm:^2.5.0":
+"pg-cloudflare@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "pg-cloudflare@npm:1.1.0"
+  checksum: fca32af487feadf337baccceca4d2a6a43c6bbe324efcdf620ea581e958e70873cbf64424bd0861d37ecaf2cd3f33319fefb49018bcae5e909dea5f2c859698d
+  languageName: node
+  linkType: hard
+
+"pg-connection-string@npm:2.5.0":
   version: 2.5.0
   resolution: "pg-connection-string@npm:2.5.0"
   checksum: a6f3a068f7c9416a5b33a326811caf0dfaaee045c225b7c628b4c9b4e9a2b25bdd12a21e4c48940e1000ea223a4e608ca122d2ff3dd08c8b1db0fc9f5705133a
+  languageName: node
+  linkType: hard
+
+"pg-connection-string@npm:^2.6.0":
+  version: 2.6.0
+  resolution: "pg-connection-string@npm:2.6.0"
+  checksum: 0262452638163c0b875495cfb82e363061cc8d560d3162143b1dfb63f70a666c7c52ba37e78054a3476de9a627faeec75f65445ba6fe065db068317ec84d3df8
   languageName: node
   linkType: hard
 
@@ -8378,22 +8262,26 @@ __metadata:
   linkType: hard
 
 "pg@npm:^8.9.0":
-  version: 8.10.0
-  resolution: "pg@npm:8.10.0"
+  version: 8.11.0
+  resolution: "pg@npm:8.11.0"
   dependencies:
     buffer-writer: 2.0.0
     packet-reader: 1.0.0
-    pg-connection-string: ^2.5.0
+    pg-cloudflare: ^1.1.0
+    pg-connection-string: ^2.6.0
     pg-pool: ^3.6.0
     pg-protocol: ^1.6.0
     pg-types: ^2.1.0
     pgpass: 1.x
   peerDependencies:
     pg-native: ">=3.0.1"
+  dependenciesMeta:
+    pg-cloudflare:
+      optional: true
   peerDependenciesMeta:
     pg-native:
       optional: true
-  checksum: c6be78f2e823f2ae3c618c8e54a6622592dd71b556fb665d7eaedcbcc2fa5d210a8bcf519401e72526a65b9d797f19b772f48f29b9d9f31e98dd526fd27d61e0
+  checksum: 30448ab90fca85c3cf6dfb79f351b759a8d5b384b89bc3b7e5ba6be7afaa0cd7422a3c770acb052d512dd6b1e03768e6d6a6674547ec4a21cb5870c7b72cc101
   languageName: node
   linkType: hard
 
@@ -8562,7 +8450,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"proxy-from-env@npm:1.1.0, proxy-from-env@npm:^1.1.0":
+"proxy-from-env@npm:1.1.0":
   version: 1.1.0
   resolution: "proxy-from-env@npm:1.1.0"
   checksum: ed7fcc2ba0a33404958e34d95d18638249a68c430e30fcb6c478497d72739ba64ce9810a24f53a7d921d0c065e5b78e3822759800698167256b04659366ca4d4
@@ -8640,11 +8528,11 @@ __metadata:
   linkType: hard
 
 "qs@npm:^6.10.3, qs@npm:^6.11.0, qs@npm:^6.6.0, qs@npm:^6.7.0":
-  version: 6.11.1
-  resolution: "qs@npm:6.11.1"
+  version: 6.11.2
+  resolution: "qs@npm:6.11.2"
   dependencies:
     side-channel: ^1.0.4
-  checksum: 82ee78ef12a16f3372fae5b64f76f8aedecb000feea882bbff1af146c147f6eb66b08f9c3f34d7e076f28563586956318b9b2ca41141846cdd6d5ad6f241d52f
+  checksum: e812f3c590b2262548647d62f1637b6989cc56656dc960b893fe2098d96e1bd633f36576f4cd7564dfbff9db42e17775884db96d846bebe4f37420d073ecdc0b
   languageName: node
   linkType: hard
 

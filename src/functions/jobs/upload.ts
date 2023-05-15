@@ -11,7 +11,7 @@ import { randomUUID } from "crypto";
 import * as stream from "stream";
 import * as fs from "fs";
 import * as XLSX from "xlsx";
-import snakeCase from "lodash.snakecase";
+import { snakeCase } from "lodash";
 
 // @TODO rename this to s3-utils
 
