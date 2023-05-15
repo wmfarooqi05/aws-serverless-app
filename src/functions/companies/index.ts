@@ -60,6 +60,9 @@ const companyHandler = {
         cors: true,
       },
     },
+
+    ///////// CONTACT
+
     {
       http: {
         method: "post",
@@ -74,6 +77,22 @@ const companyHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "/company/{companyId}/contact/{contactId}/email",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "/company/{companyId}/contact/{contactId}/email/{emailId}",
+        cors: true,
+      },
+    },
+
+    ////////
     {
       http: {
         method: "put",
@@ -120,6 +139,34 @@ const companyHandler = {
       http: {
         method: "delete",
         path: "/company/{companyId}/notes/{notesId}",
+        cors: true,
+      },
+    }, // Email Lists
+    {
+      http: {
+        method: "get",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "email-list/{emailListId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "email-list/{emailListId}",
         cors: true,
       },
     },

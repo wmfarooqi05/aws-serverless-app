@@ -67,6 +67,8 @@ import TeamCompanyInteractionsModel, {
 } from "@models/TeamCompanyInteractions";
 import TeamModel, { ITeam } from "@models/Teams";
 
+const defaultTimezone = "Canada/Eastern";
+
 export interface ICompanyService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
   createCompany(company: ICompanyModel): Promise<ICompanyModel>;
@@ -174,16 +176,9 @@ export class CompanyService implements ICompanyService {
     payload.createdBy = employee.sub;
     await validateCreateCompany(payload);
 
-    const timeNow = moment().utc().format();
-    payload.contacts = payload.contacts?.map((x: any) => {
-      return {
-        ...x,
-        id: randomUUID(),
-        createdAt: timeNow,
-        updatedAt: timeNow,
-        emailList: x.emailList ?? [],
-      } as IContact;
-    });
+    if (!payload.timezone) {
+      payload.timezone = defaultTimezone;
+    }
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(

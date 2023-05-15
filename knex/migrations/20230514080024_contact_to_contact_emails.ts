@@ -8,12 +8,14 @@ export async function up(knex: Knex): Promise<void> {
       .uuid("contact_email_id")
       .references("id")
       .inTable(Tables.contactEmails)
-      .notNullable();
+      .notNullable()
+      .onDelete('NO ACTION');
     table
       .uuid("email_list_id")
       .references("id")
       .inTable(Tables.emailList)
-      .notNullable();
+      .notNullable()
+      .onDelete('NO ACTION');
 
     table.primary(["contact_email_id", "email_list_id"]);
   });

@@ -18,6 +18,11 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("phone_numbers").defaultTo(JSON.stringify([]));
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table.string("timezone");
+      table
+        .uuid("created_by")
+        .references("id")
+        .inTable(Tables.employees)
+        .notNullable();
 
       table
         .timestamp("created_at", { useTz: true })

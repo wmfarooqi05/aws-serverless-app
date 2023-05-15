@@ -9,13 +9,15 @@ export async function up(knex: Knex): Promise<void> {
       .unsigned()
       .notNullable()
       .references("id")
-      .inTable(Tables.emails);
+      .inTable(Tables.emails)
+      .onDelete("NO ACTION");
     table
       .uuid("recipient_id")
       .unsigned()
       .notNullable()
       .references("id")
-      .inTable(Tables.emailRecipients);
+      .inTable(Tables.emailRecipients)
+      .onDelete("NO ACTION");
     table.primary(["email_id", "recipient_id"]);
   });
 }

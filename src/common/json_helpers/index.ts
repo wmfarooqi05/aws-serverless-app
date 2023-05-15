@@ -1,4 +1,4 @@
-import { UPDATE_HISTORY_TABLE } from "@models/commons";
+import { EMAIL_LIST_TABLE, UPDATE_HISTORY_TABLE } from "@models/commons";
 import {
   APPROVAL_ACTION_JSONB_PAYLOAD,
   APPROVAL_ACTION_SIMPLE_KEY,
@@ -501,6 +501,13 @@ export const getObjectType = (tableName: string, key: string) => {
       tableName: "SIMPLE_KEY",
       details: "SIMPLE_KEY",
     },
+    contacts: {
+      name: "SIMPLE_KEY",
+      designation: "SIMPLE_KEY",
+      phoneNumbers: "SIMPLE_KEY",
+      timezone: "SIMPLE_KEY",
+      details: "SIMPLE_KEY",
+    },
     activities: {
       id: "SIMPLE_KEY",
       summary: "SIMPLE_KEY",
@@ -529,9 +536,9 @@ export const getObjectType = (tableName: string, key: string) => {
     team_company_interactions: {
       stage: "SIMPLE_KEY",
     },
+    [EMAIL_LIST_TABLE]: {},
   };
-
-  if (!(map?.[tableName]?.[key])) {
+  if (!map?.[tableName]?.[key]) {
     throw new CustomError(`Invalid key provided, ${key}`, 400);
   }
   return map[tableName][key];

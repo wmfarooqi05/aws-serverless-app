@@ -14,7 +14,7 @@ export interface IEmployeeJwt {
   roleKey: string;
 }
 
-export const roleKey = "cognito:groups";
+export const roleKey = "role";
 
 export type IRoles =
   | "SALES_REP_GROUP"

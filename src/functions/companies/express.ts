@@ -28,7 +28,15 @@ import {
   createContacts,
   updateContact,
   deleteContact,
+  addEmail,
+  deleteEmail,
 } from "./contacts/handler";
+import {
+  addEmailList,
+  deleteEmailList,
+  getAllEmailLists,
+  updateEmailList,
+} from "./emailLists/handler";
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -105,6 +113,19 @@ app.delete("/company/:companyId/contact/:contactId", async (req, res) => {
   resHelper(res, resp);
 });
 
+app.post("/company/:companyId/contact/:contactId/email", async (req, res) => {
+  const resp = await addEmail(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete(
+  "/company/:companyId/contact/:contactId/email/:emailId",
+  async (req, res) => {
+    const resp = await deleteEmail(req, {} as any);
+    resHelper(res, resp);
+  }
+);
+
 app.get("/company/:companyId/notes", async (req, res) => {
   const resp = await getNotes(req, {} as any);
   resHelper(res, resp);
@@ -122,6 +143,28 @@ app.put("/company/:companyId/notes/:notesId", async (req, res) => {
 
 app.delete("/company/:companyId/notes/:notesId", async (req, res) => {
   const resp = await deleteNotes(req, {} as any);
+  resHelper(res, resp);
+});
+
+// Email Lists
+
+app.get("/email-list", async (req, res) => {
+  const resp = await getAllEmailLists(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/email-list", async (req, res) => {
+  const resp = await addEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.put("/email-list/:emailListId", async (req, res) => {
+  const resp = await updateEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete("/email-list/:emailListId", async (req, res) => {
+  const resp = await deleteEmailList(req, {} as any);
   resHelper(res, resp);
 });
 

@@ -58,6 +58,7 @@ export default class EmailListModel extends Model {
         through: {
           from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
           to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
+          onDelete: "NO ACTION",
         },
         to: `${CONTACT_EMAILS_TABLE}.id`,
       },

@@ -18,7 +18,12 @@ import { NotificationService } from "@functions/notifications/service";
 import NotificationModel, { INotification } from "@models/Notification";
 import { message } from "./strings";
 import Employee from "@models/Employees";
-import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  RolesArray,
+  RolesEnum,
+} from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import Joi from "joi";
 import { convertPayloadToArray, transformJSONKeys } from "@common/json_helpers";
@@ -190,14 +195,26 @@ export class PendingApprovalService implements IPendingApprovalService {
       createdBy.sub
     );
 
+    if (!employeeItem) {
+      throw new CustomError("Employee does not exists", 400);
+    }
+
+    const approvers = [];
     if (!employeeItem.reportingManager) {
-      throw new CustomError("User do not have any reporting manager", 400);
+      //      @TODO assign this to some admin guy
+      const managers: IEmployee[] = await Employee.query().where({
+        teamId: employeeItem.teamId,
+        role: RolesArray[RolesEnum.SALES_MANAGER_GROUP],
+      });
+      managers.forEach((x) => approvers.push(x.id));
+    } else {
+      approvers.push(employeeItem.reportingManager);
     }
 
     const item: IPendingApprovals = {
       tableRowId,
       tableName,
-      approvers: [employeeItem.reportingManager],
+      approvers,
       createdBy: createdBy.sub,
       onApprovalActionRequired,
       status: PendingApprovalsStatus.PENDING,

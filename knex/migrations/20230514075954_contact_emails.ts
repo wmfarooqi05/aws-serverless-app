@@ -14,7 +14,7 @@ export async function up(knex: Knex): Promise<void> {
         .notNullable();
 
       table.string("email").notNullable();
-      table.string("email_type").notNullable();
+      table.string("email_type");
 
       table
         .timestamp("created_at", { useTz: true })

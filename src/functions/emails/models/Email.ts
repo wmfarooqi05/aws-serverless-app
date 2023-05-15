@@ -95,11 +95,8 @@ export class EmailModel extends Model {
     };
   }
 
-
   static get jsonAttributes() {
-    return [
-      "attachments",
-    ];
+    return ["attachments"];
   }
   static get relationMappings() {
     return {
@@ -111,6 +108,7 @@ export class EmailModel extends Model {
           through: {
             from: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.email_id`,
             to: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.recipient_id`,
+            onDelete: "NO ACTION",
           },
           to: `${EMAIL_RECIPIENT_TABLE}.id`,
         },

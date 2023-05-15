@@ -15,17 +15,17 @@ export interface IAssignmentHistory {
   date: string;
 }
 
-export interface IContact {
-  id: string;
-  name: string;
-  designation: string;
-  phoneNumbers: string[];
-  emails: string[];
-  timezone: string;
-  createdAt: string;
-  updatedAt: string;
-  emailList: string[];
-}
+// export interface IContact {
+//   id: string;
+//   name: string;
+//   designation: string;
+//   phoneNumbers: string[];
+//   emails: string[];
+//   timezone: string;
+//   createdAt: string;
+//   updatedAt: string;
+//   emailList: string[];
+// }
 
 export interface IAddress {
   title: string;
@@ -40,7 +40,6 @@ export interface ICompany {
   id?: string;
   companyName: string;
   createdBy?: string;
-  contacts?: IContact[];
   addresses?: IAddress[];
   assignedTo?: string;
   assignedBy?: string;
@@ -49,6 +48,7 @@ export interface ICompany {
   // taskStatus: COMPANY_STATUS;
   // stage: COMPANY_STAGES;
   updatedAt?: string;
+  timezone: string;
   // notes?: INotes[];
 }
 

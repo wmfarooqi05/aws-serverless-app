@@ -49,6 +49,7 @@ export class RecipientModel extends Model {
           through: {
             from: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.recipientId`,
             to: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.emailId`,
+            onDelete: "NO ACTION",
           },
           to: `${EMAIL_TABLE}.id`,
         },
@@ -57,7 +58,7 @@ export class RecipientModel extends Model {
   }
 
   async $afterInsert(context: QueryContext): Promise<any> {
-    console.log('context', context);
+    console.log("context", context);
   }
 }
 

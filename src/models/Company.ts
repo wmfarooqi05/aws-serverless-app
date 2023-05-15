@@ -27,6 +27,7 @@ export default class CompanyModel extends Model {
         details: { type: "object" },
         // remove this key maybe
         tags: { type: "string" }, // comma separated strings
+        timezone: { type: "string" },
         // @TODO typecasting issues
         updatedAt: { type: "string" },
       },

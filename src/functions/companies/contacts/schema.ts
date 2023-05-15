@@ -12,6 +12,7 @@ export const validateCreateContact = async (
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
     timezone: Joi.string(),
+    details: Joi.object(),
     emails: Joi.array().items(Joi.string().email()),
     emailLists: Joi.array().items(Joi.string().guid()),
   })
@@ -37,8 +38,8 @@ export const validateUpdateContact = async (
     name: Joi.string(),
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
-    emails: Joi.array().items(Joi.string().email()),
-    emailLists: Joi.array().items(Joi.string().guid()),
+    timezone: Joi.string(),
+    details: Joi.object(),
   }).validateAsync(
     { ...payload, companyId, employeeId, contactId },
     {
@@ -54,3 +55,20 @@ export const validateDeleteContact = async (obj) => {
     notesId: Joi.string().guid().required(),
   }).validateAsync(obj);
 };
+
+export const validateAddEmail = async (employeeId, contactId, obj) => {
+  return Joi.object({
+    employeeId: Joi.string().guid().required(),
+    contactId: Joi.string().guid().required(),
+    email: Joi.string().email().required(),
+    emailType: Joi.string().required(),
+  }).validateAsync({ ...obj, employeeId, contactId });
+};
+
+export const validateDeleteEmail = async (employeeId, emailId) => {
+  return Joi.object({
+    employeeId: Joi.string().guid().required(),
+    emailId: Joi.string().guid().required(),
+  }).validateAsync({ employeeId, emailId });
+};
+

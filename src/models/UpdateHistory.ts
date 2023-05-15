@@ -28,7 +28,7 @@ export default class UpdateHistoryModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["tableRowId", "tableName", "field"],
+      required: ["tableName", "actionType", "updatedBy"],
       additionalProperties: false,
     };
   }

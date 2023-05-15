@@ -55,6 +55,7 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("addresses").defaultTo([]);
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table.string("tags").defaultTo(""); // @TODO fix this
+      table.string("timezone").defaultTo(""); // @TODO fix this
 
       table
         .timestamp("created_at", { useTz: true })

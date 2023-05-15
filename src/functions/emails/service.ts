@@ -130,6 +130,8 @@ export class EmailService implements IEmailService {
     //   );
 
     // const emailIds = this.getEmailIdsFromCompanies(companies, emailListId);
+
+    // @WARNING EmailList is in main db and not in emailDb
     const emailIds: IRecipientItem[] = [
       {
         recipientEmail: "wmfarooqi05@gmail.com",

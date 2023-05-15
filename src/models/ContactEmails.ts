@@ -36,21 +36,12 @@ export default class ContactEmailsModel extends Model {
         emailType: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["email", "contactId", "emailType"],
+      required: ["email", "contactId"],
       additionalProperties: false,
     };
   }
 
   static relationMappings = () => ({
-    contact: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: CONTACTS_TABLE,
-      join: {
-        from: `${CONTACTS_TABLE}.contactId`,
-        to: `${CONTACT_EMAILS_TABLE}.id`,
-      },
-    },
     emailLists: {
       relation: Model.ManyToManyRelation,
       // The related model.
@@ -60,6 +51,7 @@ export default class ContactEmailsModel extends Model {
         through: {
           from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
           to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
+          onDelete: 'NO ACTION'
         },
         to: `${EMAIL_LIST_TABLE}.id`,
       },

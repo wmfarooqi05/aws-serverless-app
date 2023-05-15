@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 import {
+  validateAddContactEmailToEmailList,
   validateAddEmailList,
   validateDeleteEmailList,
   validateGetEmailLists,
@@ -130,4 +131,22 @@ export class EmailListService implements IEmailListServiceService {
     await validateDeleteEmailList(employee.sub, emailListId);
     return EmailListModel.query().deleteById(emailListId);
   }
+
+  async addContactEmailToEmailList(
+    employee: IEmployeeJwt,
+    emailListId: string,
+    emailContactId: string
+  ) {
+    await validateAddContactEmailToEmailList(
+      employee.sub,
+      emailListId,
+      emailContactId
+    );
+    const resp = await EmailListModel.relatedQuery("contactEmails")
+      .for(emailListId)
+      .relate(emailContactId);
+
+    return resp;
+  }
+  async deleteContactEmailFromEmailList() {}
 }

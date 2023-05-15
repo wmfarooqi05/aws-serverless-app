@@ -122,3 +122,15 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
 const validateTaskDetails = async (details: ITASK_DETAILS) => {
   console.log(details);
 };
+
+export const validateAddContactEmailToEmailList = async (
+  employeeId,
+  emailListId,
+  emailContactId
+) => {
+  await Joi.object({
+    employeeId: Joi.string().guid().required(),
+    emailListId: Joi.string().guid().required(),
+    emailContactId: Joi.string().guid().required(),
+  }).validateAsync({ employeeId, emailListId, emailContactId });
+};
