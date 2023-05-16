@@ -57,19 +57,6 @@ export const validateCreateCompany = async (obj: any) => {
     companyName: Joi.string(),
     addresses: AddressJoi,
     createdBy: Joi.string().guid().required(),
-    contacts: Joi.array().items(
-      Joi.object()
-        .keys({
-          name: Joi.string().required(),
-          designation: Joi.string(),
-          phoneNumbers: Joi.array().items(Joi.string()),
-          timezone: Joi.string(),
-          details: Joi.object(),
-          emails: Joi.array().items(Joi.string().email()),
-          emailLists: Joi.array().items(Joi.string().guid()),
-        })
-        .or("emails", "phoneNumbers")
-    ),
   }).validateAsync(obj, {
     abortEarly: true,
     // @TODO cleanup api update

@@ -8,6 +8,7 @@ import {
   EMAIL_LIST_TO_CONTACT_EMAILS,
 } from "./commons";
 import EmailListModel from "./EmailLists";
+import ContactModel from "./Contacts";
 
 export interface IContactEmails {
   id: string;
@@ -54,6 +55,15 @@ export default class ContactEmailsModel extends Model {
           onDelete: 'NO ACTION'
         },
         to: `${EMAIL_LIST_TABLE}.id`,
+      },
+    },
+    contact: {
+      relation: Model.HasOneRelation,
+      // The related model.
+      modelClass: ContactModel,
+      join: {
+        from: `${CONTACT_EMAILS_TABLE}.contactId`,
+        to: `${CONTACTS_TABLE}.id`,
       },
     },
   });

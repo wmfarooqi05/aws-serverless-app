@@ -1,3 +1,4 @@
+import { ColumnRef, OrderByDirection } from "objection";
 export const getPaginateClauseObject = (body: any) => {
   if (!body) {
     return {
@@ -13,11 +14,14 @@ export const getPaginateClauseObject = (body: any) => {
   };
 };
 
-export const getOrderByItems = (body: any, aliasKey = null): string[] => {
+export const getOrderByItems = (
+  body: any,
+  aliasKey = null
+): [ColumnRef, OrderByDirection] => {
   if (!body) return ["updatedAt", "desc"];
   const { sortBy, sortAscending } = body;
   const sortKey = sortBy ? sortBy : "updatedAt";
-  let sortOrder = "desc";
+  let sortOrder: OrderByDirection = "desc";
   if (sortAscending === "true") {
     sortOrder = "asc";
   }

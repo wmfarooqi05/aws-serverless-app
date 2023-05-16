@@ -12,7 +12,7 @@ const importData = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 // const uploadCompanySheetToS3 = {
@@ -61,7 +61,7 @@ const bulkCognitoSignup = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 const streamRecordHelper = {
@@ -75,7 +75,7 @@ const streamRecordHelper = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 const uploadSignupBulkJob = {
@@ -89,7 +89,7 @@ const uploadSignupBulkJob = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 // dev only
@@ -106,7 +106,7 @@ const bulkImportUsersProcessHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 const handleDynamoStreamRecords = {
@@ -122,7 +122,7 @@ const handleDynamoStreamRecords = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 const handleSESEmailToSNSEvent = {
@@ -136,7 +136,7 @@ const handleSESEmailToSNSEvent = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:1"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
 
 export {

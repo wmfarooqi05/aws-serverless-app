@@ -35,6 +35,7 @@ import {
   EMAIL_LIST_TO_CONTACT_EMAILS,
 } from "@models/commons";
 import { ICompany } from "@models/interfaces/Company";
+import { getOrderByItems } from "@common/query";
 
 export interface IContactService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -55,6 +56,100 @@ export class ContactService implements IContactService {
     @inject(PendingApprovalService)
     private readonly pendingApprovalService: PendingApprovalService
   ) {}
+
+  async getAllContacts(employee: IEmployeeJwt, body: any) {
+    const {
+      name,
+      designation,
+      phoneNumber,
+      timezone,
+      companyId,
+      createdBy,
+      returningFields,
+      page,
+      pageSize,
+    } = body;
+    // return ContactModel.query()
+    //   .withGraphFetched({
+    //     contactEmails: {
+    //       emailLists: true,
+    //     },
+    //   })
+    // .modify((qb) => {}); //.for("*");
+
+    return ContactModel.query()
+      .alias("c")
+      .select("c.*", "e.*")
+      .leftOuterJoinRelated("contactEmails", {
+        alias: "e",
+      })
+      .page(1, 1);
+    return (
+      this.docClient
+        .getKnexClient()(ContactModel.tableName)
+        .leftJoin(
+          "contactEmails",
+          `${ContactModel.tableName}.id`,
+          `${ContactEmailsModel.tableName}.contact_id`
+        )
+        .modify((qb) => {
+          name && qb.where("name", "like", `%${name}%`);
+          designation && qb.where("designation", designation);
+          phoneNumber?.length &&
+            qb.where("phone_numbers", "?", `${phoneNumber}`);
+          timezone && qb.where("timezone", timezone);
+          companyId && qb.where("company_id", companyId);
+          createdBy && qb.where("created_by", createdBy);
+        })
+        // .orderBy(...getOrderByItems(body))
+        .paginate({ currentPage: page ?? 1, perPage: pageSize ?? 10 })
+    );
+  }
+  // async getCompanyQuery(employee: IEmployeeJwt, body, whereClause = {}) {
+  // const { name, designation, phoneNumbers, timezone, companyId, createdBy, returningFields } = body;
+
+  //   // @TODO move this to team interactions
+  //   // if (stage) {
+  //   //   whereClause["stage"] = stage;
+  //   // }
+  //   const knex = this.docClient.getKnexClient();
+  //   const returningKeys = returningFields;//this.getSelectKeys(returningFields);
+
+  //   const companies = await knex(`${CompanyModel.tableName} as c`)
+  //     .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
+  //       join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
+  //     })
+  //     .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
+  //       join.on("tc.team_id", "=", knex.raw("?", [employee.teamId]));
+  //     })
+  //     .select(returningKeys)
+  //     .where(whereClause)
+  //     .modify((builder) => {
+  //       if (status) {
+  //         builder.whereRaw(`ec.'status' IN (${convertToWhereInValue(status)})`);
+  //       }
+  //       if (priority) {
+  //         builder.whereRaw(
+  //           `ec.'priority' = (${convertToWhereInValue(priority)})`
+  //         );
+  //       }
+  //       if (stage) {
+  //         builder.whereRaw(`tc.'stage' IN (${convertToWhereInValue(stage)})`);
+  //       }
+  //     })
+  //     .orderBy(...getOrderByItems(body, "c"))
+  //     .paginate(getPaginateClauseObject(body));
+
+  //   return {
+  //     data: companies?.data?.map((x) =>
+  //       this.validateCompanyWithInteractions(x)
+  //     ),
+  //     pagination: companies?.pagination,
+  //   };
+  // }
+
+  async getContacts() {}
+  async getContactById() {}
 
   // We are not adding pending approval for this
   async createContacts(employee: IEmployeeJwt, companyId, body) {

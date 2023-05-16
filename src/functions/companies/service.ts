@@ -27,7 +27,7 @@ import {
   validateUpdateCompanyInteractions,
 } from "./schema";
 
-import { inject, injectable } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
@@ -179,16 +179,16 @@ export class CompanyService implements ICompanyService {
     if (!payload.timezone) {
       payload.timezone = defaultTimezone;
     }
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.CREATE,
-        null,
-        employee,
-        CompanyModel.tableName,
-        payload
-      );
-    }
+    // const { permitted, createPendingApproval } = employee;
+    // if (!permitted && createPendingApproval) {
+    //   return this.pendingApprovalService.createPendingApprovalRequest(
+    //     PendingApprovalType.CREATE,
+    //     null,
+    //     employee,
+    //     CompanyModel.tableName,
+    //     payload
+    //   );
+    // }
 
     let company = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {

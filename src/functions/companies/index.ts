@@ -184,6 +184,18 @@ const companyHandler = {
         cors: true,
       },
     },
+
+    ////
+    {
+      http:{
+        method:"get",
+        path:"contact",
+        cors:true,
+      }
+    }
+  ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 

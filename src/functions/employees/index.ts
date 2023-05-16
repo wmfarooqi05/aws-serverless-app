@@ -12,6 +12,9 @@ const getEmployees = {
       },
     },
   ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+  ],
 };
 
 const getEmployeesWorkSummary = {
@@ -24,6 +27,9 @@ const getEmployeesWorkSummary = {
         cors: true,
       },
     },
+  ],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 

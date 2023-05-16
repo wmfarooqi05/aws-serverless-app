@@ -13,6 +13,19 @@ import { ContactService } from "./service";
 import { container } from "@common/container";
 import { checkRolePermission } from "@middlewares/jwtMiddleware";
 
+export const getAllContacts = async (event) => {
+  try {
+    const { companyId } = event.params;
+    const contact = await container
+      .resolve(ContactService)
+      .getAllContacts(event?.employee, event.query || {});
+    return formatJSONResponse(contact, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+
+};
+
 const createContactsHandler: ValidatedEventAPIGatewayProxyEvent<
   IContactModel
 > = async (event) => {

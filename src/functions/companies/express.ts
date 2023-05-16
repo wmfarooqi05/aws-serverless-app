@@ -30,6 +30,7 @@ import {
   deleteContact,
   addEmail,
   deleteEmail,
+  getAllContacts,
 } from "./contacts/handler";
 import {
   addContactEmailToEmailList,
@@ -185,6 +186,11 @@ app.delete(
     resHelper(res, resp);
   }
 );
+
+app.get("/contact", async (req, res) => {
+  const resp = await getAllContacts(req);
+  resHelper(res, resp);
+});
 
 exports.handler = awsSlsExpress({ app });
 

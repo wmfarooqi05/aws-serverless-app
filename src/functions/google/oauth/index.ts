@@ -13,7 +13,7 @@ const googleOauthHandler = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -29,7 +29,7 @@ const googleOauthCallbackHandler = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -45,7 +45,7 @@ const googleOauthExtendRefreshToken = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -61,7 +61,7 @@ const googleOauthTokenScope = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
   ],
 };
 

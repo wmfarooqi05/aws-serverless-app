@@ -39,6 +39,7 @@ export default class ContactModel extends Model {
         name: { type: "string" },
         designation: { type: "string" },
         phoneNumbers: { type: "array" },
+        emails: { type: "array" },
         timezone: { type: "string" },
         details: { type: "object" },
         companyId: { type: "string" },
@@ -52,15 +53,15 @@ export default class ContactModel extends Model {
   }
 
   static relationMappings = () => ({
-    contactEmails: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: ContactEmailsModel,
-      join: {
-        from: `${CONTACTS_TABLE}.id`,
-        to: `${CONTACT_EMAILS_TABLE}.contactId`,
-      },
-    },
+    // contactEmails: {
+    //   relation: Model.HasManyRelation,
+    //   // The related model.
+    //   modelClass: ContactEmailsModel,
+    //   join: {
+    //     from: `${CONTACTS_TABLE}.id`,
+    //     to: `${CONTACT_EMAILS_TABLE}.contactId`,
+    //   },
+    // },
     company: {
       relation: Model.BelongsToOneRelation,
       // The related model.
@@ -70,11 +71,11 @@ export default class ContactModel extends Model {
         to: `${COMPANIES_TABLE_NAME}.id`,
       },
     },
-    emails: {},
+    // emails: {},
   });
 
   static get jsonAttributes() {
-    return ["phoneNumbers", "details"];
+    return ["phoneNumbers", "details", "emails"];
   }
 }
 
