@@ -13,9 +13,8 @@ import { ContactService } from "./service";
 import { container } from "@common/container";
 import { checkRolePermission } from "@middlewares/jwtMiddleware";
 
-export const getAllContacts = async (event) => {
+const getAllContactsHandler = async (event) => {
   try {
-    const { companyId } = event.params;
     const contact = await container
       .resolve(ContactService)
       .getAllContacts(event?.employee, event.query || {});
@@ -23,7 +22,30 @@ export const getAllContacts = async (event) => {
   } catch (e) {
     return formatErrorResponse(e);
   }
+};
 
+const getContactsByCompanyHandler = async (event) => {
+  try {
+    const { companyId } = event.params;
+    const contact = await container
+      .resolve(ContactService)
+      .getContactsByCompany(event?.employee, companyId, event.query || {});
+    return formatJSONResponse(contact, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const getContactByIdHandler = async (event) => {
+  try {
+    const { contactId } = event.params;
+    const contact = await container
+      .resolve(ContactService)
+      .getContactById(event?.employee, contactId);
+    return formatJSONResponse(contact, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
 };
 
 const createContactsHandler: ValidatedEventAPIGatewayProxyEvent<
@@ -112,5 +134,20 @@ export const addEmail = checkRolePermission(addEmailHandler, "COMPANY_READ");
 
 export const deleteEmail = checkRolePermission(
   deleteEmailHandler,
+  "COMPANY_READ"
+);
+
+export const getAllContacts = checkRolePermission(
+  getAllContactsHandler,
+  "COMPANY_READ"
+);
+
+export const getContactsByCompany = checkRolePermission(
+  getContactsByCompanyHandler,
+  "COMPANY_READ"
+);
+
+export const getContactById = checkRolePermission(
+  getContactByIdHandler,
   "COMPANY_READ"
 );

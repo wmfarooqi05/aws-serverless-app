@@ -19,6 +19,7 @@ export interface IContact {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  emails: string[];
 }
 
 @singleton()

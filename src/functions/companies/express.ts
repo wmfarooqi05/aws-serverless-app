@@ -31,6 +31,8 @@ import {
   addEmail,
   deleteEmail,
   getAllContacts,
+  getContactsByCompany,
+  getContactById,
 } from "./contacts/handler";
 import {
   addContactEmailToEmailList,
@@ -188,7 +190,17 @@ app.delete(
 );
 
 app.get("/contact", async (req, res) => {
-  const resp = await getAllContacts(req);
+  const resp = await getAllContacts(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/company/:companyId/contact", async (req,res)=>{
+  const resp = await getContactsByCompany(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/contact/:contactId", async (req,res)=>{
+  const resp = await getContactById(req, {} as any);
   resHelper(res, resp);
 });
 

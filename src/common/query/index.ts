@@ -17,7 +17,7 @@ export const getPaginateClauseObject = (body: any) => {
 export const getOrderByItems = (
   body: any,
   aliasKey = null
-): [ColumnRef, OrderByDirection] => {
+): [any, any] => {
   if (!body) return ["updatedAt", "desc"];
   const { sortBy, sortAscending } = body;
   const sortKey = sortBy ? sortBy : "updatedAt";

@@ -38,6 +38,7 @@ export const validateUpdateContact = async (
     name: Joi.string(),
     designation: Joi.string(),
     phoneNumbers: Joi.array().items(Joi.string()),
+    emails: Joi.array().items(Joi.string().email()),
     timezone: Joi.string(),
     details: Joi.object(),
   }).validateAsync(
@@ -56,19 +57,19 @@ export const validateDeleteContact = async (obj) => {
   }).validateAsync(obj);
 };
 
-export const validateAddEmail = async (employeeId, contactId, obj) => {
-  return Joi.object({
-    employeeId: Joi.string().guid().required(),
-    contactId: Joi.string().guid().required(),
-    email: Joi.string().email().required(),
-    emailType: Joi.string().required(),
-  }).validateAsync({ ...obj, employeeId, contactId });
-};
+// export const validateAddEmail = async (employeeId, contactId, obj) => {
+//   return Joi.object({
+//     employeeId: Joi.string().guid().required(),
+//     contactId: Joi.string().guid().required(),
+//     email: Joi.string().email().required(),
+//     emailType: Joi.string().required(),
+//   }).validateAsync({ ...obj, employeeId, contactId });
+// };
 
-export const validateDeleteEmail = async (employeeId, emailId) => {
-  return Joi.object({
-    employeeId: Joi.string().guid().required(),
-    emailId: Joi.string().guid().required(),
-  }).validateAsync({ employeeId, emailId });
-};
+// export const validateDeleteEmail = async (employeeId, emailId) => {
+//   return Joi.object({
+//     employeeId: Joi.string().guid().required(),
+//     emailId: Joi.string().guid().required(),
+//   }).validateAsync({ employeeId, emailId });
+// };
 

@@ -170,26 +170,40 @@ const companyHandler = {
         cors: true,
       },
     },
-    {
-      http: {
-        method: "post",
-        path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "delete",
-        path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-        cors: true,
-      },
-    },
+    // {
+    //   http: {
+    //     method: "post",
+    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+    //     cors: true,
+    //   },
+    // },
+    // {
+    //   http: {
+    //     method: "delete",
+    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+    //     cors: true,
+    //   },
+    // },
 
     ////
     {
       http:{
         method:"get",
         path:"contact",
+        cors:true,
+      }
+    },
+    {
+      http:{
+        method:"get",
+        path:"company/{companyId}/contact",
+        cors:true,
+      }
+    },
+    {
+      http:{
+        method:"get",
+        path:"contact/{contactId}",
         cors:true,
       }
     }

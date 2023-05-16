@@ -15,6 +15,7 @@ export async function up(knex: Knex): Promise<void> {
 
       table.string("name").notNullable();
       table.string("designation");
+      table.jsonb("emails").defaultTo(JSON.stringify([]));
       table.jsonb("phone_numbers").defaultTo(JSON.stringify([]));
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table.string("timezone");
