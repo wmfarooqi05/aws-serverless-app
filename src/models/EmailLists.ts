@@ -3,12 +3,12 @@ import { singleton } from "tsyringe";
 import { IWithPagination } from "knex-paginate";
 import Activity from "./Activity";
 import {
-  CONTACT_EMAILS_TABLE,
+  EMAIL_ADDRESSES_TABLE,
   EMAIL_LIST_TABLE,
   EMAIL_LIST_TO_CONTACT_EMAILS,
   TEAMS_TABLE,
 } from "./commons";
-import ContactEmailsModel from "./ContactEmails";
+import ContactEmailsModel from "./EmailAddresses";
 
 export interface IEmailList {
   id?: string;
@@ -49,20 +49,20 @@ export default class EmailListModel extends Model {
   // This object defines the relations to other models. The relationMappings
   // property can be a thunk to prevent circular dependencies.
   static relationMappings = () => ({
-    // contactEmails: {
-    //   relation: Model.ManyToManyRelation,
-    //   // The related model.
-    //   modelClass: ContactEmailsModel,
-    //   join: {
-    //     from: `${EMAIL_LIST_TABLE}.id`,
-    //     through: {
-    //       from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
-    //       to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
-    //       onDelete: "NO ACTION",
-    //     },
-    //     to: `${CONTACT_EMAILS_TABLE}.id`,
-    //   },
-    // },
+    emailAddresses: {
+      relation: Model.ManyToManyRelation,
+      // The related model.
+      modelClass: ContactEmailsModel,
+      join: {
+        from: `${EMAIL_LIST_TABLE}.id`,
+        through: {
+          from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
+          to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
+          onDelete: "NO ACTION",
+        },
+        to: `${EMAIL_ADDRESSES_TABLE}.id`,
+      },
+    },
     emailListToTeamId: {
       relation: Model.BelongsToOneRelation,
       modelClass: Activity,

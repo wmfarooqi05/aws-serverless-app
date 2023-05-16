@@ -31,10 +31,10 @@ export const EMPLOYEE_COMPANY_INTERACTIONS_TABLE =
 export const TEAM_COMPANY_INTERACTIONS_TABLE =
   process.env.TEAM_COMPANY_INTERACTIONS_TABLE || "team_company_interactions";
 export const CONTACTS_TABLE = process.env.CONTACTS_TABLE || "contacts";
-export const CONTACT_EMAILS_TABLE =
-  process.env.CONTACT_EMAILS_TABLE || "contact_emails";
+export const EMAIL_ADDRESSES_TABLE = process.env.EMAIL_ADDRESSES_TABLE || "email_addresses";
+
 export const EMAIL_LIST_TO_CONTACT_EMAILS =
-  process.env.CONTACT_EMAILS_TABLE || "email_list_to_contact_emails";
+  process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

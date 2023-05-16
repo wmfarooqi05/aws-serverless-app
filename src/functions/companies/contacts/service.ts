@@ -4,36 +4,21 @@ import CompanyModel, {
   ICompanyPaginated,
 } from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import moment from "moment-timezone";
 
 import {
-  validateAddEmail,
   validateCreateContact,
-  validateDeleteEmail,
   validateUpdateContact,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
-import { randomUUID } from "crypto";
 import {
-  validateJSONItemAndGetIndex,
   updateHistoryHelper,
 } from "src/common/json_helpers";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import ContactModel, { IContact } from "@models/Contacts";
-import ContactEmailsModel, { IContactEmails } from "@models/ContactEmails";
-import EmailListModel, { IEmailList } from "@models/EmailLists";
-import EmailListToContactEmailsModel from "@models/EmailListToContactEmails";
 import { CustomError } from "@helpers/custom-error";
-import UpdateHistoryModel from "@models/UpdateHistory";
-import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
-import {
-  CONTACTS_TABLE,
-  CONTACT_EMAILS_TABLE,
-  EMAIL_LIST_TO_CONTACT_EMAILS,
-} from "@models/commons";
 import { ICompany } from "@models/interfaces/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 

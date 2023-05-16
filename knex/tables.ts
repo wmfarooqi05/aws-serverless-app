@@ -21,7 +21,7 @@ export const tableName = {
   teamCompanyInteraction:
     process.env.TEAM_COMPANY_INTERACTIONS || "team_company_interactions",
   contacts: process.env.CONTACTS_TABLE || "contacts",
-  contactEmails: process.env.CONTACT_EMAILS_TABLE || "contact_emails",
+  emailAddresses:process.env.EMAIL_ADDRESSES || "email_addresses",
   emailListToContactEmails:
     process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails",
 };

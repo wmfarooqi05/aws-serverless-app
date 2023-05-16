@@ -4,9 +4,7 @@ import { singleton } from "tsyringe";
 import {
   COMPANIES_TABLE_NAME,
   CONTACTS_TABLE,
-  CONTACT_EMAILS_TABLE,
 } from "./commons";
-import ContactEmailsModel from "./ContactEmails";
 
 export interface IContact {
   id: string;

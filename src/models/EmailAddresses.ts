@@ -3,14 +3,14 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import {
   CONTACTS_TABLE,
-  CONTACT_EMAILS_TABLE,
+  EMAIL_ADDRESSES_TABLE,
   EMAIL_LIST_TABLE,
   EMAIL_LIST_TO_CONTACT_EMAILS,
 } from "./commons";
 import EmailListModel from "./EmailLists";
 import ContactModel from "./Contacts";
 
-export interface IContactEmails {
+export interface IEmailAddresses {
   id: string;
   contactId: string;
   email: string;
@@ -18,9 +18,9 @@ export interface IContactEmails {
 }
 
 @singleton()
-export default class ContactEmailsModel extends Model {
+export default class EmailAddressesModel extends Model {
   static get tableName() {
-    return CONTACT_EMAILS_TABLE;
+    return EMAIL_ADDRESSES_TABLE;
   }
 
   static get columnNames(): string[] {
@@ -48,7 +48,7 @@ export default class ContactEmailsModel extends Model {
       // The related model.
       modelClass: EmailListModel,
       join: {
-        from: `${CONTACT_EMAILS_TABLE}.id`,
+        from: `${EMAIL_ADDRESSES_TABLE}.id`,
         through: {
           from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
           to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
@@ -62,12 +62,12 @@ export default class ContactEmailsModel extends Model {
       // The related model.
       modelClass: ContactModel,
       join: {
-        from: `${CONTACT_EMAILS_TABLE}.contactId`,
+        from: `${EMAIL_ADDRESSES_TABLE}.contactId`,
         to: `${CONTACTS_TABLE}.id`,
       },
     },
   });
 }
 
-export type IContactEmailsModel = ModelObject<ContactEmailsModel>;
-export type IContactEmailsPaginated = IWithPagination<IContactEmailsModel>;
+export type IEmailAddressesModel = ModelObject<EmailAddressesModel>;
+export type IEmailAddressesPaginated = IWithPagination<IEmailAddressesModel>;
