@@ -52,6 +52,8 @@ import {
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
 import {
+  COMPANIES_TABLE_NAME,
+  CONTACTS_TABLE,
   EMPLOYEE_COMPANY_INTERACTIONS_TABLE,
   TEAM_COMPANY_INTERACTIONS_TABLE,
 } from "@models/commons";
@@ -66,6 +68,8 @@ import TeamCompanyInteractionsModel, {
   getDefaultTeamInteractionItem,
 } from "@models/TeamCompanyInteractions";
 import TeamModel, { ITeam } from "@models/Teams";
+import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
+import UpdateHistoryModel from "@models/UpdateHistory";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -179,33 +183,64 @@ export class CompanyService implements ICompanyService {
     if (!payload.timezone) {
       payload.timezone = defaultTimezone;
     }
-    // const { permitted, createPendingApproval } = employee;
-    // if (!permitted && createPendingApproval) {
-    //   return this.pendingApprovalService.createPendingApprovalRequest(
-    //     PendingApprovalType.CREATE,
-    //     null,
-    //     employee,
-    //     CompanyModel.tableName,
-    //     payload
-    //   );
-    // }
 
-    let company = null;
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      const finalQueries = await createKnexTransactionQueries(
+    const contactsPayload = payload.contacts;
+    delete payload.contacts;
+
+    const { permitted, createPendingApproval } = employee;
+    if (!permitted && createPendingApproval) {
+      return this.pendingApprovalService.createPendingApprovalRequest(
         PendingApprovalType.CREATE,
         null,
-        employee.sub,
+        employee,
         CompanyModel.tableName,
-        this.docClient.getKnexClient(),
         payload
       );
-      const resp = await trx.raw(finalQueries[0].toString());
-      company = snakeToCamel(resp.rows[0]);
-      await trx.raw(finalQueries[1].toString());
+    }
+
+    let company = null;
+    let error = null;
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const history: IUpdateHistory[] = [];
+        company = await CompanyModel.query(trx).insert(payload);
+        history.push({
+          actionType: PendingApprovalType.CREATE,
+          tableName: COMPANIES_TABLE_NAME,
+          newValue: JSON.stringify(company),
+          updatedBy: employee.sub,
+        });
+        const contactEmailsPromises = contactsPayload.map((x: any) =>
+          CompanyModel.relatedQuery("contacts", trx)
+            .for(company.id)
+            .insert({ ...x, companyId: company.id, createdBy: employee.sub })
+        );
+        const contacts = await Promise.all(contactEmailsPromises);
+        contacts.forEach((x) => {
+          history.push({
+            actionType: PendingApprovalType.CREATE,
+            tableName: CONTACTS_TABLE,
+            newValue: JSON.stringify(x),
+            updatedBy: employee.sub,
+          });
+        });
+
+        company["contacts"] = contacts;
+        await UpdateHistoryModel.query(trx).insert(history);
+
+        await trx.commit();
+      } catch (e) {
+        error = e;
+        await trx.rollback();
+        throw new CustomError(e.message, 500);
+      }
     });
 
-    return { company: this.validateCompanyWithInteractions(company) };
+    if (error) {
+      throw new CustomError(error.message, 500);
+    }
+
+    return company;
   }
 
   async updateCompany(

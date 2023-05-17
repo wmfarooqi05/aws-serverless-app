@@ -527,7 +527,7 @@ export const getObjectType = (tableName: string, key: string) => {
   const map: Record<string, Record<string, OBJECT_KEY_TYPE>> = {
     companies: {
       companyName: "SIMPLE_KEY",
-      contacts: "JSONB",
+      contacts: "SIMPLE_KEY",
       addresses: "SIMPLE_KEY",
       assignedTo: "SIMPLE_KEY",
       assignedBy: "SIMPLE_KEY",

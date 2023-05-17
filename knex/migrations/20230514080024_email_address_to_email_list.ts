@@ -1,13 +1,13 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
-const tableName = Tables.emailListToContactEmails;
+const tableName = Tables.emailAddressToEmailList;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable(tableName, (table) => {
     table
-      .uuid("contact_email_id")
+      .uuid("email_address_id")
       .references("id")
-      .inTable(Tables.contactEmails)
+      .inTable(Tables.emailAddresses)
       .notNullable()
       .onDelete('NO ACTION');
     table
@@ -17,7 +17,7 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .onDelete('NO ACTION');
 
-    table.primary(["contact_email_id", "email_list_id"]);
+    table.primary(["email_address_id", "email_list_id"]);
   });
 }
 

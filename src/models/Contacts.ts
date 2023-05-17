@@ -5,6 +5,7 @@ import {
   COMPANIES_TABLE_NAME,
   CONTACTS_TABLE,
 } from "./commons";
+import CompanyModel from "./Company";
 
 export interface IContact {
   id: string;
@@ -62,9 +63,9 @@ export default class ContactModel extends Model {
     //   },
     // },
     company: {
-      relation: Model.BelongsToOneRelation,
+      relation: Model.HasOneRelation,
       // The related model.
-      modelClass: COMPANIES_TABLE_NAME,
+      modelClass: CompanyModel,
       join: {
         from: `${CONTACTS_TABLE}.companyId`,
         to: `${COMPANIES_TABLE_NAME}.id`,

@@ -7,11 +7,6 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("contact_id")
-        .references("id")
-        .inTable(Tables.contacts)
-        .notNullable();
 
       table.string("email").notNullable();
       table.string("email_type");

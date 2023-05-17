@@ -16,7 +16,7 @@ export interface IUpdateHistory {
   subField?: string;
   oldValue?: any;
   newValue?: any;
-  actionType: PendingApprovalType;
+  actionType: string;
   updatedBy: string;
   createdAt?: string;
   updatedAt?: string;

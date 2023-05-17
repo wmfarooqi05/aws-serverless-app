@@ -1,8 +1,10 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { COMPANIES_TABLE_NAME, EMPLOYEES_TABLE_NAME } from "./commons";
+import { COMPANIES_TABLE_NAME, CONTACTS_TABLE, EMPLOYEES_TABLE_NAME } from "./commons";
 import Employee from "./Employees";
+
+import ContactModel from './Contacts';
 
 @singleton()
 export default class CompanyModel extends Model {
@@ -57,16 +59,19 @@ export default class CompanyModel extends Model {
         to: `${EMPLOYEES_TABLE_NAME}.id`,
       },
     },
+    contacts: {
+      relation: Model.HasManyRelation,
+      // The related model.
+      modelClass: ContactModel,
+      join: {
+        from: `${COMPANIES_TABLE_NAME}.id`,
+        to: `${CONTACTS_TABLE}.companyId`,
+      },
+    },
   });
 
   static get jsonAttributes() {
-    return [
-      "activities",
-      "assignmentHistory",
-      "addresses",
-      "notes",
-      "details"
-    ];
+    return ["activities", "assignmentHistory", "addresses", "notes", "details"];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();
