@@ -105,6 +105,18 @@ export const uploadJsonAsXlsx = async (
   return uploadContentToS3(Key, buffer, ACL);
 };
 
+/**
+ * 
+ * @param sourceKey 
+ * @param destinationKey 
+ * @param ACL 
+ * @param deleteOriginal 
+ * @param sourceBucket 
+ * @param sourceRegion 
+ * @param destinationBucket 
+ * @param destinationRegion 
+ * @returns 
+ */
 export const copyS3Object = async (
   sourceKey: string,
   destinationKey: string,

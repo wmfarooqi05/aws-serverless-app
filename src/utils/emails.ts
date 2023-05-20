@@ -31,3 +31,15 @@ export const isHtml = (str) => {
   const htmlRegex = /<[a-z][\s\S]*>/i;
   return htmlRegex.test(str);
 };
+
+export const mergeEmailAndSenderName = (
+  list: { email: string; name?: string }[]
+): string[] => {
+  if (!list?.length) return [];
+  return list.map((x) => {
+    if (x.name) {
+      return `${x.name} <${x.email}>`;
+    }
+    return x.email;
+  });
+};

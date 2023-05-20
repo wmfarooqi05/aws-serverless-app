@@ -21,9 +21,9 @@ import {
   uploadContentToS3,
   uploadFileToS3,
 } from "@functions/jobs/upload";
-import { generateThumbnailFromHtml } from "../utils";
 import { validateCreateEmailTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
+import { generateThumbnailFromHtml } from "@utils/thumbnails";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });

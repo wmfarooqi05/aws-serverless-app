@@ -2,27 +2,19 @@ import "reflect-metadata";
 // import { DatabaseService } from "./models/database";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { container, inject, injectable } from "tsyringe";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { inject, injectable } from "tsyringe";
+import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailRecordsModel, { JobsModel } from "@models/dynamoose/Jobs";
+import EmailRecordsModel from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import { validateBulkEmails, validateSendEmail } from "./schema";
-import {
-  IEmailSqsEventInput,
-  IRecipientItem,
-} from "@models/interfaces/Reminders";
-import { SQSService } from "@functions/sqs/service";
-import { COMPANIES_TABLE_NAME } from "@models/commons";
-import { ICompany } from "@models/interfaces/Company";
-import { chunk } from "lodash";
+import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSEvent } from "aws-lambda";
 import * as fs from "fs";
-import { simpleParser, Attachment, EmailAddress, ParsedMail } from "mailparser";
+import { simpleParser, Attachment, EmailAddress } from "mailparser";
 import {
   copyS3Object,
-  getS3ReadableFromKey,
   getKeysFromS3Url,
   uploadContentToS3,
   getS3ReadableFromUrl,
@@ -40,7 +32,6 @@ import {
 } from "@aws-sdk/client-s3";
 import moment from "moment-timezone";
 import { EmailTemplatesModel, IEmailTemplate } from "./models/EmailTemplate";
-import EmailListModel from "@models/EmailLists";
 import EmailAddressesModel, { IEmailAddresses } from "@models/EmailAddresses";
 import {
   GetTemplateCommand,
@@ -48,22 +39,19 @@ import {
   SESClient,
   SendBulkTemplatedEmailCommand,
   SendBulkTemplatedEmailCommandInput,
-  SendEmailCommandInput,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
 } from "@aws-sdk/client-ses";
-import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import zlib from "zlib";
-import nodemailer from "nodemailer";
-import Mail from "nodemailer/lib/mailer";
+import { formatErrorResponse } from "@libs/api-gateway";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
 const sesClient = new SESClient({ region: process.env.REGION });
 // const MailComposer = require("nodemailer/lib/mail-composer");
 import MailComposer from "nodemailer/lib/mail-composer";
-import { isHtml } from "@utils/emails";
 import { isValidUrl } from "@utils/index";
+import { mergeEmailAndSenderName } from "@utils/emails";
+import EmployeeModel from "@models/Employees";
 
 export interface IEmailService {}
 
@@ -83,16 +71,19 @@ export class EmailService implements IEmailService {
    * @param body
    * @returns
    */
-  async sendEmail(employee: IEmployeeJwt, _body: any): Promise<IEmailModel> {
+  async sendEmail(employeeJwt: IEmployeeJwt, _body: any): Promise<IEmailModel> {
     // nodemailer.createTransport().sendMail({});
     // @TODO get reporting manager if want to add CC
 
     const payload = JSON.parse(_body);
     await validateSendEmail(payload);
 
+    const employee: IEmployee = await EmployeeModel.query().findById(
+      employeeJwt.sub
+    );
+
+    const { name: senderName, email: senderEmail, id: senderId } = employee;
     const {
-      senderName,
-      senderEmail,
       toList,
       ccList,
       bccList,
@@ -101,13 +92,12 @@ export class EmailService implements IEmailService {
       isBodyUploaded,
       replyTo,
       attachments,
-      companyId,
-      contactId,
     } = payload;
 
     let deleteS3Items = [];
     // Add email sender id, and use sendername and sender email from JWT
     const email: IEmail = {
+      senderId,
       body,
       isBodyUploaded,
       direction: "SENT",
@@ -116,9 +106,75 @@ export class EmailService implements IEmailService {
       status: "SENDING",
       subject,
     };
-    let error = "";
-    let emailEntity: IEmail = null;
+    let emailEntity = await this.createEmailObject(
+      email,
+      toList,
+      ccList,
+      bccList
+    );
 
+    try {
+      const { mailComposer, copyS3Promises, fileMap } = await this.composeEmail(
+        senderName,
+        senderEmail,
+        toList,
+        ccList,
+        bccList,
+        subject,
+        replyTo,
+        body,
+        attachments,
+        emailEntity.id,
+        isBodyUploaded
+      );
+      const rawMail = await mailComposer.compile().build();
+      const rawMailInput: SendRawEmailCommandInput = {
+        RawMessage: {
+          Data: rawMail,
+        },
+        ConfigurationSetName: "email_sns_config",
+        Destinations: [
+          ...mergeEmailAndSenderName(toList),
+          ...mergeEmailAndSenderName(ccList),
+          ...mergeEmailAndSenderName(bccList),
+        ],
+        Source: `${senderName} <${senderEmail}>`,
+      };
+      const resp = await sesClient.send(new SendRawEmailCommand(rawMailInput));
+
+      if (resp.$metadata.httpStatusCode === 200) {
+        await Promise.all(copyS3Promises);
+        const updateParams: any = {
+          status: "SENT",
+          attachments: fileMap,
+          sentAt: moment().utc().format(),
+        };
+        emailEntity = { ...emailEntity, ...updateParams };
+        await EmailModel.query().patchAndFetchById(
+          emailEntity.id,
+          updateParams
+        );
+      }
+      // delete S3
+      return emailEntity;
+    } catch (e) {
+      // delete the copied items maybe
+      // we will not delete anything from tmp till mail is sent
+      console.log("e");
+      return formatErrorResponse(e);
+    }
+
+    return emailEntity;
+  }
+
+  async createEmailObject(
+    email: IEmail,
+    toList: EmailAddress[],
+    ccList: EmailAddress[],
+    bccList: EmailAddress[]
+  ) {
+    let emailEntity: IEmail = null;
+    let error: any = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         emailEntity = await EmailModel.query(trx).insert(email);
@@ -159,11 +215,50 @@ export class EmailService implements IEmailService {
         await trx.rollback();
       }
     });
-
-    let emailBody = body;
+    if (error) {
+      throw new CustomError(error.message, error.statusCode);
+    }
+    return emailEntity;
+  }
+  /**
+   *
+   * @param senderName
+   * @param senderEmail
+   * @param toList
+   * @param ccList
+   * @param bccList
+   * @param subject
+   * @param replyTo
+   * @param emailBody
+   * @param attachments
+   * @param emailId
+   * @returns
+   */
+  async composeEmail(
+    senderName: string,
+    senderEmail: string,
+    toList: { email: string; name: string }[],
+    ccList: { email: string; name: string }[],
+    bccList: { email: string; name: string }[],
+    subject: string,
+    replyTo: string,
+    body: string,
+    attachments: {
+      url: string;
+      contentType: string;
+      filename: string;
+    }[],
+    emailId: string,
+    isBodyUploaded: boolean
+  ): Promise<{
+    mailComposer: MailComposer;
+    copyS3Promises: Promise<CopyObjectCommandOutput>[];
+    fileMap: any[];
+  }> {
+    let emailBody: any = body;
     if (isBodyUploaded && isValidUrl(emailBody)) {
       emailBody = await getS3ReadableFromUrl(emailBody);
-      deleteS3Items.push(emailBody);
+      // deleteS3Items.push(emailBody);
     }
 
     const mailComposer = new MailComposer({
@@ -181,28 +276,6 @@ export class EmailService implements IEmailService {
       replyTo,
       html: emailBody,
     });
-    // mailComposer.mail.headers = [
-    //   {
-    //     key: "Content-Type",
-    //     value: "text/html",
-    //   },
-    //   {
-    //     key: "Content-Transfer-Encoding",
-    //     value: "quoted-printable",
-    //   },
-    // ];
-    // mailComposer.mail.encoding = ''
-    // mailComposer.mail.setHeader("Content-Type", "text/html");
-    // mailComposer.mail.setHeader(
-    //   "Content-Transfer-Encoding",
-    //   "quoted-printable"
-    // );
-    // mailComposer.mail.headers = [
-    //   "Content-Type",
-    //   "text/html",
-    //   "Content-Transfer-Encoding",
-    //   "quoted-printable",
-    // ];
 
     const copyS3Promises: Promise<CopyObjectCommandOutput>[] = [];
     const fileMap = [];
@@ -210,7 +283,7 @@ export class EmailService implements IEmailService {
     if (attachments?.length) {
       const attachmentStreams = await Promise.all(
         attachments.map((x) => {
-          deleteS3Items.push(x.url);
+          // deleteS3Items.push(x.url);
           return getS3ReadableFromUrl(x.url);
         })
       );
@@ -224,7 +297,7 @@ export class EmailService implements IEmailService {
       });
       attachments.forEach((x) => {
         const uuidName = randomUUID();
-        const newKey = `media/attachments/${emailEntity.id}/${uuidName}}`;
+        const newKey = `media/attachments/${emailId}/${uuidName}}`;
         const keys = getKeysFromS3Url(x.url);
         fileMap.push({
           fileKey: newKey,
@@ -238,58 +311,14 @@ export class EmailService implements IEmailService {
             keys.fileKey,
             newKey,
             "public-read",
-            true,
+            false,
             keys.bucketName,
             keys.region
           )
         );
       });
     }
-    try {
-      const rawMail = await mailComposer.compile().build();
-      console.log("rawMail", rawMail);
-      const rawMailInput: SendRawEmailCommandInput = {
-        RawMessage: {
-          Data: rawMail,
-        },
-        ConfigurationSetName: "email_sns_config",
-        Destinations: [
-          ...this.mergeEmailAndSenderName(toList),
-          ...this.mergeEmailAndSenderName(ccList),
-          ...this.mergeEmailAndSenderName(bccList),
-        ],
-        Source: `${senderName} <${senderEmail}>`,
-      };
-      const resp = await sesClient.send(new SendRawEmailCommand(rawMailInput));
-
-      if (resp.$metadata.httpStatusCode === 200) {
-        await Promise.all(copyS3Promises);
-        await EmailModel.query().patchAndFetchById(emailEntity.id, {
-          status: "SENT",
-          attachments: fileMap,
-          sentAt: moment().utc().format(),
-        } as IEmail);
-      }
-      // delete S3
-      return emailEntity;
-    } catch (e) {
-      // delete the copied items maybe
-      // we will not delete anything from tmp till mail is sent
-      console.log("e");
-      return formatErrorResponse(e);
-    }
-
-    return emailEntity;
-  }
-
-  mergeEmailAndSenderName(list: { email: string; name?: string }[]): string[] {
-    if (!list?.length) return [];
-    return list.map((x) => {
-      if (x.name) {
-        return `${x.name} <${x.email}>`;
-      }
-      return x.email;
-    });
+    return { mailComposer, copyS3Promises, fileMap };
   }
   /**
    * Push the emails in chunk of 50 in each sqs item
@@ -401,54 +430,6 @@ export class EmailService implements IEmailService {
     // return jobs.filter((x) => x.id);
   }
 
-  private createEmailSqsInputs(
-    emailPayload: any,
-    emailList: IEmailSqsEventInput["details"]["recipients"],
-    createdBy: IEmployeeJwt
-  ): IEmailSqsEventInput[] {
-    const chunkSize = 10;
-    return chunk(emailList, chunkSize).map((x) => {
-      const { subject, body, ccList, bccList } = emailPayload;
-      const id = randomUUID();
-      return {
-        eventType: "SEND_EMAIL",
-        name: `EMAIL_JOB_${id}`,
-        details: {
-          body,
-          ConfigurationSetName: "email_sns_config", // @TODO change with env
-          toList: x,
-          senderEmail: createdBy.email,
-          senderId: createdBy.sub,
-          subject,
-          bccList,
-          ccList,
-        },
-      } as IEmailSqsEventInput;
-    });
-  }
-
-  private getEmailIdsFromCompanies(
-    companies: ICompany[],
-    emailListId: string
-  ): IEmailSqsEventInput["details"]["toList"] {
-    const emailIds = [];
-    companies.forEach((company: ICompany) => {
-      company.contacts.forEach((x) => {
-        if (x?.emailList?.includes(emailListId)) {
-          emailIds.push(
-            ...x.emailList.map((e) => {
-              return {
-                recipientName: x.name,
-                recipientEmail: e,
-              } as IRecipientItem;
-            })
-          );
-        }
-      });
-    });
-    return emailIds;
-  }
-
   async updateEmail(
     employee: IEmployeeJwt,
     id: string,
@@ -522,90 +503,35 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async sendEmailTest(body: any) {
-    const payload = JSON.parse(body);
-    const { from, recipients, subject, body: emailBody } = payload;
-
-    const resp = await this.sesEmailService.sendEmail(
-      from,
-      recipients,
-      subject,
-      emailBody,
-      "email_sns_config",
-      [],
-      [],
-      [from]
-    );
-    return resp;
-  }
-
   async receiveEmailHelper(Records: SQSEvent["Records"][0]) {
     const deleteEvent = [];
     console.log("[receiveEmailHelper] records", Records);
-    // for (const record of Records) {
-    // console.log("[sqsJobQueueInvokeHandler] record", record);
     const record = Records[0];
     const payload = JSON.parse(record.body);
     console.log("payload", payload);
     const messagePayload = JSON.parse(payload?.Message);
     console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
-    const mailStream = fs.createReadStream(payload.filePath);
-    // const mailStream = await this.downloadStreamFromUSEastBucket(
-    //   `incoming-emails/${messagePayload.mail.messageId}`
-    // );
+    // const mailStream = fs.createReadStream(payload.filePath);
+    const mailStream = await this.downloadStreamFromUSEastBucket(
+      `incoming-emails/${messagePayload.mail.messageId}`
+    );
 
-    // const messagePath = `/tmp/${randomUUID()}`;
-    // await fs.promises.mkdir(messagePath);
     const mailObject = await simpleParser(mailStream);
-    // const attachmentList = await this.saveAttachmentsToTmp(
-    //   messagePath,
-    //   mailObject.attachments
-    // );
-    // delete mailObject.attachments;
-
-    /////// Thumbnails
-    // await fs.promises.mkdir(`${messagePath}/thumbnails`);
-    // const thumbnailPromises = this.generateThumbnails(
-    //   messagePath,
-    //   attachmentList
-    // );
-    // const thumbnails = await Promise.all(thumbnailPromises);
-
-    // @TODO handle Thumbnails
-    // const tmpS3Path = "media/tmp";
-
-    // const attachmentsS3Promises = attachmentList.map((x) =>
-    //   uploadFileToS3(
-    //     x.absolutePath,
-    //     `media/attachments/${messagePayload.mail.messageId}/${x.nameWithExt}`
-    //   )
-    // );
-    
-    const attachmentsS3Promises = mailObject.attachments.map((x) =>
-      uploadContentToS3(
-        `media/attachments/${messagePayload.mail.messageId}/${randomUUID()}.${
+    const attachmentsS3Promises = mailObject.attachments.map((x) => {
+      return uploadContentToS3(
+        `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
           x.contentType.split("/")[1]
         }`,
         x.content
-      )
-    );
+      );
+    });
 
     const attachmentsS3 = await Promise.all(attachmentsS3Promises);
     console.log("attachmentsS3", attachmentsS3);
-    // const attachments = await this.transferFiles(
-    //   messagePayload.mail.messageId,
-    //   attachmentList,
-    //   attachmentsS3
-    // );
 
-    let body = "";
-    if (mailObject.html) {
-      body = mailObject.html;
-    } else {
-      body = mailObject.text;
-    }
+    let body = mailObject.html ? mailObject.html : mailObject.text;
+
     let isBodyUploaded = false;
-    // const compressedBody = zlib.deflateSync(body).toString("base64");
     const MAX_DB_SIZE = 4000;
     if (body.length > MAX_DB_SIZE) {
       // Upload it to s3
@@ -626,8 +552,13 @@ export class EmailService implements IEmailService {
       sentAt: mailObject.date.toISOString(),
       status: "RECEIVED",
       subject: mailObject?.subject,
+      sesMessageId: messagePayload.mail.messageId,
       attachments: attachmentsS3.map((x) => {
-        return { ...x, updatedAt: moment().utc().format() };
+        return {
+          ...x,
+          updatedAt: moment().utc().format(),
+          filename: x.fileKey.split("/").at(-1),
+        };
       }),
       direction: "RECEIVED",
       isBodyUploaded,
@@ -701,21 +632,15 @@ export class EmailService implements IEmailService {
     // Pipe the response to a writable stream and collect it as a Buffer
     const bufferStream = new stream.PassThrough();
     return objectData.Body.pipe(bufferStream);
-
-    // Accumulate the data in a buffer
-    const chunks = [];
-    bufferStream.on("readable", () => {
-      let chunk;
-      while ((chunk = bufferStream.read()) !== null) {
-        chunks.push(chunk);
-      }
-    });
-
-    await stream.promises.finished(bufferStream);
-
-    return Buffer.concat(chunks);
   }
 
+  /**
+   * @deprecated
+   * @param messageId
+   * @param attachmentList
+   * @param s3TmpFiles
+   * @returns
+   */
   async transferFiles(
     messageId: string,
     attachmentList: {
@@ -735,6 +660,8 @@ export class EmailService implements IEmailService {
       attachments.push({
         fileUrl: key.fileUrl,
         updatedAt: moment().utc().format(),
+        fileKey: key.fileKey,
+        filename: key.fileKey.split("/").at(-1),
       });
       const CopySource = `media/tmp/${attachmentList[index].nameWithExt}`;
       const Key = `media/attachments/${messageId}/${attachmentList[index].nameWithExt}`;
@@ -752,7 +679,7 @@ export class EmailService implements IEmailService {
       }
     });
 
-    const newLoc = await Promise.all(copyPromises);
+    await Promise.all(copyPromises);
     // attachments = attachments.map((x, index) => {
     //   return {
     //     ...x,
@@ -862,6 +789,12 @@ export class EmailService implements IEmailService {
   //   });
   // }
 
+  /**
+   * will be used in generating thumbnails
+   * @param folderPath
+   * @param attachments
+   * @returns
+   */
   async saveAttachmentsToTmp(folderPath: string, attachments: Attachment[]) {
     if (!attachments.length) return [];
     const saveToTmpPromises = [];
@@ -896,11 +829,10 @@ export class EmailService implements IEmailService {
     return attachmentList;
   }
 
-  getHalfDuration(duration: string | number) {
-    if (typeof duration === "number") return duration / 2;
-    if (typeof duration === "string") return parseInt(duration) / 2;
-  }
-
+  /**
+   * @deprecated
+   * @param body
+   */
   async sendRawMail(body) {
     const payload = JSON.parse(body);
     const mail = await fs.promises.readFile(payload.filePath);

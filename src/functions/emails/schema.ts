@@ -5,9 +5,6 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
   return Joi.object({
     details: Joi.array().items(
       Joi.object({
-        senderId: Joi.string().guid().required(),
-        senderEmail: Joi.string().email().required(),
-        senderName: Joi.string().required(),
         toList: Joi.array()
           .items(
             Joi.object({

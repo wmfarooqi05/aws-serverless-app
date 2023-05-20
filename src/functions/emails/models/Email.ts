@@ -44,8 +44,7 @@ export interface IATTACHMENT {
   fileUrl: string;
   updatedAt: string;
   fileKey: string;
-  uuidName: string;
-  originName: string;
+  filename: string;
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
@@ -54,6 +53,7 @@ export interface IEmail {
   subject: string;
   body: string;
   isBodyUploaded: boolean;
+  senderId: string;
   senderEmail: string;
   senderName: string;
   direction: EMAIL_DIRECTION;
@@ -78,6 +78,7 @@ export class EmailModel extends Model {
         id: { type: "string" },
         subject: { type: "string" },
         body: { type: "string" },
+        senderId: { type: "string" },
         senderEmail: { type: "string" },
         senderName: { type: "string" },
         direction: { type: "string" },
