@@ -144,6 +144,7 @@ export class EmailService implements IEmailService {
 
       if (resp.$metadata.httpStatusCode === 200) {
         await Promise.all(copyS3Promises);
+        // @TODO attachments not saving fileurl
         const updateParams: any = {
           status: "SENT",
           attachments: fileMap,
@@ -163,8 +164,6 @@ export class EmailService implements IEmailService {
       console.log("e");
       return formatErrorResponse(e);
     }
-
-    return emailEntity;
   }
 
   async createEmailObject(
@@ -274,7 +273,8 @@ export class EmailService implements IEmailService {
         : [],
       subject,
       replyTo,
-      html: emailBody,
+      text: emailBody,
+      // html: emailBody,
     });
 
     const copyS3Promises: Promise<CopyObjectCommandOutput>[] = [];
@@ -292,12 +292,14 @@ export class EmailService implements IEmailService {
         return {
           contentType: x.contentType,
           filename: x.filename,
-          raw: attachmentStreams[i],
+          content: attachmentStreams[i],
+          // raw: attachmentStreams[i],
         };
       });
+      // @TODO bring back
       attachments.forEach((x) => {
         const uuidName = randomUUID();
-        const newKey = `media/attachments/${emailId}/${uuidName}}`;
+        const newKey = `media/attachments/${emailId}/${x.filename}`;
         const keys = getKeysFromS3Url(x.url);
         fileMap.push({
           fileKey: newKey,

@@ -16,7 +16,7 @@ import { inject, injectable } from "tsyringe";
 import { EmailTemplatesModel, IEmailTemplate } from "../models/EmailTemplate";
 import {
   copyS3Object,
-  getS3ReadableFromKey,
+  getS3BufferFromKey,
   getKeysFromS3Url,
   uploadContentToS3,
   uploadFileToS3,

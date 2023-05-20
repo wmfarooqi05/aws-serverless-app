@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { CustomError } from "@helpers/custom-error";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import {
-  getS3ReadableFromKey,
+  getS3BufferFromKey,
   fileExists,
   uploadContentToS3,
   uploadJsonAsXlsx,
@@ -44,7 +44,7 @@ export const bulkImportUsersProcessHandler = async (jobId: string) => {
     //   return formatJSONResponse({ message: "Job already completed" }, 200);
     // }
     console.log("[bulkImportUsersProcessHandler] jobData", jobData);
-    const signupFile = await getS3ReadableFromKey(jobData?.details?.fileKey);
+    const signupFile = await getS3BufferFromKey(jobData?.details?.fileKey);
     console.log("signupFile downloaded");
     interface ITmpEmployee {
       name: string;

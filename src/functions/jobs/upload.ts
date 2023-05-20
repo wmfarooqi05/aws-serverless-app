@@ -14,6 +14,7 @@ import * as stream from "stream";
 import * as fs from "fs";
 import * as XLSX from "xlsx";
 import { snakeCase } from "lodash";
+import { Readable } from "stream";
 
 // @TODO rename this to s3-utils
 
@@ -106,16 +107,16 @@ export const uploadJsonAsXlsx = async (
 };
 
 /**
- * 
- * @param sourceKey 
- * @param destinationKey 
- * @param ACL 
- * @param deleteOriginal 
- * @param sourceBucket 
- * @param sourceRegion 
- * @param destinationBucket 
- * @param destinationRegion 
- * @returns 
+ *
+ * @param sourceKey
+ * @param destinationKey
+ * @param ACL
+ * @param deleteOriginal
+ * @param sourceBucket
+ * @param sourceRegion
+ * @param destinationBucket
+ * @param destinationRegion
+ * @returns
  */
 export const copyS3Object = async (
   sourceKey: string,
@@ -178,12 +179,12 @@ export const getKeysFromS3Url = (
   return { region, bucketName, fileKey };
 };
 
-export const getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
+export const getS3BufferFromUrl = async (url: string): Promise<Buffer> => {
   const keys = getKeysFromS3Url(url);
-  return getS3ReadableFromKey(keys.fileKey, keys.bucketName);
+  return getS3BufferFromKey(keys.fileKey, keys.bucketName);
 };
 
-export const getS3ReadableFromKey = async (
+export const getS3BufferFromKey = async (
   fileKey: string,
   bucketName: string = process.env.DEPLOYMENT_BUCKET
 ): Promise<Buffer> => {
@@ -191,7 +192,7 @@ export const getS3ReadableFromKey = async (
     Bucket: bucketName,
     Key: fileKey,
   };
-  console.log("[getS3ReadableFromKey] params", params);
+  console.log("[getS3BufferFromKey] params", params);
   const getObjectCommand = new GetObjectCommand(params);
   const objectData = await s3.send(getObjectCommand);
 
@@ -211,6 +212,26 @@ export const getS3ReadableFromKey = async (
   await stream.promises.finished(bufferStream);
 
   return Buffer.concat(chunks);
+};
+
+export const getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
+  const keys = getKeysFromS3Url(url);
+  return getS3ReadableFromKey(keys.fileKey, keys.bucketName);
+};
+
+export const getS3ReadableFromKey = async (
+  fileKey: string,
+  bucketName: string = process.env.DEPLOYMENT_BUCKET
+): Promise<Buffer> => {
+  const params: GetObjectCommandInput = {
+    Bucket: bucketName,
+    Key: fileKey,
+  };
+  console.log("[getS3BufferFromKey] params", params);
+  const getObjectCommand = new GetObjectCommand(params);
+  const objectData = await s3.send(getObjectCommand);
+
+  return objectData.Body as Readable;
 };
 
 // const dir = path.resolve(path.join(__dirname, "errors"));
