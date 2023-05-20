@@ -1,5 +1,10 @@
 import express from "express";
-import { createEmailTemplate } from "./emailTemplates/handler";
+import {
+  createEmailTemplate,
+  getAllTemplates,
+  getTemplateById,
+} from "./emailTemplates/handler";
+import { getEmailTemplateContentById, sendBulkEmails, sendEmail } from "./handler";
 
 // import awsSlsExpress from '@vendia/serverless-express';
 const app = express();
@@ -18,8 +23,31 @@ app.use((req, _, next) => {
   next(); // Call the next middleware or route handler
 });
 
+app.get("/emails/templates", async (req, res) => {
+  const resp = await getAllTemplates(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/emails/template/:templateId", async (req, res) => {
+  const resp = await getTemplateById(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/emails/template/:templateId/content", async (req, res) => {
+  const resp = await getEmailTemplateContentById(req, {} as any);
+  resHelper(res, resp);
+});
 app.post("/emails/template", async (req, res) => {
   const resp = await createEmailTemplate(req, {} as any);
+  resHelper(res, resp);
+});
+app.post("/emails/send-bulk", async (req, res) => {
+  const resp = await sendBulkEmails(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/send-email", async (req, res) => {
+  const resp = await sendEmail(req, {} as any);
   resHelper(res, resp);
 });
 

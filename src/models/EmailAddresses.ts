@@ -4,6 +4,7 @@ import { singleton } from "tsyringe";
 import {
   CONTACTS_TABLE,
   EMAIL_ADDRESSES_TABLE,
+  EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE,
   EMAIL_LIST_TABLE,
   EMAIL_LIST_TO_CONTACT_EMAILS,
 } from "./commons";
@@ -12,8 +13,8 @@ import ContactModel from "./Contacts";
 
 export interface IEmailAddresses {
   id: string;
-  contactId: string;
   email: string;
+  emailType: string;
   updatedAt: string;
 }
 
@@ -32,12 +33,11 @@ export default class EmailAddressesModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        contactId: { type: "string" },
         email: { type: "string" },
         emailType: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["email", "contactId"],
+      required: ["email"],
       additionalProperties: false,
     };
   }
@@ -50,9 +50,9 @@ export default class EmailAddressesModel extends Model {
       join: {
         from: `${EMAIL_ADDRESSES_TABLE}.id`,
         through: {
-          from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
-          to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
-          onDelete: 'NO ACTION'
+          from: `${EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE}.email_address_id`,
+          to: `${EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE}.email_list_id`,
+          onDelete: "NO ACTION",
         },
         to: `${EMAIL_LIST_TABLE}.id`,
       },

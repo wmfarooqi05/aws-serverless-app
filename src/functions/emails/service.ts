@@ -32,9 +32,22 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import moment from "moment-timezone";
+import { EmailTemplatesModel, IEmailTemplate } from "./models/EmailTemplate";
+import EmailListModel from "@models/EmailLists";
+import EmailAddressesModel, { IEmailAddresses } from "@models/EmailAddresses";
+import {
+  GetTemplateCommand,
+  GetTemplateCommandInput,
+  SESClient,
+  SendBulkTemplatedEmailCommand,
+  SendBulkTemplatedEmailCommandInput,
+} from "@aws-sdk/client-ses";
+import { formatErrorResponse } from "@libs/api-gateway";
+import zlib from "zlib";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
+const sesClient = new SESClient({ region: process.env.REGION });
 
 export interface IEmailService {}
 
@@ -60,50 +73,40 @@ export class EmailService implements IEmailService {
     // @TODO get reporting manager if want to add CC
 
     const {
-      recipientId,
-      recipientEmail,
-      recipientName,
-      subject,
-      body: emailBody,
+      senderName,
+      senderEmail,
+      toList,
       ccList,
       bccList,
-      companyId,
+      subject,
+      body: emailBody,
+      replyTo,
+      attachments,
     } = payload;
 
-    const id = randomUUID();
-
-    const item: IEmailSqsEventInput = {
-      eventType: "SEND_EMAIL",
-      name: `EMAIL_JOB_${id}`,
-      details: {
-        body: emailBody,
-        ConfigurationSetName: "email_sns_config",
-        recipients: [
-          {
-            recipientEmail,
-            recipientName,
-            companyId,
-            recipientId,
-          },
-        ],
-        senderEmail: employee.email,
-        senderId: employee.sub,
+    // const email: IEmail = {
+    //   attachments
+    // }
+    try {
+      const resp = await this.sesEmailService.sendEmail(
+        `${senderName} <${senderEmail}>`,
+        this.mergeEmailAndSenderName(toList),
         subject,
-        bccList,
-        ccList,
-      },
-    };
+        emailBody,
+        "email_sns_config",
+        this.mergeEmailAndSenderName(ccList),
+        this.mergeEmailAndSenderName(bccList),
+        replyTo ? [...(replyTo as string[]), senderEmail] : [senderEmail]
+      );
+    } catch (e) {}
+  }
 
-    const resp = await container.resolve(SQSService).enqueueItems(item);
-
-    // @TODO fix this
-    return JobsModel.query().insert({
-      jobType: "SEND_EMAIL",
-      details: {
-        sqsResp: resp.MessageId,
-        emailDetails: item.details,
-      },
-      uploadedBy: employee.sub,
+  mergeEmailAndSenderName(list: { email: string; name?: string }[]): string[] {
+    return list.map((x) => {
+      if (x.name) {
+        return `${x.name} <${x.email}>`;
+      }
+      return x.email;
     });
   }
   /**
@@ -114,9 +117,48 @@ export class EmailService implements IEmailService {
    */
   async sendBulkEmails(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
-    // await validateBulkEmails(payload);
 
-    // const { emailListId } = payload;
+    await validateBulkEmails(payload);
+
+    const { emailListId, templateId, placeholders } = payload;
+
+    const emailTemplate: IEmailTemplate =
+      await EmailTemplatesModel.query().findById(templateId);
+    if (!emailTemplate) {
+      throw new CustomError("Template doesn't exists", 400);
+    }
+
+    const emailAddresses: IEmailAddresses[] = await EmailAddressesModel.query()
+      .joinRelated("emailLists")
+      .where("emailLists.id", emailListId);
+
+    const destinations: SendBulkTemplatedEmailCommandInput["Destinations"] =
+      emailAddresses.map((x) => {
+        return {
+          Destination: {
+            ToAddresses: [x.email],
+          },
+          ReplacementTemplateData: JSON.stringify({ name: "Recipient 1" }),
+        };
+      });
+
+    const params: SendBulkTemplatedEmailCommandInput = {
+      Source: "admin@elywork.com",
+      Template: "templateAbc", //emailTemplate.templateName,
+      Destinations: destinations,
+      ConfigurationSetName: "email_sns_config",
+      DefaultTemplateData: JSON.stringify({ name: "Recipient 1" }),
+    };
+
+    try {
+      const resp = await sesClient.send(
+        new SendBulkTemplatedEmailCommand(params)
+      );
+      return resp;
+    } catch (e) {
+      console.log(e);
+      return formatErrorResponse(e);
+    }
 
     // if (!emailListId) {
     //   return;
@@ -132,40 +174,41 @@ export class EmailService implements IEmailService {
     // const emailIds = this.getEmailIdsFromCompanies(companies, emailListId);
 
     // @WARNING EmailList is in main db and not in emailDb
-    const emailIds: IRecipientItem[] = [
-      {
-        recipientEmail: "wmfarooqi05@gmail.com",
-        recipientName: "waleed 05",
-      },
-      {
-        recipientEmail: "wmfarooqi70@gmail.com",
-        recipientName: "waleed 70",
-      },
-    ];
+    // const emailIds: IRecipientItem[] = [
+    //   {
+    //     recipientEmail: "wmfarooqi05@gmail.com",
+    //     recipientName: "waleed 05",
+    //   },
+    //   {
+    //     recipientEmail: "wmfarooqi70@gmail.com",
+    //     recipientName: "waleed 70",
+    //   },
+    // ];
 
-    const emailInputPayloads: IEmailSqsEventInput[] = this.createEmailSqsInputs(
-      payload,
-      emailIds,
-      employee
-    );
+    // const emailInputPayloads: IEmailSqsEventInput[] = this.createEmailSqsInputs(
+    //   payload,
+    //   emailIds,
+    //   employee
+    // );
 
-    const jobItems = emailInputPayloads.map((x) => {
-      return new JobsModel({
-        jobId: randomUUID(),
-        uploadedBy: employee.sub,
-        jobType: "BULK_EMAIL",
-        details: x,
-        jobStatus: "PENDING",
-      });
-    });
+    // const jobItems = emailInputPayloads.map((x) => {
+    //   return new JobsModel({
+    //     jobId: randomUUID(),
+    //     uploadedBy: employee.sub,
+    //     jobType: "BULK_EMAIL",
+    //     details: x,
+    //     jobStatus: "PENDING",
+    //   });
+    // });
 
     // Use the batchPut method to perform bulk create
-    return JobsModel.batchPut(jobItems);
+    // return JobsModel.batchPut(jobItems);
     // Need to write a helper method which picks the batch of X and put in SQS
     // const sqsItemsWithJobId: IEmailSqsEventInput[] = emailInputPayloads.map(
     //   (x: IEmailSqsEventInput, i) => {
     //     return {
-    //       ...x,
+    //       ...x,tntzii.com
+
     //       jobId: jobs[i].id,
     //     };
     //   }
@@ -319,7 +362,7 @@ export class EmailService implements IEmailService {
     console.log("[receiveEmailHelper] records", Records);
     // for (const record of Records) {
     // console.log("[sqsJobQueueInvokeHandler] record", record);
-    const record = Records;
+    const record = Records[0];
     const payload = JSON.parse(record.body);
     console.log("payload", payload);
     const messagePayload = JSON.parse(payload?.Message);
@@ -332,7 +375,6 @@ export class EmailService implements IEmailService {
     // const messagePath = `/tmp/${randomUUID()}`;
     // await fs.promises.mkdir(messagePath);
     const mailObject = await simpleParser(mailStream);
-    console.log("mailObject", mailObject.subject);
     // const attachmentList = await this.saveAttachmentsToTmp(
     //   messagePath,
     //   mailObject.attachments
@@ -348,7 +390,7 @@ export class EmailService implements IEmailService {
     // const thumbnails = await Promise.all(thumbnailPromises);
 
     // @TODO handle Thumbnails
-    const tmpS3Path = "media/tmp";
+    // const tmpS3Path = "media/tmp";
 
     // const attachmentsS3Promises = attachmentList.map((x) =>
     //   uploadFileToS3(
@@ -374,9 +416,26 @@ export class EmailService implements IEmailService {
     //   attachmentsS3
     // );
 
+    let body = "";
+    if (mailObject.html) {
+      body = mailObject.html;
+    } else {
+      body = mailObject.text;
+    }
+    let isBodyUploaded = false;
+    body = zlib.deflateSync(body).toString("base64");
+    const MAX_DB_SIZE = 4000;
+    if (body.length > MAX_DB_SIZE) {
+      // Upload it to s3
+      const resp = await uploadContentToS3(
+        `media/body/${messagePayload.mail.messageId}/${randomUUID()}`,
+        body
+      );
+      isBodyUploaded = true;
+      body = resp.fileUrl;
+    }
     const email: IEmail = {
-      body: mailObject?.text,
-      bodyAsHtml: mailObject?.textAsHtml,
+      body,
       senderEmail: mailObject?.from?.value[0]?.address,
       senderName: mailObject?.from?.value[0]?.name,
       sentAt: mailObject.date.toISOString(),
@@ -386,12 +445,13 @@ export class EmailService implements IEmailService {
         return { ...x, updatedAt: moment().utc().format() };
       }),
       direction: "RECEIVED",
+      isBodyUploaded,
     };
 
     let error = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
-        emailEntity = await EmailModel.query(trx).insert(email);
+        const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
         const recipients: IRecipient[] = [];
         mailObject.to?.value.map((x: EmailAddress) => {
           return recipients.push({
@@ -435,7 +495,14 @@ export class EmailService implements IEmailService {
     if (error) {
       console.log(error);
     }
-    // }
+  }
+
+  async getEmailTemplateContentById(employee, body) {
+    const commandInput: GetTemplateCommandInput = {
+      TemplateName: body.templateId,
+    };
+
+    return sesClient.send(new GetTemplateCommand(commandInput));
   }
 
   async downloadStreamFromUSEastBucket(keyName: string) {

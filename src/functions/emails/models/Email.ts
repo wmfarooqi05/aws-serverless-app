@@ -50,7 +50,7 @@ export interface IEmail {
   id: string;
   subject: string;
   body: string;
-  bodyAsHtml: string;
+  isBodyUploaded:boolean;
   senderEmail: string;
   senderName: string;
   direction: EMAIL_DIRECTION;

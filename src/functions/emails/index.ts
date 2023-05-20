@@ -12,6 +12,41 @@ const emailHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "emails/send-bulk",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "emails/template/{templateId}/content",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "emails/template/{templateId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "emails/templates",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "send-email",
+        cors: true,
+      },
+    },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
 };
@@ -36,19 +71,6 @@ const sendBulkEmails = {
       http: {
         method: "post",
         path: "bulk-email",
-        cors: true,
-      },
-    },
-  ],
-};
-
-const sendEmailText = {
-  handler: `${handlerPath(__dirname)}/handler.sendEmailText`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "send-email-test",
         cors: true,
       },
     },
@@ -142,7 +164,6 @@ export {
   emailHandler,
   sendEmail,
   sendBulkEmails,
-  sendEmailText,
   receiveEmailHandler,
   // handleEmailEvent
 };

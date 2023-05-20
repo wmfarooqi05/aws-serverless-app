@@ -31,8 +31,11 @@ export const EMPLOYEE_COMPANY_INTERACTIONS_TABLE =
 export const TEAM_COMPANY_INTERACTIONS_TABLE =
   process.env.TEAM_COMPANY_INTERACTIONS_TABLE || "team_company_interactions";
 export const CONTACTS_TABLE = process.env.CONTACTS_TABLE || "contacts";
-export const EMAIL_ADDRESSES_TABLE = process.env.EMAIL_ADDRESSES_TABLE || "email_addresses";
-
+export const EMAIL_ADDRESSES_TABLE =
+  process.env.EMAIL_ADDRESSES_TABLE || "email_addresses";
+export const EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE =
+  process.env.EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE ||
+  "email_address_to_email_list";
 export const EMAIL_LIST_TO_CONTACT_EMAILS =
   process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails";
 

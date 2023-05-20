@@ -10,17 +10,16 @@ export async function up(knex: Knex): Promise<void> {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("subject", 255).notNullable();
       table.string("body", 4000).notNullable();
-      table.string("body_as_html", 4000).notNullable();
       table.string("sender_email");
       table.string("sender_name");
       table.timestamp("sent_at").defaultTo(knex.fn.now());
-       
+
       table.string("direction");
       table.string("company_id");
       table.string("contact_id");
       table.string("status").notNullable();
       table.jsonb("attachments");
-
+      table.boolean("is_body_uploaded").defaultTo(false);
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

@@ -37,7 +37,7 @@ export class SESEmailService implements ISESEmailService {
    */
   async sendEmail(
     from: string,
-    recipients: string[],
+    toList: string[],
     subject: string,
     body: string,
     ConfigurationSetName: string,
@@ -50,7 +50,7 @@ export class SESEmailService implements ISESEmailService {
 
     const input: SendEmailCommandInput = {
       Destination: {
-        ToAddresses: recipients,
+        ToAddresses: toList,
         CcAddresses, // get admin cc addresses,
         BccAddresses,
       },
@@ -60,7 +60,9 @@ export class SESEmailService implements ISESEmailService {
           Data: subject,
         },
         Body: isBodyHtml ? { Html: bodyData } : { Text: bodyData },
+        
       },
+      
       ReplyToAddresses: [...new Set([from, ...CcAddresses, ...replyTo])],
       ConfigurationSetName,
     };

@@ -49,7 +49,7 @@ import {
   sendEmail,
   sendBulkEmails,
   // sendEmailText,
-  // receiveEmailHandler,
+  receiveEmailHandler,
 } from "@functions/emails";
 import { emailHandler } from "@functions/emails";
 
@@ -119,7 +119,7 @@ export default {
   sendEmail,
   sendBulkEmails,
   // sendEmailText,
-  // receiveEmailHandler,
+  receiveEmailHandler,
 
   // employees
   getEmployees,

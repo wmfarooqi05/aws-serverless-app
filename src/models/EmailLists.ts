@@ -4,6 +4,7 @@ import { IWithPagination } from "knex-paginate";
 import Activity from "./Activity";
 import {
   EMAIL_ADDRESSES_TABLE,
+  EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE,
   EMAIL_LIST_TABLE,
   EMAIL_LIST_TO_CONTACT_EMAILS,
   TEAMS_TABLE,
@@ -56,8 +57,8 @@ export default class EmailListModel extends Model {
       join: {
         from: `${EMAIL_LIST_TABLE}.id`,
         through: {
-          from: `${EMAIL_LIST_TO_CONTACT_EMAILS}.email_list_id`,
-          to: `${EMAIL_LIST_TO_CONTACT_EMAILS}.contact_email_id`,
+          from: `${EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE}.email_list_id`,
+          to: `${EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE}.email_address_id`,
           onDelete: "NO ACTION",
         },
         to: `${EMAIL_ADDRESSES_TABLE}.id`,

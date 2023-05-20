@@ -5,6 +5,8 @@ import {
   UpdateTemplateCommand,
   DeleteTemplateCommand,
   CreateTemplateCommandInput,
+  GetTemplateCommand,
+  GetTemplateCommandInput,
 } from "@aws-sdk/client-ses";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
@@ -83,7 +85,7 @@ export class EmailTemplateService {
           "public-read"
         );
         template.thumbnailUrl = thumbnail.fileUrl;
-      } else {
+      } else if (thumbnailUrl) {
         const keys = getKeysFromS3Url(thumbnailUrl);
         await copyS3Object(
           keys.fileKey,
@@ -94,6 +96,9 @@ export class EmailTemplateService {
           keys.region
         );
         template.thumbnailUrl = newKey;
+      } else {
+        // @TODO
+        // Download big template and make its thumbnail and upload :D
       }
     }
     const emailTemplateEntry: IEmailTemplate =
@@ -119,7 +124,13 @@ export class EmailTemplateService {
   }
 
   // Function to retrieve a template record from the database
-  async getTemplates(templateName: string): Promise<TemplateRecord> {}
+  async getAllTemplates(): Promise<any> {
+    return EmailTemplatesModel.query();
+  }
+
+  async getTemplateById(body): Promise<any> {
+    return EmailTemplatesModel.query().findById(body.templateId);
+  }
 
   // Function to update a template and its record in the database
   async updateTemplate(

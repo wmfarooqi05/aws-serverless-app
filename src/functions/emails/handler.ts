@@ -114,23 +114,12 @@ export const handleEmailEvent = async (event: SESEvent) => {
   }
 };
 
-export const sendBulkEmailsHandler = async (event) => {
+const sendBulkEmailsHandler = async (event) => {
   try {
     const emails = await container
       .resolve(EmailService)
       .sendBulkEmails(event.employee, event.body);
     return formatJSONResponse(emails, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-export const sendEmailText = async (event) => {
-  try {
-    const resp = await container
-      .resolve(EmailService)
-      .sendEmailTest(event.body);
-    return formatJSONResponse(resp, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -154,6 +143,24 @@ export const receiveEmailHandler = async (event: SQSEvent) => {
     });
   }
 };
+
+export const getEmailTemplateContentByIdHandler: ValidatedEventAPIGatewayProxyEvent<
+  any
+> = async (event) => {
+  try {
+    const newEmailTemplate = await container
+      .resolve(EmailService)
+      .getEmailTemplateContentById(event.employee, event.params);
+    return formatJSONResponse(newEmailTemplate, 201);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getEmailTemplateContentById = checkRolePermission(
+  getEmailTemplateContentByIdHandler,
+  "COMPANY_READ_ALL"
+);
 
 export const getEmails = allowRoleWrapper(getEmailsHandler);
 export const updateEmail = allowRoleWrapper(updateEmailHandler);
