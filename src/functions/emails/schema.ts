@@ -18,6 +18,7 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
           .required(),
         subject: Joi.string().required(),
         body: Joi.string().required(),
+        isBodyUploaded: Joi.boolean(),
         ccList: Joi.array().items(
           Joi.object({
             email: Joi.string().email().required(),
@@ -31,6 +32,17 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
           })
         ),
         replyTo: Joi.array().items(Joi.string().email()),
+        attachments: Joi.array().items(
+          Joi.object({
+            url: Joi.string().uri().required(),
+            contentType: Joi.string(), // valid types can be found here
+            // https://stackoverflow.com/questions/23714383/what-are-all-the-possible-values-for-http-content-type-header
+            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+            filename: Joi.string().required(),
+          })
+        ),
+        companyId: Joi.string().required(),
+        contactId: Joi.string().required(),
       })
     ),
   }).validateAsync(obj, {

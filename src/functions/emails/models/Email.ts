@@ -43,6 +43,9 @@ export interface IATTACHMENT {
   thumbnailUrl?: string;
   fileUrl: string;
   updatedAt: string;
+  fileKey: string;
+  uuidName: string;
+  originName: string;
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
@@ -50,15 +53,14 @@ export interface IEmail {
   id: string;
   subject: string;
   body: string;
-  isBodyUploaded:boolean;
+  isBodyUploaded: boolean;
   senderEmail: string;
   senderName: string;
   direction: EMAIL_DIRECTION;
   sentAt: string;
   status: EMAIL_STATUS;
   attachments: IATTACHMENT[];
-  companyId: string;
-  contactId: string;
+  sesMessageId: string;
 }
 
 @singleton()
@@ -79,9 +81,8 @@ export class EmailModel extends Model {
         senderEmail: { type: "string" },
         senderName: { type: "string" },
         direction: { type: "string" },
-        companyId: { type: "string" },
-        contactId: { type: "string" },
         sentAt: { type: "string" },
+        sesMessageId: { type: "string" },
         attachments: {
           type: "array",
           default: [],

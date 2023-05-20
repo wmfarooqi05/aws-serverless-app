@@ -20,6 +20,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("status").notNullable();
       table.jsonb("attachments");
       table.boolean("is_body_uploaded").defaultTo(false);
+      table.string("ses_message_id");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

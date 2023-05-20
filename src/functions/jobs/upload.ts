@@ -6,6 +6,8 @@ import {
   CopyObjectCommandInput,
   CopyObjectCommand,
   DeleteObjectCommand,
+  CopyObjectCommandOutput,
+  GetObjectCommandInput,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -112,7 +114,7 @@ export const copyS3Object = async (
   sourceRegion: string = process.env.REGION,
   destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
   destinationRegion: string = process.env.REGION
-) => {
+): Promise<CopyObjectCommandOutput> => {
   const copyParams: CopyObjectCommandInput = {
     Bucket: destinationBucket,
     CopySource: `${sourceBucket}/${sourceKey}`,
@@ -133,7 +135,9 @@ export const copyS3Object = async (
       destinationClient = new S3Client({ region: destinationRegion });
     }
 
-    await destinationClient.send(new CopyObjectCommand(copyParams));
+    const newLoc = await destinationClient.send(
+      new CopyObjectCommand(copyParams)
+    );
 
     // Delete the object from the old location
     if (deleteOriginal) {
@@ -143,6 +147,7 @@ export const copyS3Object = async (
       };
       await s3.send(new DeleteObjectCommand(deleteParams));
     }
+    return newLoc;
   } catch (e) {}
 };
 // make a download function and write file to some folder
@@ -156,17 +161,25 @@ export const getKeysFromS3Url = (
   const fileKey = parsedUrl.pathname.substring(1);
 
   // Extract the region from the URL
-  const region = parsedUrl.hostname.split(".")[1];
+  const region = parsedUrl.hostname.split(".")[2];
 
   return { region, bucketName, fileKey };
 };
 
-export const downloadFromS3Readable = async (keyName): Promise<Buffer> => {
-  const params = {
-    Bucket: process.env.DEPLOYMENT_BUCKET,
-    Key: keyName,
+export const getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
+  const keys = getKeysFromS3Url(url);
+  return getS3ReadableFromKey(keys.fileKey, keys.bucketName);
+};
+
+export const getS3ReadableFromKey = async (
+  fileKey: string,
+  bucketName: string = process.env.DEPLOYMENT_BUCKET
+): Promise<Buffer> => {
+  const params: GetObjectCommandInput = {
+    Bucket: bucketName,
+    Key: fileKey,
   };
-  console.log("[downloadFromS3Readable] params", params);
+  console.log("[getS3ReadableFromKey] params", params);
   const getObjectCommand = new GetObjectCommand(params);
   const objectData = await s3.send(getObjectCommand);
 

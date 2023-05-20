@@ -60,7 +60,6 @@ export class SESEmailService implements ISESEmailService {
           Data: subject,
         },
         Body: isBodyHtml ? { Html: bodyData } : { Text: bodyData },
-        
       },
       
       ReplyToAddresses: [...new Set([from, ...CcAddresses, ...replyTo])],
