@@ -273,8 +273,7 @@ export class EmailService implements IEmailService {
         : [],
       subject,
       replyTo,
-      text: emailBody,
-      // html: emailBody,
+      html: emailBody,
     });
 
     const copyS3Promises: Promise<CopyObjectCommandOutput>[] = [];
