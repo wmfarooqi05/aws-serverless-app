@@ -4,7 +4,12 @@ import {
   getAllTemplates,
   getTemplateById,
 } from "./emailTemplates/handler";
-import { getEmailTemplateContentById, sendBulkEmails, sendEmail } from "./handler";
+import {
+  emailsByContact,
+  getEmailTemplateContentById,
+  sendBulkEmails,
+  sendEmail,
+} from "./handler";
 
 // import awsSlsExpress from '@vendia/serverless-express';
 const app = express();
@@ -48,6 +53,11 @@ app.post("/emails/send-bulk", async (req, res) => {
 
 app.post("/send-email", async (req, res) => {
   const resp = await sendEmail(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/emails-by-contact/:contactEmail", async (req, res) => {
+  const resp = await emailsByContact(req, {} as any);
   resHelper(res, resp);
 });
 

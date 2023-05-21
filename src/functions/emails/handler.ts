@@ -157,6 +157,17 @@ export const getEmailTemplateContentByIdHandler: ValidatedEventAPIGatewayProxyEv
   }
 };
 
+export const emailsByContactHandler = async (event) => {
+  try {
+    const newEmailTemplate = await container
+      .resolve(EmailService)
+      .emailsByContact(event.employee, event.params);
+    return formatJSONResponse(newEmailTemplate, 201);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getEmailTemplateContentById = checkRolePermission(
   getEmailTemplateContentByIdHandler,
   "COMPANY_READ_ALL"
@@ -174,5 +185,10 @@ export const deleteEmail = allowRoleWrapper(
 );
 export const sendBulkEmails = checkRolePermission(
   sendBulkEmailsHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const emailsByContact = checkRolePermission(
+  emailsByContactHandler,
   "COMPANY_READ_ALL"
 );

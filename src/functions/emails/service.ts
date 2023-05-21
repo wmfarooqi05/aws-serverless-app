@@ -8,7 +8,7 @@ import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
 import EmailRecordsModel from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
-import { validateBulkEmails, validateSendEmail } from "./schema";
+import { validateBulkEmails, validateEmailsByContact, validateSendEmail } from "./schema";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSEvent } from "aws-lambda";
 import * as fs from "fs";
@@ -22,7 +22,7 @@ import {
 import { EmailModel, IEmail, IATTACHMENT } from "./models/Email";
 import * as stream from "stream";
 
-import { IRecipient } from "./models/Recipent";
+import { IRecipient } from "./models/Recipient";
 import {
   CopyObjectCommand,
   CopyObjectCommandInput,
@@ -52,6 +52,10 @@ import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
 import { mergeEmailAndSenderName } from "@utils/emails";
 import EmployeeModel from "@models/Employees";
+import { getOrderByItems, getPaginateClauseObject } from "@common/query";
+import { IWithPagination } from "knex-paginate";
+import { EMAIL_RECIPIENT_TABLE, EMAIL_TABLE } from "./models/common";
+import { RecipientModel } from "./models/Recipient";
 
 export interface IEmailService {}
 
@@ -97,17 +101,16 @@ export class EmailService implements IEmailService {
     let deleteS3Items = [];
     // Add email sender id, and use sendername and sender email from JWT
     const email: IEmail = {
-      senderId,
       body,
       isBodyUploaded,
       direction: "SENT",
-      senderName,
-      senderEmail,
       status: "SENDING",
       subject,
     };
     let emailEntity = await this.createEmailObject(
       email,
+      senderName,
+      senderEmail,
       toList,
       ccList,
       bccList
@@ -168,9 +171,11 @@ export class EmailService implements IEmailService {
 
   async createEmailObject(
     email: IEmail,
-    toList: EmailAddress[],
-    ccList: EmailAddress[],
-    bccList: EmailAddress[]
+    senderName: string,
+    senderEmail: string,
+    toList: any[],
+    ccList: any[],
+    bccList: any[]
   ) {
     let emailEntity: IEmail = null;
     let error: any = null;
@@ -178,36 +183,41 @@ export class EmailService implements IEmailService {
       try {
         emailEntity = await EmailModel.query(trx).insert(email);
 
-        const recipients: IRecipient[] = [];
-        toList?.map((x: EmailAddress) => {
+        const recipients: IRecipient[] = [
+          {
+            recipientName: senderName,
+            recipientEmail: senderEmail,
+            recipientType: "FROM",
+            emailId: emailEntity.id,
+          },
+        ];
+        toList?.map((x) => {
           return recipients.push({
             emailId: emailEntity.id,
             recipientType: "TO_LIST",
             recipientName: x.name,
-            recipientEmail: x.address,
+            recipientEmail: x.email,
           });
         });
-        ccList?.map((x: EmailAddress) => {
+        ccList?.map((x) => {
           return recipients.push({
             emailId: emailEntity.id,
             recipientType: "CC_LIST",
             recipientName: x.name,
-            recipientEmail: x.address,
+            recipientEmail: x.email,
           });
         });
-        bccList?.map((x: EmailAddress) => {
+        bccList?.map((x) => {
           return recipients.push({
             emailId: emailEntity.id,
             recipientType: "BCC_LIST",
             recipientName: x.name,
-            recipientEmail: x.address,
+            recipientEmail: x.email,
           });
         });
 
-        recipients.map((x: any) =>
-          EmailModel.relatedQuery("recipients", trx)
-            .for(emailEntity.id)
-            .insert(x)
+        emailEntity["recipients"] = await RecipientModel.query().insert(
+          recipients
         );
       } catch (e) {
         error = e;
@@ -548,8 +558,8 @@ export class EmailService implements IEmailService {
     // }
     const email: IEmail = {
       body,
-      senderEmail: mailObject?.from?.value[0]?.address,
-      senderName: mailObject?.from?.value[0]?.name,
+      // senderEmail: mailObject?.from?.value[0]?.address,
+      // senderName: mailObject?.from?.value[0]?.name,
       sentAt: mailObject.date.toISOString(),
       status: "RECEIVED",
       subject: mailObject?.subject,
@@ -569,7 +579,13 @@ export class EmailService implements IEmailService {
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
-        const recipients: IRecipient[] = [];
+        const recipients: IRecipient[] = [
+          {
+            recipientEmail: mailObject?.from?.value[0]?.address,
+            recipientName: mailObject?.from?.value[0]?.name,
+            recipientType: "FROM",
+          },
+        ];
         mailObject.to?.value.map((x: EmailAddress) => {
           return recipients.push({
             emailId: emailEntity.id,
@@ -846,5 +862,118 @@ export class EmailService implements IEmailService {
       Source: `Admin Guy <admin@elywork.com>`,
     };
     await sesClient.send(new SendRawEmailCommand(rawMailInput));
+  }
+
+  /**
+   * query is good, but it is not fetching what we want
+   * it is fetching all rows where A or B can exists
+   * @param employee
+   * @param body
+   * @returns
+   */
+  async emailsByContact(employee: IEmployeeJwt, body: any) {
+    const findingMails = [employee.email, body.contactEmail];
+    await validateEmailsByContact(employee.email, body.contactEmail);
+    const knex = this.docClient.getKnexClient();
+
+    const emailIds = await knex(RecipientModel.tableName)
+      .select("emailId")
+      .whereIn("recipientEmail", findingMails)
+      .whereIn("emailId", function () {
+        this.select("emailId")
+          .from(RecipientModel.tableName)
+          .whereIn("recipientEmail", findingMails)
+          .groupBy("email_id")
+          .havingRaw("COUNT(DISTINCT recipient_email) = ?", [
+            findingMails.length,
+          ]);
+      })
+      .orderBy(...getOrderByItems(body))
+      .paginate(getPaginateClauseObject(body));
+
+    const emails = await EmailModel.query()
+      .findByIds(emailIds.data.map((x) => x.emailId))
+      .withGraphFetched("recipients");
+
+    return {
+      data: emails,
+      pagination: emailIds.pagination,
+    };
+    // return EmailModel.relatedQuery("recipients")
+    // .for(emailIds.map((x) => x.emailId));
+    // return EmailModel.query()
+    //   .withGraphFetched("recipients")
+    //   .for(emailIds.map((x) => x.emailId));
+
+    // const emails = await knex(EmailModel.tableName)
+    //   .select(
+    //     `${EmailModel.tableName}.*`,
+    //     knex.raw(
+    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'TO_LIST'), ARRAY[]::text[]) AS "toList" `
+    //     ),
+    //     knex.raw(
+    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'CC_LIST'), ARRAY[]::text[]) AS "ccList" `
+    //     ),
+    //     knex.raw(
+    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'BCC_LIST'), ARRAY[]::text[]) AS "bccList" `
+    //     )
+    //   )
+    //   .leftJoin(
+    //     EMAIL_RECIPIENT_TABLE,
+    //     `${EMAIL_TABLE}.id`,
+    //     `${EMAIL_RECIPIENT_TABLE}.emailId`
+    //   )
+    //   .where((builder) => {
+    //     builder
+    //       .where("senderEmail", employeeEmail)
+    //       .orWhere("senderEmail", contactEmail)
+    //       .whereExists(function () {
+    //         this.from(EMAIL_RECIPIENT_TABLE)
+    //           .whereRaw(
+    //             `"${EMAIL_TABLE}"."id" = "${EMAIL_RECIPIENT_TABLE}"."email_id"`
+    //           )
+    //           .andWhere("recipientEmail", contactEmail);
+    //       });
+    //   })
+    //   .groupBy(`${EMAIL_TABLE}.id`)
+    //   .orderBy(...getOrderByItems(body))
+    //   .paginate(getPaginateClauseObject(body));
+    return emailIds;
+
+    // const emails: IWithPagination<
+    //   IEmail,
+    //   {
+    //     perPage: number;
+    //     currentPage: number;
+    //   }
+    // > = await this.docClient
+    //   .getKnexClient()(EmailModel.tableName)
+    //   .select("*")
+    //   .where((builder) => {
+    //     builder
+    //       .where("senderEmail", employeeEmail)
+    //       .orWhere("senderEmail", contactEmail)
+    //       .orWhereExists(function () {
+    //         this.from("email_recipients")
+    //           .whereRaw('"emails"."id" = "email_recipients"."email_id"')
+    //           .andWhere(function () {
+    //             this.where("recipientEmail", employeeEmail).orWhere(
+    //               "recipientEmail",
+    //               contactEmail
+    //             );
+    //           });
+    //       });
+    //   })
+    //   .orderBy(...getOrderByItems(body))
+    //   .paginate(getPaginateClauseObject(body));
+
+    // const emailIds = emails.data.map((x) => x.id);
+
+    // // const emailData = await EmailModel.fetchGraph(emails, "recipients");
+    // // const emailData = await EmailModel.relatedQuery("recipients").for(emailIds);
+    // return {
+    //   data: emailData,
+    //   pagination: emails.pagination,
+    // };
   }
 }

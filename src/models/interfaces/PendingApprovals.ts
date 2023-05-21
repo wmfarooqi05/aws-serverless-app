@@ -6,7 +6,7 @@ export enum PendingApprovalsStatus {
   SUBMITTED = "SUBMITTED", //	The activity was submitted for approval.
   SUCCESS = "SUCCESS", //	The RFI was successfully completed.
   TERMINATED = "TERMINATED", //	The process run fails with an unknown exception.
-  TIMEOUT = "TIMEOUT", //	The specified amount of time to complete an activity passed. The activity is completed and a new activity is created and sent to the escalation participant.
+  TIMEOUT = "TIMEOUT", //	The specified amount of time to complete an activity passed. The activity is completed and a new activity is created and sent to the escalation recipient.
   WARNING = "WARNING", //	The activity was partially completed. A problem occurred, preventing the work order from being successfully completed.
   REJECTED = "REJECTED",
 }

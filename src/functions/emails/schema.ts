@@ -59,3 +59,10 @@ export const validateBulkEmails = (obj) => {
     allowUnknown: true,
   });
 };
+
+export const validateEmailsByContact = (employeeEmail, contactEmail) => {
+  return Joi.object({
+    employeeEmail: Joi.string().email().required(),
+    contactEmail: Joi.string().email().required(),
+  }).validateAsync({ employeeEmail, contactEmail });
+};

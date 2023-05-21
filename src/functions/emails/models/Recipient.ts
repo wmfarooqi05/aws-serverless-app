@@ -41,16 +41,11 @@ export class RecipientModel extends Model {
 
   static get relationMappings() {
     return {
-      emails: {
-        relation: Model.ManyToManyRelation,
+      email: {
+        relation: Model.HasOneRelation,
         modelClass: EmailModel,
         join: {
-          from: `${EMAIL_RECIPIENT_TABLE}.id`,
-          through: {
-            from: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.recipientId`,
-            to: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.emailId`,
-            onDelete: "NO ACTION",
-          },
+          from: `${EMAIL_RECIPIENT_TABLE}.emailId`,
           to: `${EMAIL_TABLE}.id`,
         },
       },

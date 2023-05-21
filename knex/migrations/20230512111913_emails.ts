@@ -10,9 +10,6 @@ export async function up(knex: Knex): Promise<void> {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("subject", 255).notNullable();
       table.string("body", 4000).notNullable();
-      table.uuid("sender_id");
-      table.string("sender_email");
-      table.string("sender_name");
       table.timestamp("sent_at").defaultTo(knex.fn.now());
 
       table.string("direction");

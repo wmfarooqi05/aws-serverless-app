@@ -5,9 +5,8 @@ import {
   EMAIL_METRICS_TABLE,
   EMAIL_RECIPIENT_TABLE,
   EMAIL_TABLE,
-  EMAIL_TO_EMAIL_RECIPIENT_TABLE,
 } from "./common";
-import { RecipientModel } from "./Recipent";
+import { RecipientModel } from "./Recipient";
 
 // we can add things like
 export type EMAIL_SENDER_TYPE = "COMPANY" | "EMPLOYEE";
@@ -53,9 +52,6 @@ export interface IEmail {
   subject: string;
   body: string;
   isBodyUploaded: boolean;
-  senderId: string;
-  senderEmail: string;
-  senderName: string;
   direction: EMAIL_DIRECTION;
   sentAt: string;
   status: EMAIL_STATUS;
@@ -72,15 +68,13 @@ export class EmailModel extends Model {
   static get jsonSchema() {
     return {
       type: "object",
-      required: ["subject", "body", "senderEmail"],
+      required: ["subject", "body"],
 
       properties: {
         id: { type: "string" },
         subject: { type: "string" },
         body: { type: "string" },
         senderId: { type: "string" },
-        senderEmail: { type: "string" },
-        senderName: { type: "string" },
         direction: { type: "string" },
         sentAt: { type: "string" },
         sesMessageId: { type: "string" },
@@ -103,16 +97,11 @@ export class EmailModel extends Model {
   static get relationMappings() {
     return {
       recipients: {
-        relation: Model.ManyToManyRelation,
+        relation: Model.HasManyRelation,
         modelClass: RecipientModel,
         join: {
-          from: `${EMAIL_TABLE}.id`,
-          through: {
-            from: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.email_id`,
-            to: `${EMAIL_TO_EMAIL_RECIPIENT_TABLE}.recipient_id`,
-            onDelete: "NO ACTION",
-          },
-          to: `${EMAIL_RECIPIENT_TABLE}.id`,
+          from: `${EmailModel.tableName}.id`,
+          to: `${RecipientModel.tableName}.emailId`,
         },
       },
       metrics: {

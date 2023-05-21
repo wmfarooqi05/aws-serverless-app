@@ -46,7 +46,7 @@ import {
 } from "@functions/google/calendar";
 
 import {
-  sendEmail,
+  // sendEmail,
   sendBulkEmails,
   // sendEmailText,
   receiveEmailHandler,
@@ -116,7 +116,7 @@ export default {
   createAndSendEmail,
 
   /// emails
-  sendEmail,
+  // sendEmail,
   sendBulkEmails,
   // sendEmailText,
   receiveEmailHandler,
