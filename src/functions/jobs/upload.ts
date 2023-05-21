@@ -8,6 +8,7 @@ import {
   DeleteObjectCommand,
   CopyObjectCommandOutput,
   GetObjectCommandInput,
+  DeleteObjectCommandOutput,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -163,6 +164,25 @@ export const copyS3Object = async (
     return newLoc;
   } catch (e) {}
 };
+
+export const deleteObjectFromS3Url = (
+  url: string
+): Promise<DeleteObjectCommandOutput> => {
+  const keys = getKeysFromS3Url(url);
+  return deleteObjectFromS3Key(keys.fileKey, keys.bucketName);
+};
+
+export const deleteObjectFromS3Key = async (
+  key: string,
+  bucket: string = process.env.DEPLOYMENT_BUCKET
+): Promise<DeleteObjectCommandOutput> => {
+  const deleteParams = {
+    Bucket: bucket,
+    Key: key,
+  };
+  return s3.send(new DeleteObjectCommand(deleteParams));
+};
+
 // make a download function and write file to some folder
 
 export const getKeysFromS3Url = (

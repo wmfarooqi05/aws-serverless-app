@@ -8,9 +8,13 @@ import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
 import EmailRecordsModel from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
-import { validateBulkEmails, validateEmailsByContact, validateSendEmail } from "./schema";
+import {
+  validateBulkEmails,
+  validateEmailsByContact,
+  validateSendEmail,
+} from "./schema";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
-import { SQSEvent } from "aws-lambda";
+import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
 import { simpleParser, Attachment, EmailAddress } from "mailparser";
 import {
@@ -19,7 +23,7 @@ import {
   uploadContentToS3,
   getS3ReadableFromUrl,
 } from "@functions/jobs/upload";
-import { EmailModel, IEmail, IATTACHMENT } from "./models/Email";
+import { EmailModel, IEmail, IATTACHMENT, IEmailModel } from "./models/Email";
 import * as stream from "stream";
 
 import { IRecipient } from "./models/Recipient";
@@ -44,18 +48,16 @@ import {
 } from "@aws-sdk/client-ses";
 import { formatErrorResponse } from "@libs/api-gateway";
 
-const s3Client = new S3Client({ region: "ca-central-1" });
-const s3UsClient = new S3Client({ region: "us-east-1" });
-const sesClient = new SESClient({ region: process.env.REGION });
-// const MailComposer = require("nodemailer/lib/mail-composer");
 import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
 import { mergeEmailAndSenderName } from "@utils/emails";
 import EmployeeModel from "@models/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
-import { IWithPagination } from "knex-paginate";
-import { EMAIL_RECIPIENT_TABLE, EMAIL_TABLE } from "./models/common";
 import { RecipientModel } from "./models/Recipient";
+
+const s3Client = new S3Client({ region: "ca-central-1" });
+const s3UsClient = new S3Client({ region: "us-east-1" });
+const sesClient = new SESClient({ region: process.env.REGION });
 
 export interface IEmailService {}
 
@@ -66,9 +68,9 @@ export class EmailService implements IEmailService {
     @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
-  async getAllEmails(body: any): Promise<IEmailPaginated> {}
+  async getAllEmails(body: any): Promise<any> {}
 
-  async getEmail(id: string): Promise<IEmailModel> {}
+  async getEmail(id: string): Promise<any> {}
 
   /**
    * @param employee
@@ -381,64 +383,6 @@ export class EmailService implements IEmailService {
       console.log(e);
       return formatErrorResponse(e);
     }
-
-    // if (!emailListId) {
-    //   return;
-    // }
-    // const companies: ICompany[] = await this.docClient
-    //   .getKnexClient()(COMPANIES_TABLE_NAME)
-    //   .where(
-    //     "contacts",
-    //     "@>",
-    //     JSON.stringify([{ emailList: [emailListId] }])
-    //   );
-
-    // const emailIds = this.getEmailIdsFromCompanies(companies, emailListId);
-
-    // @WARNING EmailList is in main db and not in emailDb
-    // const emailIds: IRecipientItem[] = [
-    //   {
-    //     recipientEmail: "wmfarooqi05@gmail.com",
-    //     recipientName: "waleed 05",
-    //   },
-    //   {
-    //     recipientEmail: "wmfarooqi70@gmail.com",
-    //     recipientName: "waleed 70",
-    //   },
-    // ];
-
-    // const emailInputPayloads: IEmailSqsEventInput[] = this.createEmailSqsInputs(
-    //   payload,
-    //   emailIds,
-    //   employee
-    // );
-
-    // const jobItems = emailInputPayloads.map((x) => {
-    //   return new JobsModel({
-    //     jobId: randomUUID(),
-    //     uploadedBy: employee.sub,
-    //     jobType: "BULK_EMAIL",
-    //     details: x,
-    //     jobStatus: "PENDING",
-    //   });
-    // });
-
-    // Use the batchPut method to perform bulk create
-    // return JobsModel.batchPut(jobItems);
-    // Need to write a helper method which picks the batch of X and put in SQS
-    // const sqsItemsWithJobId: IEmailSqsEventInput[] = emailInputPayloads.map(
-    //   (x: IEmailSqsEventInput, i) => {
-    //     return {
-    //       ...x,tntzii.com
-
-    //       jobId: jobs[i].id,
-    //     };
-    //   }
-    // );
-
-    // const sqsService = container.resolve(SQSService);
-    // await Promise.all(sqsItemsWithJobId.map((x) => sqsService.enqueueItems(x)));
-    // return jobs.filter((x) => x.id);
   }
 
   async updateEmail(
@@ -514,119 +458,127 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async receiveEmailHelper(Records: SQSEvent["Records"][0]) {
-    const deleteEvent = [];
+  async receiveEmailHelper(Records: SQSRecord[]) {
     console.log("[receiveEmailHelper] records", Records);
-    const record = Records[0];
-    const payload = JSON.parse(record.body);
-    console.log("payload", payload);
-    const messagePayload = JSON.parse(payload?.Message);
-    console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
-    // const mailStream = fs.createReadStream(payload.filePath);
-    const mailStream = await this.downloadStreamFromUSEastBucket(
-      `incoming-emails/${messagePayload.mail.messageId}`
-    );
+    for (const record of Records) {
+      const deleteEvent = [];
+      const payload = JSON.parse(record.body);
+      console.log("payload", payload);
 
-    const mailObject = await simpleParser(mailStream);
-    const attachmentsS3Promises = mailObject.attachments.map((x) => {
-      return uploadContentToS3(
-        `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
-          x.contentType.split("/")[1]
-        }`,
-        x.content
-      );
-    });
-
-    const attachmentsS3 = await Promise.all(attachmentsS3Promises);
-    console.log("attachmentsS3", attachmentsS3);
-
-    let body = mailObject.html ? mailObject.html : mailObject.text;
-
-    let isBodyUploaded = false;
-    const MAX_DB_SIZE = 4000;
-    if (body.length > MAX_DB_SIZE) {
-      // Upload it to s3
-      const resp = await uploadContentToS3(
-        `media/body/${messagePayload.mail.messageId}/${randomUUID()}`,
-        body
-      );
-      isBodyUploaded = true;
-      body = resp.fileUrl;
-    }
-    // else {
-    //   body = compressedBody;
-    // }
-    const email: IEmail = {
-      body,
-      // senderEmail: mailObject?.from?.value[0]?.address,
-      // senderName: mailObject?.from?.value[0]?.name,
-      sentAt: mailObject.date.toISOString(),
-      status: "RECEIVED",
-      subject: mailObject?.subject,
-      sesMessageId: messagePayload.mail.messageId,
-      attachments: attachmentsS3.map((x) => {
-        return {
-          ...x,
-          updatedAt: moment().utc().format(),
-          filename: x.fileKey.split("/").at(-1),
-        };
-      }),
-      direction: "RECEIVED",
-      isBodyUploaded,
-    };
-
-    let error = null;
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
-        const recipients: IRecipient[] = [
-          {
-            recipientEmail: mailObject?.from?.value[0]?.address,
-            recipientName: mailObject?.from?.value[0]?.name,
-            recipientType: "FROM",
-          },
-        ];
-        mailObject.to?.value.map((x: EmailAddress) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "TO_LIST",
-            recipientName: x.name,
-            recipientEmail: x.address,
-          });
-        });
-        mailObject.cc?.value.map((x: EmailAddress) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "CC_LIST",
-            recipientName: x.name,
-            recipientEmail: x.address,
-          });
-        });
-        mailObject.bcc?.value.map((x: EmailAddress) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "BCC_LIST",
-            recipientName: x.name,
-            recipientEmail: x.address,
-          });
-        });
-
-        const recipientsEntriesPromises = recipients.map((x: any) =>
-          EmailModel.relatedQuery("recipients", trx)
-            .for(emailEntity.id)
-            .insert(x)
-        );
-
-        emailEntity.recipients = await Promise.all(recipientsEntriesPromises);
-        await trx.commit();
-      } catch (e) {
-        error = e;
-        await trx.rollback();
+      if (!(payload.MessageId && payload.Type === "Notification")) {
+        console.log("not processing event", payload);
+        continue;
       }
-    });
 
-    if (error) {
-      console.log(error);
+      const messagePayload = JSON.parse(payload?.Message);
+      console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
+      // const mailStream = fs.createReadStream(payload.filePath);
+      const mailStream = await this.downloadStreamFromUSEastBucket(
+        `incoming-emails/${messagePayload.mail.messageId}`
+      );
+
+      const mailObject = await simpleParser(mailStream);
+      const attachmentsS3Promises = mailObject.attachments.map((x) => {
+        return uploadContentToS3(
+          `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
+            x.contentType.split("/")[1]
+          }`,
+          x.content
+        );
+      });
+
+      const attachmentsS3 = await Promise.all(attachmentsS3Promises);
+      console.log("attachmentsS3", attachmentsS3);
+
+      let body = mailObject.html ? mailObject.html : mailObject.text;
+
+      let isBodyUploaded = false;
+      const MAX_DB_SIZE = 4000;
+      if (body.length > MAX_DB_SIZE) {
+        // Upload it to s3
+        const resp = await uploadContentToS3(
+          `media/body/${messagePayload.mail.messageId}/${randomUUID()}`,
+          body
+        );
+        isBodyUploaded = true;
+        body = resp.fileUrl;
+      }
+      // else {
+      //   body = compressedBody;
+      // }
+      const email: IEmail = {
+        body,
+        sentAt: mailObject.date.toISOString(),
+        status: "RECEIVED",
+        subject: mailObject?.subject,
+        sesMessageId: messagePayload.mail.messageId,
+        attachments: attachmentsS3.map((x) => {
+          return {
+            ...x,
+            updatedAt: moment().utc().format(),
+            filename: x.fileKey.split("/").at(-1),
+          };
+        }),
+        direction: "RECEIVED",
+        isBodyUploaded,
+      };
+
+      let error = null;
+      await this.docClient.getKnexClient().transaction(async (trx) => {
+        try {
+          const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
+          const recipients: IRecipient[] = [
+            {
+              recipientEmail: mailObject?.from?.value[0]?.address,
+              recipientName: mailObject?.from?.value[0]?.name,
+              recipientType: "FROM",
+              emailId: emailEntity.id,
+            },
+          ];
+          mailObject.to?.value.map((x: EmailAddress) => {
+            return recipients.push({
+              emailId: emailEntity.id,
+              recipientType: "TO_LIST",
+              recipientName: x.name,
+              recipientEmail: x.address,
+            });
+          });
+          mailObject.cc?.value.map((x: EmailAddress) => {
+            return recipients.push({
+              emailId: emailEntity.id,
+              recipientType: "CC_LIST",
+              recipientName: x.name,
+              recipientEmail: x.address,
+            });
+          });
+          mailObject.bcc?.value.map((x: EmailAddress) => {
+            return recipients.push({
+              emailId: emailEntity.id,
+              recipientType: "BCC_LIST",
+              recipientName: x.name,
+              recipientEmail: x.address,
+            });
+          });
+
+          const recipientsEntriesPromises = recipients.map((x: any) =>
+            EmailModel.relatedQuery("recipients", trx)
+              .for(emailEntity.id)
+              .insert(x)
+          );
+
+          emailEntity.recipients = await Promise.all(recipientsEntriesPromises);
+          await trx.commit();
+        } catch (e) {
+          error = e;
+          await trx.rollback();
+        }
+      });
+
+      if (error) {
+        // push it to DLQ
+        console.log(error);
+      } else {
+      }
     }
   }
 
@@ -690,121 +642,14 @@ export class EmailService implements IEmailService {
 
       try {
         return s3Client.send(new CopyObjectCommand(copyParams));
-        console.log(`${key} copied successfully`);
       } catch (err) {
         console.log(`Error copying ${key}: ${err}`);
       }
     });
 
     await Promise.all(copyPromises);
-    // attachments = attachments.map((x, index) => {
-    //   return {
-    //     ...x,
-    //     fileUrl: newLoc[index].
-    //   }
-    // })
     return attachments;
   }
-  // generateThumbnails(
-  //   folderPath: string,
-  //   attachmentList: {
-  //     name: string;
-  //     nameWithExt: string;
-  //     contentType: string;
-  //     ext: string;
-  //   }[]
-  // ) {
-  //   const thumbPath = `${folderPath}/thumbnails`;
-  //   return attachmentList.map(async (x) => {
-  //     if (x.contentType.includes("video")) {
-  //       const Body = fs.createReadStream(
-  //         `${folderPath}/attachments/${x.nameWithExt}`
-  //       );
-  //       const thumbnailBuffer = await new Promise((resolve, reject) => {
-  //         const ffmpegProcess = spawn("ffmpeg", [
-  //           "-ss",
-  //           "00:00:01",
-  //           "-i",
-  //           "pipe:0",
-  //           "-vframes",
-  //           "1",
-  //           "-q:v",
-  //           "2",
-  //           "-f",
-  //           "image2pipe",
-  //           "-c:v",
-  //           "png",
-  //           "-",
-  //         ]);
-
-  //         ffmpegProcess.on("error", (error) => {
-  //           console.error("Error running ffmpeg:", error);
-  //           reject(error);
-  //         });
-
-  //         ffmpegProcess.on("close", (code) => {
-  //           if (code !== 0) {
-  //             console.error(`ffmpeg process exited with code ${code}`);
-  //             reject(`ffmpeg process exited with code ${code}`);
-  //           } else {
-  //             resolve(Body);
-  //           }
-  //         });
-
-  //         Body.pipe(ffmpegProcess.stdin);
-  //       });
-
-  //       const thumbnailBufferImg = await sharp(thumbnailBuffer)
-  //         .resize(200, 200, {
-  //           fit: "cover",
-  //         }) // Adjust the dimensions as per your requirements
-  //         .toBuffer();
-  //       console.log("a");
-  //       // return new Promise((resolve, reject) => {
-
-  //       // ffprobe(
-  //       //   `${thumbPath}/${x.nameWithExt}`,
-  //       //   ["-show_streams"],
-  //       //   (err, metadata) => {
-  //       //     if (err) {
-  //       //       reject(err);
-  //       //     } else {
-  //       //       // Process metadata
-  //       //       resolve(metadata);
-  //       //     }
-  //       //   }
-  //       // )
-  //       // ffmpeg(`${thumbPath}/${x.nameWithExt}`)
-  //       //   .on("end", () => {
-  //       //     resolve(`${thumbPath}/${x.nameWithExt}`);
-  //       //   })
-  //       //   .on("error", (err) => {
-  //       //     reject(err);
-  //       //   })
-  //       //   .screenshots({
-  //       //     count: 1,
-  //       //     folder: thumbPath,
-  //       //     size: "320x240",
-  //       //     filename: x.nameWithExt,
-  //       //   });
-  //       // });
-  //     }
-  //     // else if (x.contentType.includes("image")) {
-  //     //   return new Promise((resolve, reject) => {
-  //     //     const thumbnailPath = `${x.name}.png`;
-  //     //     sharp(`${folderPath}/attachments/${x.nameWithExt}`)
-  //     //       .resize(320, 240)
-  //     //       .toFile(thumbnailPath, (err) => {
-  //     //         if (err) {
-  //     //           reject(err);
-  //     //         } else {
-  //     //           resolve(thumbnailPath);
-  //     //         }
-  //     //       });
-  //     //   });
-  //     // }
-  //   });
-  // }
 
   /**
    * will be used in generating thumbnails
@@ -899,81 +744,7 @@ export class EmailService implements IEmailService {
       data: emails,
       pagination: emailIds.pagination,
     };
-    // return EmailModel.relatedQuery("recipients")
-    // .for(emailIds.map((x) => x.emailId));
-    // return EmailModel.query()
-    //   .withGraphFetched("recipients")
-    //   .for(emailIds.map((x) => x.emailId));
 
-    // const emails = await knex(EmailModel.tableName)
-    //   .select(
-    //     `${EmailModel.tableName}.*`,
-    //     knex.raw(
-    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'TO_LIST'), ARRAY[]::text[]) AS "toList" `
-    //     ),
-    //     knex.raw(
-    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'CC_LIST'), ARRAY[]::text[]) AS "ccList" `
-    //     ),
-    //     knex.raw(
-    //       `COALESCE(array_agg(DISTINCT ${EMAIL_RECIPIENT_TABLE}.recipient_email) FILTER (WHERE ${EMAIL_RECIPIENT_TABLE}.recipient_type = 'BCC_LIST'), ARRAY[]::text[]) AS "bccList" `
-    //     )
-    //   )
-    //   .leftJoin(
-    //     EMAIL_RECIPIENT_TABLE,
-    //     `${EMAIL_TABLE}.id`,
-    //     `${EMAIL_RECIPIENT_TABLE}.emailId`
-    //   )
-    //   .where((builder) => {
-    //     builder
-    //       .where("senderEmail", employeeEmail)
-    //       .orWhere("senderEmail", contactEmail)
-    //       .whereExists(function () {
-    //         this.from(EMAIL_RECIPIENT_TABLE)
-    //           .whereRaw(
-    //             `"${EMAIL_TABLE}"."id" = "${EMAIL_RECIPIENT_TABLE}"."email_id"`
-    //           )
-    //           .andWhere("recipientEmail", contactEmail);
-    //       });
-    //   })
-    //   .groupBy(`${EMAIL_TABLE}.id`)
-    //   .orderBy(...getOrderByItems(body))
-    //   .paginate(getPaginateClauseObject(body));
     return emailIds;
-
-    // const emails: IWithPagination<
-    //   IEmail,
-    //   {
-    //     perPage: number;
-    //     currentPage: number;
-    //   }
-    // > = await this.docClient
-    //   .getKnexClient()(EmailModel.tableName)
-    //   .select("*")
-    //   .where((builder) => {
-    //     builder
-    //       .where("senderEmail", employeeEmail)
-    //       .orWhere("senderEmail", contactEmail)
-    //       .orWhereExists(function () {
-    //         this.from("email_recipients")
-    //           .whereRaw('"emails"."id" = "email_recipients"."email_id"')
-    //           .andWhere(function () {
-    //             this.where("recipientEmail", employeeEmail).orWhere(
-    //               "recipientEmail",
-    //               contactEmail
-    //             );
-    //           });
-    //       });
-    //   })
-    //   .orderBy(...getOrderByItems(body))
-    //   .paginate(getPaginateClauseObject(body));
-
-    // const emailIds = emails.data.map((x) => x.id);
-
-    // // const emailData = await EmailModel.fetchGraph(emails, "recipients");
-    // // const emailData = await EmailModel.relatedQuery("recipients").for(emailIds);
-    // return {
-    //   data: emailData,
-    //   pagination: emails.pagination,
-    // };
   }
 }

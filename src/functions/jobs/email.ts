@@ -1,4 +1,3 @@
-import { container } from "tsyringe";
 const messageEvent = {
   eventType: "Delivery",
   mail: {
@@ -62,16 +61,8 @@ const payload = {
 };
 
 import { SNSHandler, SNSEvent } from "aws-lambda";
-import {
-  AttributeValue,
-  DynamoDBClient,
-  PutItemCommand,
-  PutItemCommandInput,
-  UpdateItemCommand,
-} from "@aws-sdk/client-dynamodb";
 import { uploadContentToS3 } from "./upload";
 import EmailRecordsModel from "@models/dynamoose/EmailRecords";
-const dynamoDBClient = new DynamoDBClient({ region: process.env.REGION });
 
 export const handleSESEmailToSNSEvent: SNSHandler = async (event: SNSEvent) => {
   const message = JSON.parse(event.Records[0].Sns.Message);

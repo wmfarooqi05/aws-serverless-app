@@ -1,0 +1,81 @@
+Permission for us-east-1 SNS to add message to SQS
+{
+  "Version": "2012-10-17",
+  "Id": "__default_policy_ID",
+  "Statement": [
+    {
+      "Sid": "__owner_statement",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::524073432557:root"
+      },
+      "Action": "SQS:*",
+      "Resource": "arn:aws:sqs:ca-central-1:524073432557:EmailQueue"
+    },
+    {
+      "Sid": "AllowSNSPublish",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "SQS:SendMessage",
+      "Resource": "arn:aws:sqs:ca-central-1:524073432557:EmailQueue",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "arn:aws:sns:us-east-1:524073432557:incoming-mail-east-1-topic"
+        }
+      }
+    }
+  ]
+}
+
+Permissions on us-east-1 bucket for SES to add email in folder
+
+{
+    "Version": "2012-10-17",
+    "Id": "Policy1683751433305",
+    "Statement": [
+        {
+            "Sid": "AllowSESPutObject",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "ses.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::gel-api-dev-bucket-2b86f11d/incoming-emails/*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:Referer": "524073432557"
+                }
+            }
+        }
+    ]
+}
+
+Permissions on ca-central-1 bucket
+the first permission is maybe to allow lambda to move object from one folder to another
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowLambdaToPutObjects",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "lambda.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::gel-api-dev-serverlessdeploymentbucket-d34v77eas9bz/jobs/*"
+        },
+        {
+            "Sid": "AllowUserToReadWriteDeleteObjects",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::524073432557:role/gel-api-dev-ca-central-1-lambdaRole"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": "arn:aws:s3:::gel-api-dev-serverlessdeploymentbucket-d34v77eas9bz/*"
+        }
+    ]
+}

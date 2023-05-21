@@ -74,6 +74,7 @@
     "esbuild-plugin-lodash": "^1.2.0",
     "googleapis": "^118.0.0",
     "json-schema-to-ts": "^2.6.2",
+    "lodash": "^4.17.21",
     "mailparser": "^3.6.4",
     "nodemailer": "^6.9.2",
     "nodemon": "^2.0.20",

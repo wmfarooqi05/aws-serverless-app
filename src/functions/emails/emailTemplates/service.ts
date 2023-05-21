@@ -5,29 +5,29 @@ import {
   UpdateTemplateCommand,
   DeleteTemplateCommand,
   CreateTemplateCommandInput,
-  GetTemplateCommand,
-  GetTemplateCommandInput,
 } from "@aws-sdk/client-ses";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { isHtml, isHtml } from "@utils/emails";
-import { DocumentClient } from "aws-sdk/clients/dynamodb";
+import { isHtml } from "@utils/emails";
 import { inject, injectable } from "tsyringe";
 import { EmailTemplatesModel, IEmailTemplate } from "../models/EmailTemplate";
 import {
   copyS3Object,
-  getS3BufferFromKey,
   getKeysFromS3Url,
   uploadContentToS3,
-  uploadFileToS3,
 } from "@functions/jobs/upload";
 import { validateCreateEmailTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
 import { generateThumbnailFromHtml } from "@utils/thumbnails";
+import {
+  DeleteItemCommand,
+  DeleteItemCommandInput,
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
-const dynamoClient = new DocumentClient({ region: "us-west-2" });
+const dynamoClient = new DynamoDBClient({ region: process.env.REGION });
 
 @injectable()
 export class EmailTemplateService {
@@ -174,12 +174,13 @@ export class EmailTemplateService {
     const command = new DeleteTemplateCommand({ TemplateName: templateName });
     await sesClient.send(command);
 
-    // Delete template record from database
-    await dynamoClient
-      .delete({
-        TableName: "TemplatesTable",
-        Key: { templateName },
-      })
-      .promise();
+    const params: DeleteItemCommandInput = {
+      TableName: "TemplatesTable",
+      Key: {
+        partitionKey: { S: templateName }, // Specify the partition key value
+      },
+    };
+
+    await dynamoClient.send(new DeleteItemCommand(params));
   }
 }

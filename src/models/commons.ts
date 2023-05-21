@@ -1,8 +1,3 @@
-import { ActivityService } from "@functions/activities/service";
-import { CompanyService } from "@functions/companies/service";
-import { NotificationService } from "@functions/notifications/service";
-import { PendingApprovalService } from "@functions/pending_approvals/service";
-import { ReminderService } from "@functions/reminders/service";
 // @OTODO remove this logic and remove this library from package.json
 import { get } from "lodash";
 
@@ -45,15 +40,6 @@ export type ModuleType =
   | "ACTIVITIES"
   | "REMINDERS"
   | "NOTIFICATIONS";
-
-// for notification module
-export const mapForModules: Record<ModuleType, any> = {
-  PENDING_APPROVALS: PendingApprovalService,
-  COMPANIES: CompanyService,
-  ACTIVITIES: ActivityService,
-  REMINDERS: ReminderService,
-  NOTIFICATIONS: NotificationService,
-};
 
 export type ACTIONABLE_TYPE = "CREATE" | "DELETE" | "UPDATE";
 

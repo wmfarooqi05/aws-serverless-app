@@ -1,0 +1,158 @@
+// generateThumbnails(
+//   folderPath: string,
+//   attachmentList: {
+//     name: string;
+//     nameWithExt: string;
+//     contentType: string;
+//     ext: string;
+//   }[]
+// ) {
+//   const thumbPath = `${folderPath}/thumbnails`;
+//   return attachmentList.map(async (x) => {
+//     if (x.contentType.includes("video")) {
+//       const Body = fs.createReadStream(
+//         `${folderPath}/attachments/${x.nameWithExt}`
+//       );
+//       const thumbnailBuffer = await new Promise((resolve, reject) => {
+//         const ffmpegProcess = spawn("ffmpeg", [
+//           "-ss",
+//           "00:00:01",
+//           "-i",
+//           "pipe:0",
+//           "-vframes",
+//           "1",
+//           "-q:v",
+//           "2",
+//           "-f",
+//           "image2pipe",
+//           "-c:v",
+//           "png",
+//           "-",
+//         ]);
+
+//         ffmpegProcess.on("error", (error) => {
+//           console.error("Error running ffmpeg:", error);
+//           reject(error);
+//         });
+
+//         ffmpegProcess.on("close", (code) => {
+//           if (code !== 0) {
+//             console.error(`ffmpeg process exited with code ${code}`);
+//             reject(`ffmpeg process exited with code ${code}`);
+//           } else {
+//             resolve(Body);
+//           }
+//         });
+
+//         Body.pipe(ffmpegProcess.stdin);
+//       });
+
+//       const thumbnailBufferImg = await sharp(thumbnailBuffer)
+//         .resize(200, 200, {
+//           fit: "cover",
+//         }) // Adjust the dimensions as per your requirements
+//         .toBuffer();
+//       console.log("a");
+//       // return new Promise((resolve, reject) => {
+
+//       // ffprobe(
+//       //   `${thumbPath}/${x.nameWithExt}`,
+//       //   ["-show_streams"],
+//       //   (err, metadata) => {
+//       //     if (err) {
+//       //       reject(err);
+//       //     } else {
+//       //       // Process metadata
+//       //       resolve(metadata);
+//       //     }
+//       //   }
+//       // )
+//       // ffmpeg(`${thumbPath}/${x.nameWithExt}`)
+//       //   .on("end", () => {
+//       //     resolve(`${thumbPath}/${x.nameWithExt}`);
+//       //   })
+//       //   .on("error", (err) => {
+//       //     reject(err);
+//       //   })
+//       //   .screenshots({
+//       //     count: 1,
+//       //     folder: thumbPath,
+//       //     size: "320x240",
+//       //     filename: x.nameWithExt,
+//       //   });
+//       // });
+//     }
+//     // else if (x.contentType.includes("image")) {
+//     //   return new Promise((resolve, reject) => {
+//     //     const thumbnailPath = `${x.name}.png`;
+//     //     sharp(`${folderPath}/attachments/${x.nameWithExt}`)
+//     //       .resize(320, 240)
+//     //       .toFile(thumbnailPath, (err) => {
+//     //         if (err) {
+//     //           reject(err);
+//     //         } else {
+//     //           resolve(thumbnailPath);
+//     //         }
+//     //       });
+//     //   });
+//     // }
+//   });
+// }
+
+// if (!emailListId) {
+//   return;
+// }
+// const companies: ICompany[] = await this.docClient
+//   .getKnexClient()(COMPANIES_TABLE_NAME)
+//   .where(
+//     "contacts",
+//     "@>",
+//     JSON.stringify([{ emailList: [emailListId] }])
+//   );
+
+// const emailIds = this.getEmailIdsFromCompanies(companies, emailListId);
+
+// @WARNING EmailList is in main db and not in emailDb
+// const emailIds: IRecipientItem[] = [
+//   {
+//     recipientEmail: "wmfarooqi05@gmail.com",
+//     recipientName: "waleed 05",
+//   },
+//   {
+//     recipientEmail: "wmfarooqi70@gmail.com",
+//     recipientName: "waleed 70",
+//   },
+// ];
+
+// const emailInputPayloads: IEmailSqsEventInput[] = this.createEmailSqsInputs(
+//   payload,
+//   emailIds,
+//   employee
+// );
+
+// const jobItems = emailInputPayloads.map((x) => {
+//   return new JobsModel({
+//     jobId: randomUUID(),
+//     uploadedBy: employee.sub,
+//     jobType: "BULK_EMAIL",
+//     details: x,
+//     jobStatus: "PENDING",
+//   });
+// });
+
+// Use the batchPut method to perform bulk create
+// return JobsModel.batchPut(jobItems);
+// Need to write a helper method which picks the batch of X and put in SQS
+// const sqsItemsWithJobId: IEmailSqsEventInput[] = emailInputPayloads.map(
+//   (x: IEmailSqsEventInput, i) => {
+//     return {
+//       ...x,tntzii.com
+
+//       jobId: jobs[i].id,
+//     };
+//   }
+// );
+
+// const sqsService = container.resolve(SQSService);
+// await Promise.all(sqsItemsWithJobId.map((x) => sqsService.enqueueItems(x)));
+// return jobs.filter((x) => x.id);

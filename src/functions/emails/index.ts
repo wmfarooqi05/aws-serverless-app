@@ -55,7 +55,7 @@ const emailHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 const sendBulkEmails = {
@@ -81,7 +81,13 @@ const receiveEmailHandler = {
         cors: true,
       },
     },
+    {
+      sqs: {
+        arn: `arn:aws:sqs:ca-central-1:524073432557:job-queue-dev`,
+      },
+    },
   ],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 // const handleEmailEvent = {

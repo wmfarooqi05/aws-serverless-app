@@ -8,7 +8,7 @@ import {
 } from "./common";
 import { EmailModel } from "./Email";
 
-export type RECIPIENT_TYPE = "TO_LIST" | "CC_LIST" | "BCC_LIST";
+export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";
 
 export interface IRecipient {
   id?: string;
