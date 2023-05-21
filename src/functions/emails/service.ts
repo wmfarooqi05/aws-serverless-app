@@ -309,14 +309,12 @@ export class EmailService implements IEmailService {
       });
       // @TODO bring back
       attachments.forEach((x) => {
-        const uuidName = randomUUID();
         const newKey = `media/attachments/${emailId}/${x.filename}`;
         const keys = getKeysFromS3Url(x.url);
         fileMap.push({
           fileKey: newKey,
-          uuidName,
           originName: x.filename,
-          fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}/${newKey}`,
+          fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`,
         });
 
         copyS3Promises.push(
@@ -464,11 +462,6 @@ export class EmailService implements IEmailService {
       const deleteEvent = [];
       const payload = JSON.parse(record.body);
       console.log("payload", payload);
-
-      if (!(payload.MessageId && payload.Type === "Notification")) {
-        console.log("not processing event", payload);
-        continue;
-      }
 
       const messagePayload = JSON.parse(payload?.Message);
       console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
