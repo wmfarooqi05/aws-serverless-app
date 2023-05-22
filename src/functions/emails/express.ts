@@ -11,6 +11,15 @@ import {
   sendEmail,
 } from "./handler";
 
+import {
+  addContactEmailToEmailList,
+  addEmailList,
+  deleteContactEmailFromEmailList,
+  deleteEmailList,
+  getAllEmailLists,
+  updateEmailList,
+} from "./emailLists/handler";
+
 // import awsSlsExpress from '@vendia/serverless-express';
 const app = express();
 // import awsSlsExpress from 'aws-serverless-express';
@@ -60,6 +69,44 @@ app.get("/emails-by-contact/:contactEmail", async (req, res) => {
   const resp = await emailsByContact(req, {} as any);
   resHelper(res, resp);
 });
+
+// Email Lists
+
+app.get("/email-list", async (req, res) => {
+  const resp = await getAllEmailLists(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/email-list", async (req, res) => {
+  const resp = await addEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.put("/email-list/:emailListId", async (req, res) => {
+  const resp = await updateEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete("/email-list/:emailListId", async (req, res) => {
+  const resp = await deleteEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post(
+  "/email-list/:emailListId/contact-email/:contactEmailId",
+  async (req, res) => {
+    const resp = await addContactEmailToEmailList(req, {} as any);
+    resHelper(res, resp);
+  }
+);
+
+app.delete(
+  "/email-list/:emailListId/contact-email/:contactEmailId",
+  async (req, res) => {
+    const resp = await deleteContactEmailFromEmailList(req, {} as any);
+    resHelper(res, resp);
+  }
+);
 
 exports.handler = awsSlsExpress({ app });
 

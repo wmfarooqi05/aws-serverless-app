@@ -54,6 +54,49 @@ const emailHandler = {
         cors: true,
       },
     },
+    // Email Lists
+    {
+      http: {
+        method: "get",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "email-list",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "email-list/{emailListId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "email-list/{emailListId}",
+        cors: true,
+      },
+    },
+    // {
+    //   http: {
+    //     method: "post",
+    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+    //     cors: true,
+    //   },
+    // },
+    // {
+    //   http: {
+    //     method: "delete",
+    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
+    //     cors: true,
+    //   },
+    // },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };

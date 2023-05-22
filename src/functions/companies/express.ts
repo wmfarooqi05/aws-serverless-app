@@ -34,14 +34,6 @@ import {
   getContactsByCompany,
   getContactById,
 } from "./contacts/handler";
-import {
-  addContactEmailToEmailList,
-  addEmailList,
-  deleteContactEmailFromEmailList,
-  deleteEmailList,
-  getAllEmailLists,
-  updateEmailList,
-} from "./emailLists/handler";
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -150,44 +142,6 @@ app.delete("/company/:companyId/notes/:notesId", async (req, res) => {
   const resp = await deleteNotes(req, {} as any);
   resHelper(res, resp);
 });
-
-// Email Lists
-
-app.get("/email-list", async (req, res) => {
-  const resp = await getAllEmailLists(req, {} as any);
-  resHelper(res, resp);
-});
-
-app.post("/email-list", async (req, res) => {
-  const resp = await addEmailList(req, {} as any);
-  resHelper(res, resp);
-});
-
-app.put("/email-list/:emailListId", async (req, res) => {
-  const resp = await updateEmailList(req, {} as any);
-  resHelper(res, resp);
-});
-
-app.delete("/email-list/:emailListId", async (req, res) => {
-  const resp = await deleteEmailList(req, {} as any);
-  resHelper(res, resp);
-});
-
-app.post(
-  "/email-list/:emailListId/contact-email/:contactEmailId",
-  async (req, res) => {
-    const resp = await addContactEmailToEmailList(req, {} as any);
-    resHelper(res, resp);
-  }
-);
-
-app.delete(
-  "/email-list/:emailListId/contact-email/:contactEmailId",
-  async (req, res) => {
-    const resp = await deleteContactEmailFromEmailList(req, {} as any);
-    resHelper(res, resp);
-  }
-);
 
 app.get("/contact", async (req, res) => {
   const resp = await getAllContacts(req, {} as any);

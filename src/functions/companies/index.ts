@@ -141,50 +141,7 @@ const companyHandler = {
         path: "/company/{companyId}/notes/{notesId}",
         cors: true,
       },
-    }, // Email Lists
-    {
-      http: {
-        method: "get",
-        path: "email-list",
-        cors: true,
-      },
     },
-    {
-      http: {
-        method: "post",
-        path: "email-list",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "put",
-        path: "email-list/{emailListId}",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "delete",
-        path: "email-list/{emailListId}",
-        cors: true,
-      },
-    },
-    // {
-    //   http: {
-    //     method: "post",
-    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-    //     cors: true,
-    //   },
-    // },
-    // {
-    //   http: {
-    //     method: "delete",
-    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-    //     cors: true,
-    //   },
-    // },
-
     ////
     {
       http:{
