@@ -13,7 +13,7 @@ import {
 
 import {
   addContactEmailToEmailList,
-  addEmailList,
+  createEmailList,
   deleteContactEmailFromEmailList,
   deleteEmailList,
   getAllEmailLists,
@@ -78,7 +78,7 @@ app.get("/email-list", async (req, res) => {
 });
 
 app.post("/email-list", async (req, res) => {
-  const resp = await addEmailList(req, {} as any);
+  const resp = await createEmailList(req, {} as any);
   resHelper(res, resp);
 });
 

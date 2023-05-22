@@ -1,8 +1,14 @@
 import { IWithPagination } from "knex-paginate";
-import { Model, ModelObject } from "objection";
+import {
+  Model,
+  ModelObject,
+  RelationMappings,
+  RelationMappingsThunk,
+} from "objection";
 import { singleton } from "tsyringe";
-import { EMPLOYEES_TABLE_NAME } from "./commons";
+import { EMPLOYEES_TABLE_NAME, EMPLOYEE_TEAMS_TABLE } from "./commons";
 import { GenderArray, RolesArray, RolesEnum } from "./interfaces/Employees";
+import TeamModel from "./Teams";
 @singleton()
 export default class EmployeeModel extends Model {
   static get tableName() {
@@ -83,6 +89,22 @@ export default class EmployeeModel extends Model {
   static get jsonAttributes() {
     return ["addresses", "settings", "socialProfiles"];
   }
+
+  static relationMappings: RelationMappings | RelationMappingsThunk = () => ({
+    teams: {
+      relation: Model.ManyToManyRelation,
+      modelClass: TeamModel,
+      join: {
+        from: `${EmployeeModel.tableName}.id`,
+        through: {
+          from: `${EMPLOYEE_TEAMS_TABLE}.employee_id`,
+          to: `${EMPLOYEE_TEAMS_TABLE}.team_id`,
+          onDelete: "CASCADE",
+        },
+        to: `${TeamModel.tableName}.id`,
+      },
+    },
+  });
   // static relationMappings = () => ({
   //   addedBy: {
   //     relation: Model.BelongsToOneRelation,

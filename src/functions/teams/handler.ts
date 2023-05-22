@@ -83,6 +83,18 @@ const deleteTeamHandler: ValidatedEventAPIGatewayProxyEvent<ITeamModel> = middy(
   }
 );
 
+const addEmployeeToTeamHandler = async (event) => {
+  try {
+    const { teamId, employeeId } = event.params;
+    await container
+      .resolve(TeamService)
+      .addEmployeeToTeam(event.employee, teamId, employeeId);
+    return formatJSONResponse({ message: "Employee added successfully" }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getTeams = checkRolePermission(getTeamsHandler, "COMPANY_READ");
 export const getTeamById = checkRolePermission(
   getTeamByIdHandler,
@@ -99,4 +111,10 @@ export const createTeam = allowRoleWrapper(
 export const deleteTeam = allowRoleWrapper(
   deleteTeamHandler,
   RolesEnum.ADMIN_GROUP
+);
+
+// Make this starting from manager [role 2]
+export const addEmployeeToTeam = checkRolePermission(
+  addEmployeeToTeamHandler,
+  "COMPANY_READ"
 );

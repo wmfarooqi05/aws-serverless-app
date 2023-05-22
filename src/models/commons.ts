@@ -33,6 +33,8 @@ export const EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE =
   "email_address_to_email_list";
 export const EMAIL_LIST_TO_CONTACT_EMAILS =
   process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails";
+export const EMPLOYEE_TEAMS_TABLE =
+  process.env.EMPLOYEE_TEAMS_TABLE || "employee_teams";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

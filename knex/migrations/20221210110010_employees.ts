@@ -33,7 +33,6 @@ export async function up(knex: Knex): Promise<void> {
     table.string("timezone");
     // we will store it in elastic cache
     table.string("websocket_id");
-    table.string("team_id").notNullable().defaultTo("team0").index();
     table.string("gender");
     table
       .uuid("added_by")

@@ -3,6 +3,7 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 import {
+  addEmployeeToTeam,
   createTeam,
   deleteTeam,
   getTeamById,
@@ -42,6 +43,11 @@ app.put("/team/:teamId", async (req, res) => {
 
 app.delete("/team/:teamId", async (req, res) => {
   const resp = await deleteTeam(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/team/:teamId/add-employee/:employeeId", async (req, res) => {
+  const resp = await addEmployeeToTeam(req, {} as any);
   resHelper(res, resp);
 });
 

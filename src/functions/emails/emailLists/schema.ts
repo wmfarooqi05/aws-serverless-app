@@ -27,7 +27,7 @@ export const validateAddEmailList = async (
 ) => {
   await Joi.object({
     name: Joi.string().required().min(3),
-    teamId: Joi.string().guid().required(),
+    teamId: Joi.string().guid(),
     updatedBy: Joi.string().guid().required(),
   }).validateAsync(
     { ...payload, updatedBy: employeeId },

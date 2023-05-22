@@ -1,7 +1,13 @@
 import { IWithPagination } from "knex-paginate";
-import { Model, ModelObject } from "objection";
+import {
+  Model,
+  ModelObject,
+  RelationMappings,
+  RelationMappingsThunk,
+} from "objection";
 import { singleton } from "tsyringe";
-import { TEAMS_TABLE } from "./commons";
+import { EMPLOYEE_TEAMS_TABLE, TEAMS_TABLE } from "./commons";
+import EmployeeModel from "./Employees";
 
 export interface ITeam {
   id: string;
@@ -35,6 +41,21 @@ export default class TeamModel extends Model {
       additionalProperties: false,
     };
   }
+  static relationMappings: RelationMappings | RelationMappingsThunk = () => ({
+    employees: {
+      relation: Model.ManyToManyRelation,
+      modelClass: EmployeeModel,
+      join: {
+        from: `${TeamModel.tableName}.id`,
+        through: {
+          from: `${EMPLOYEE_TEAMS_TABLE}.team_id`,
+          to: `${EMPLOYEE_TEAMS_TABLE}.employee_id`,
+          onDelete: "CASCADE",
+        },
+        to: `${EmployeeModel.tableName}.id`,
+      },
+    },
+  });
 }
 
 export type ITeamModel = ModelObject<TeamModel>;

@@ -6,4 +6,7 @@ export const tableName = {
   emailToEmailRecipients:
     process.env.EMAIL_TO_EMAIL_RECIPIENT_TABLE || "email_to_email_recipients",
   emailTemplates: process.env.EMAIL_TEMPLATES_TABLE || "email_templates",
+  emailAddresses: process.env.EMAIL_ADDRESSES || "email_addresses",
+  emailAddressToEmailList:
+    process.env.EMAIL_ADDRESS_TO_EMAIL_LIST || "email_address_to_email_list",
 };

@@ -1,23 +1,22 @@
 import "reflect-metadata";
-import TeamModel, {
-  ITeamModel,
-  ITeamPaginated,
-} from "@models/Teams";
+import TeamModel, { ITeamModel, ITeamPaginated } from "@models/Teams";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 import {
   validateGetTeams,
   validateUpdateTeams,
   validateCreateTeam,
+  validateAddEmployeeToTeam,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
 import {
-  getOrderByItems,
-  getPaginateClauseObject,
-} from "@common/query";
+  IEmployeeJwt,
+  RolesArray,
+  RolesEnum,
+} from "@models/interfaces/Employees";
+import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 
 export interface ITeamService {
   getAllTeams(body: any): Promise<ITeamPaginated>;
@@ -85,5 +84,24 @@ export class TeamService implements ITeamService {
     if (!deleted) {
       throw new CustomError("Team not found", 404);
     }
+  }
+
+  async addEmployeeToTeam(
+    admin: IEmployeeJwt,
+    teamId: string,
+    employeeId: string
+  ) {
+    await validateAddEmployeeToTeam(admin.sub, teamId, employeeId);
+    if (
+      RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
+      !admin.teamId.split(",").includes(teamId)
+    ) {
+      throw new CustomError(
+        "You are not authorized to add user to this team",
+        403
+      );
+    }
+
+    await TeamModel.relatedQuery("employees").for(teamId).relate(employeeId);
   }
 }

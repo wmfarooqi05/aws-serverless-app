@@ -30,13 +30,13 @@ const getAllEmailListsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
 };
 
 // @TODO bring emailList id in url params
-const addEmailListHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
+const createEmailListHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
   try {
     const newRemarks = await container
       .resolve(EmailListService)
-      .addEmailList(event.employee, event.body);
+      .createEmailList(event.employee, event.body);
     return formatJSONResponse(newRemarks, 201);
   } catch (e) {
     return formatErrorResponse(e);
@@ -107,8 +107,8 @@ export const getAllEmailLists = checkRolePermission(
   "ACTIVITY_UPDATE"
 );
 // @TODO export these
-export const addEmailList = checkRolePermission(
-  addEmailListHandler,
+export const createEmailList = checkRolePermission(
+  createEmailListHandler,
   "ACTIVITY_UPDATE"
 );
 export const updateEmailList = checkRolePermission(

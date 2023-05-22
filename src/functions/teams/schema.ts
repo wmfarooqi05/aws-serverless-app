@@ -25,7 +25,11 @@ export const validateCreateTeam = async (updatedBy: string, obj: any) => {
   );
 };
 
-export const validateUpdateTeams = async (teamId: string, updatedBy: string, obj: any) => {
+export const validateUpdateTeams = async (
+  teamId: string,
+  updatedBy: string,
+  obj: any
+) => {
   await Joi.object({
     teamId: Joi.string().guid(),
     teamName: Joi.string(),
@@ -39,3 +43,14 @@ export const validateUpdateTeams = async (teamId: string, updatedBy: string, obj
   );
 };
 
+export const validateAddEmployeeToTeam = async (
+  adminId,
+  teamId,
+  employeeId
+) => {
+  await Joi.object({
+    teamId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
+    adminId: Joi.string().guid().required(),
+  }).validateAsync({ teamId, employeeId, adminId });
+};

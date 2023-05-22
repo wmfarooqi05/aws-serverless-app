@@ -146,11 +146,12 @@ export class EmailListService implements IEmailListServiceService {
   //     .orderBy(...getOrderByItems(body))
   //     .paginate(getPaginateClauseObject(body));
   // }
-  async addEmailList(employee: IEmployeeJwt, body: any) {
+  async createEmailList(employee: IEmployeeJwt, body: any) {
     try {
       const payload = JSON.parse(body);
       await validateAddEmailList(employee.sub, payload);
       const { name, teamId } = payload;
+      // let currentTeamId = employee.te
 
       return EmailListModel.query().insert({
         updatedBy: employee.sub,
