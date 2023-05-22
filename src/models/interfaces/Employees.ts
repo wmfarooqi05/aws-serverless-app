@@ -1,7 +1,9 @@
+import { ITeam } from "@models/Teams";
+
 export interface IEmployeeJwt {
   sub: string;
   role: IRoles;
-  teamId: string;
+  teamId: string[];
   permitted: boolean;
   createPendingApproval: boolean;
   email: string;
@@ -59,7 +61,6 @@ export interface IEmployee {
   phoneNumberVerified?: boolean;
   phoneNumber?: string;
   reportingManager?: string;
-  teamId?: string;
   addedBy?: string;
 
   settings?: JSON;
@@ -67,4 +68,8 @@ export interface IEmployee {
   EmployeeStatus?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface IEmployeeWithTeam extends IEmployee {
+  teams: ITeam[];
 }

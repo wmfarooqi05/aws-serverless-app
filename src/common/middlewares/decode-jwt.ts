@@ -31,6 +31,9 @@ export const decodeJWTMiddleware = () => {
         event.headers?.Authorization || event.headers?.authorization;
       const token = authorization?.split(" ")[1];
       event.employee = decode(token);
+      if (event.employee?.teamId) {
+        event.employee.teamId = event.employee.teamId.split(",");
+      }
       // we need to handle cognito auth custom way to gain more control
       // V2 will cover this
     },
@@ -68,7 +71,8 @@ export const jwtRequired = () => {
     before: ({ event }) => {
       try {
         // @TODO change this to guest
-        const role = event?.employee?.role || RolesArray[RolesEnum.SALES_REP_GROUP];
+        const role =
+          event?.employee?.role || RolesArray[RolesEnum.SALES_REP_GROUP];
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
         // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
