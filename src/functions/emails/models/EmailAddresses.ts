@@ -2,14 +2,11 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import {
-  CONTACTS_TABLE,
   EMAIL_ADDRESSES_TABLE,
   EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE,
   EMAIL_LIST_TABLE,
-  EMAIL_LIST_TO_CONTACT_EMAILS,
 } from "./commons";
 import EmailListModel from "./EmailLists";
-import ContactModel from "./Contacts";
 
 export interface IEmailAddresses {
   id: string;
@@ -55,15 +52,6 @@ export default class EmailAddressesModel extends Model {
           onDelete: "NO ACTION",
         },
         to: `${EMAIL_LIST_TABLE}.id`,
-      },
-    },
-    contact: {
-      relation: Model.HasOneRelation,
-      // The related model.
-      modelClass: ContactModel,
-      join: {
-        from: `${EMAIL_ADDRESSES_TABLE}.contactId`,
-        to: `${CONTACTS_TABLE}.id`,
       },
     },
   });

@@ -2,8 +2,8 @@ import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 import {
-  validateAddContactEmailToEmailList,
   validateAddEmailList,
+  validateAddEmailsToEmailList,
   validateContactEmailToEmailList,
   validateDeleteEmailList,
   validateGetEmailLists,
@@ -12,7 +12,6 @@ import {
 
 import { injectable, inject } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import EmailListModel from "@models/EmailLists";
 import { CustomError } from "@helpers/custom-error";
 import {
   getOrderByItems,
@@ -21,7 +20,13 @@ import {
 } from "@common/query";
 import { updateHistoryHelper } from "@common/json_helpers";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
-import { EMAIL_LIST_TO_CONTACT_EMAILS } from "@models/commons";
+import EmailAddressesModel, {
+  IEmailAddresses,
+} from "@functions/emails/models/EmailAddresses";
+import EmailAddressToEmailListModel, {
+  IEmailAddressToEmailListModel,
+} from "../models/EmailAddressToEmailList";
+import EmailListModel from "../models/EmailLists";
 
 export enum HttpStatusCode {
   Continue = 100,
@@ -202,6 +207,13 @@ export class EmailListService implements IEmailListServiceService {
     return EmailListModel.query().deleteById(emailListId);
   }
 
+  /**
+   * @deprecated
+   * @param employee
+   * @param emailListId
+   * @param contactEmailId
+   * @returns
+   */
   async addContactEmailToEmailList(
     employee: IEmployeeJwt,
     emailListId: string,
@@ -213,16 +225,16 @@ export class EmailListService implements IEmailListServiceService {
       contactEmailId
     );
 
-    await updateHistoryHelper(
-      PendingApprovalType.ADD_RELATION_IN_PIVOT,
-      null,
-      employee.sub,
-      EMAIL_LIST_TO_CONTACT_EMAILS,
-      this.docClient.getKnexClient(),
-      { emailListId, contactEmailId }
-    );
+    // await updateHistoryHelper(
+    //   PendingApprovalType.ADD_RELATION_IN_PIVOT,
+    //   null,
+    //   employee.sub,
+    //   EMAIL_LIST_TO_CONTACT_EMAILS,
+    //   this.docClient.getKnexClient(),
+    //   { emailListId, contactEmailId }
+    // );
 
-    return { emailListToContactId: { emailListId, contactEmailId } };
+    // return { emailListToContactId: { emailListId, contactEmailId } };
   }
   async deleteContactEmailFromEmailList(
     employee: IEmployeeJwt,
@@ -245,5 +257,50 @@ export class EmailListService implements IEmailListServiceService {
     );
 
     return { emailListToContactId: { emailListId, contactEmailId } };
+  }
+
+  async addEmailsToEmailList(
+    employee: IEmployeeJwt,
+    emailListId: string,
+    body: string
+  ) {
+    const payload = JSON.parse(body);
+    await validateAddEmailsToEmailList(
+      employee.currentTeamId,
+      emailListId,
+      payload
+    );
+    const { emails } = payload;
+    const existingEmailAddresses: IEmailAddresses[] =
+      await EmailAddressesModel.query().whereIn("email", emails);
+
+    const nonExistingEmails: string[] = emails.filter(
+      (email: string) =>
+        !existingEmailAddresses.some((existing) => existing.email === email)
+    );
+
+    let newEmailAddresses: IEmailAddresses[] = [];
+    if (nonExistingEmails.length > 0)
+      newEmailAddresses = await EmailAddressesModel.query().insert(
+        nonExistingEmails.map((email) => {
+          return { email, emailType: "CUSTOMER" };
+        })
+      );
+
+    const newRelations: IEmailAddressToEmailListModel[] = [
+      ...newEmailAddresses.map((x) => x.id),
+      ...existingEmailAddresses.map((x) => x.id),
+    ].map((x) => {
+      return {
+        emailAddressId: x,
+        emailListId,
+      };
+    });
+
+    await this.docClient
+      .getKnexClient()(EmailAddressToEmailListModel.tableName)
+      .insert(newRelations)
+      .onConflict()
+      .ignore();
   }
 }

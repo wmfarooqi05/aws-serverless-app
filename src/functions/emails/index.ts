@@ -83,6 +83,13 @@ const emailHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "email-list/{emailListId}/add-emails",
+        cors: true,
+      },
+    },
     // {
     //   http: {
     //     method: "post",

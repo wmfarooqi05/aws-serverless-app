@@ -102,6 +102,22 @@ const deleteContactEmailFromEmailListHandler = async (event) => {
   }
 };
 
+export const addEmailsToEmailListHandler = async (event) => {
+  try {
+    const { emailListId } = event.params;
+
+    await container
+      .resolve(EmailListService)
+      .addEmailsToEmailList(event.employee, emailListId, event.body);
+    return formatJSONResponse(
+      { message: "Emails added to email list successfully" },
+      200
+    );
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getAllEmailLists = checkRolePermission(
   getAllEmailListsHandler,
   "ACTIVITY_UPDATE"
@@ -126,5 +142,10 @@ export const addContactEmailToEmailList = checkRolePermission(
 );
 export const deleteContactEmailFromEmailList = checkRolePermission(
   deleteContactEmailFromEmailListHandler,
+  "COMPANY_READ"
+);
+
+export const addEmailsToEmailList = checkRolePermission(
+  addEmailsToEmailListHandler,
   "COMPANY_READ"
 );

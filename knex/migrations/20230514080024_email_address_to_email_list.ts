@@ -1,5 +1,5 @@
 import { Knex } from "knex";
-import { tableName as Tables } from "../tables";
+import { tableName as Tables } from "../email_tables";
 const tableName = Tables.emailAddressToEmailList;
 
 export async function up(knex: Knex): Promise<void> {
@@ -9,13 +9,13 @@ export async function up(knex: Knex): Promise<void> {
       .references("id")
       .inTable(Tables.emailAddresses)
       .notNullable()
-      .onDelete('NO ACTION');
+      .onDelete("NO ACTION");
     table
       .uuid("email_list_id")
       .references("id")
       .inTable(Tables.emailList)
       .notNullable()
-      .onDelete('NO ACTION');
+      .onDelete("NO ACTION");
 
     table.primary(["email_address_id", "email_list_id"]);
   });

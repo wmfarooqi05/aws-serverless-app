@@ -1,6 +1,6 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
-import { EMAIL_TEMPLATES_TABLE } from "./common";
+import { EMAIL_TEMPLATES_TABLE } from "./commons";
 import { singleton } from "tsyringe";
 
 export interface IEmailTemplate {

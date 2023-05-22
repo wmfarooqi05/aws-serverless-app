@@ -5,7 +5,7 @@ import {
   EMAIL_RECIPIENT_TABLE,
   EMAIL_TABLE,
   EMAIL_TO_EMAIL_RECIPIENT_TABLE,
-} from "./common";
+} from "./commons";
 import { EmailModel } from "./Email";
 
 export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";

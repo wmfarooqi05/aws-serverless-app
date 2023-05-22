@@ -14,7 +14,6 @@ export const tableName = {
     process.env.ACCESS_PERMISSIONS_TABLE || "access_permissions",
   // emails: process.env.EMAILS || "emails",
   // emailHistory: process.env.EMAIL_HISTORY || "email_history",
-  emailList: process.env.EMAIL_LIST || "email_lists",
   employeeCompanyInteraction:
     process.env.EMPLOYEE_COMPANY_INTERACTIONS ||
     "employee_company_interactions",

@@ -3,9 +3,8 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import {
   EMAIL_METRICS_TABLE,
-  EMAIL_RECIPIENT_TABLE,
   EMAIL_TABLE,
-} from "./common";
+} from "./commons";
 import { RecipientModel } from "./Recipient";
 
 // we can add things like

@@ -36,7 +36,7 @@ import {
 } from "@aws-sdk/client-s3";
 import moment from "moment-timezone";
 import { EmailTemplatesModel, IEmailTemplate } from "./models/EmailTemplate";
-import EmailAddressesModel, { IEmailAddresses } from "@models/EmailAddresses";
+import EmailAddressesModel, { IEmailAddresses } from "@functions/emails/models/EmailAddresses";
 import {
   GetTemplateCommand,
   GetTemplateCommandInput,

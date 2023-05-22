@@ -13,6 +13,7 @@ import {
 
 import {
   addContactEmailToEmailList,
+  addEmailsToEmailList,
   createEmailList,
   deleteContactEmailFromEmailList,
   deleteEmailList,
@@ -107,6 +108,11 @@ app.delete(
     resHelper(res, resp);
   }
 );
+
+app.post("/email-list/:emailListId/add-emails", async (req, res) => {
+  const resp = await addEmailsToEmailList(req, {} as any);
+  resHelper(res, resp);
+});
 
 exports.handler = awsSlsExpress({ app });
 

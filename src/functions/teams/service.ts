@@ -94,7 +94,7 @@ export class TeamService implements ITeamService {
     await validateAddEmployeeToTeam(admin.sub, teamId, employeeId);
     if (
       RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
-      !admin.teamId.split(",").includes(teamId)
+      !admin.teamId.includes(teamId)
     ) {
       throw new CustomError(
         "You are not authorized to add user to this team",

@@ -1,7 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { EMAIL_OPT_OUT_TABLE } from "./common";
+import { EMAIL_OPT_OUT_TABLE } from "./commons";
 
 @singleton()
 export class OptOutModel extends Model {

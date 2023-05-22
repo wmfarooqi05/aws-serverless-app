@@ -1,15 +1,12 @@
 import Joi from "joi";
 import {
-  ACTIVITY_TYPE,
-  IACTIVITY_DETAILS,
   ICALL_DETAILS,
   IEMAIL_DETAILS,
   IMEETING_DETAILS,
-  ITASK_DETAILS,
 } from "src/models/interfaces/Activity";
 import moment from "moment-timezone";
-import EmailListModel from "@models/EmailLists";
 import { getPaginatedJoiKeys } from "@common/schema";
+import EmailListModel from "../models/EmailLists";
 
 const schemaKeys = Object.keys(EmailListModel.jsonSchema.properties);
 
@@ -119,10 +116,6 @@ const validateMeetingDetails = async (details: IMEETING_DETAILS) => {
   }).validateAsync(details);
 };
 
-const validateTaskDetails = async (details: ITASK_DETAILS) => {
-  console.log(details);
-};
-
 export const validateContactEmailToEmailList = async (
   employeeId,
   emailListId,
@@ -133,4 +126,16 @@ export const validateContactEmailToEmailList = async (
     emailListId: Joi.string().guid().required(),
     contactEmailId: Joi.string().guid().required(),
   }).validateAsync({ employeeId, emailListId, contactEmailId });
+};
+
+export const validateAddEmailsToEmailList = async (
+  teamId: string,
+  emailListId: string,
+  obj: any
+) => {
+  await Joi.object({
+    emails: Joi.array().items(Joi.string().email().required()).required().min(1),
+    emailListId: Joi.string().guid().required(),
+    teamId: Joi.string().guid().required(),
+  }).validateAsync({ ...obj, teamId, emailListId });
 };

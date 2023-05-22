@@ -1,15 +1,14 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { IWithPagination } from "knex-paginate";
-import Activity from "./Activity";
 import {
   EMAIL_ADDRESSES_TABLE,
   EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE,
   EMAIL_LIST_TABLE,
-  EMAIL_LIST_TO_CONTACT_EMAILS,
-  TEAMS_TABLE,
 } from "./commons";
 import ContactEmailsModel from "./EmailAddresses";
+import TeamModel from "@models/Teams";
+import { TEAMS_TABLE } from "@models/commons";
 
 export interface IEmailList {
   id?: string;
@@ -66,7 +65,7 @@ export default class EmailListModel extends Model {
     },
     emailListToTeamId: {
       relation: Model.BelongsToOneRelation,
-      modelClass: Activity,
+      modelClass: TeamModel,
       join: {
         from: `${EMAIL_LIST_TABLE}.teamId`,
         to: `${TEAMS_TABLE}.id`,
