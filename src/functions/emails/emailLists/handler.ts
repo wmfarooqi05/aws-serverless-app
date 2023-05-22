@@ -72,36 +72,6 @@ const deleteEmailListHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-const addContactEmailToEmailListHandler = async (event) => {
-  try {
-    const { emailListId, contactEmailId } = event.params;
-
-    const emailListToContactId = await container
-      .resolve(EmailListService)
-      .addContactEmailToEmailList(event.employee, emailListId, contactEmailId);
-    return formatJSONResponse(emailListToContactId, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-const deleteContactEmailFromEmailListHandler = async (event) => {
-  try {
-    const { emailListId, contactEmailId } = event.params;
-
-    const emailListToContactId = await container
-      .resolve(EmailListService)
-      .deleteContactEmailFromEmailList(
-        event.employee,
-        emailListId,
-        contactEmailId
-      );
-    return formatJSONResponse(emailListToContactId, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 export const addEmailsToEmailListHandler = async (event) => {
   try {
     const { emailListId } = event.params;
@@ -111,6 +81,22 @@ export const addEmailsToEmailListHandler = async (event) => {
       .addEmailsToEmailList(event.employee, emailListId, event.body);
     return formatJSONResponse(
       { message: "Emails added to email list successfully" },
+      200
+    );
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const deleteEmailsFromEmailListHandler = async (event) => {
+  try {
+    const { emailListId } = event.params;
+
+    const deletedEmails = await container
+      .resolve(EmailListService)
+      .deleteEmailsFromEmailList(event.employee, emailListId, event.body);
+    return formatJSONResponse(
+      { message: "Emails added to email list successfully", deletedEmails },
       200
     );
   } catch (e) {
@@ -136,16 +122,12 @@ export const deleteEmailList = checkRolePermission(
   "ACTIVITY_UPDATE"
 );
 
-export const addContactEmailToEmailList = checkRolePermission(
-  addContactEmailToEmailListHandler,
-  "COMPANY_READ"
-);
-export const deleteContactEmailFromEmailList = checkRolePermission(
-  deleteContactEmailFromEmailListHandler,
+export const addEmailsToEmailList = checkRolePermission(
+  addEmailsToEmailListHandler,
   "COMPANY_READ"
 );
 
-export const addEmailsToEmailList = checkRolePermission(
-  addEmailsToEmailListHandler,
+export const deleteEmailsFromEmailList = checkRolePermission(
+  deleteEmailsFromEmailListHandler,
   "COMPANY_READ"
 );

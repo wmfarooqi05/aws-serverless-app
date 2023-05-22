@@ -128,14 +128,15 @@ export const validateContactEmailToEmailList = async (
   }).validateAsync({ employeeId, emailListId, contactEmailId });
 };
 
-export const validateAddEmailsToEmailList = async (
-  teamId: string,
+export const validateAddDeleteEmailsToEmailList = async (
   emailListId: string,
   obj: any
 ) => {
   await Joi.object({
-    emails: Joi.array().items(Joi.string().email().required()).required().min(1),
+    emails: Joi.array()
+      .items(Joi.string().email().required())
+      .required()
+      .min(1),
     emailListId: Joi.string().guid().required(),
-    teamId: Joi.string().guid().required(),
-  }).validateAsync({ ...obj, teamId, emailListId });
+  }).validateAsync({ ...obj, emailListId });
 };

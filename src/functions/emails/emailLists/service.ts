@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 import {
+  validateAddDeleteEmailsToEmailList,
   validateAddEmailList,
   validateAddEmailsToEmailList,
   validateContactEmailToEmailList,
@@ -207,69 +208,13 @@ export class EmailListService implements IEmailListServiceService {
     return EmailListModel.query().deleteById(emailListId);
   }
 
-  /**
-   * @deprecated
-   * @param employee
-   * @param emailListId
-   * @param contactEmailId
-   * @returns
-   */
-  async addContactEmailToEmailList(
-    employee: IEmployeeJwt,
-    emailListId: string,
-    contactEmailId: string
-  ) {
-    await validateContactEmailToEmailList(
-      employee.sub,
-      emailListId,
-      contactEmailId
-    );
-
-    // await updateHistoryHelper(
-    //   PendingApprovalType.ADD_RELATION_IN_PIVOT,
-    //   null,
-    //   employee.sub,
-    //   EMAIL_LIST_TO_CONTACT_EMAILS,
-    //   this.docClient.getKnexClient(),
-    //   { emailListId, contactEmailId }
-    // );
-
-    // return { emailListToContactId: { emailListId, contactEmailId } };
-  }
-  async deleteContactEmailFromEmailList(
-    employee: IEmployeeJwt,
-    emailListId: string,
-    contactEmailId: string
-  ) {
-    await validateContactEmailToEmailList(
-      employee.sub,
-      emailListId,
-      contactEmailId
-    );
-
-    await updateHistoryHelper(
-      PendingApprovalType.DELETE_RELATION_FROM_PIVOT,
-      null,
-      employee.sub,
-      EMAIL_LIST_TO_CONTACT_EMAILS,
-      this.docClient.getKnexClient(),
-      { emailListId, contactEmailId }
-    );
-
-    return { emailListToContactId: { emailListId, contactEmailId } };
-  }
-
   async addEmailsToEmailList(
     employee: IEmployeeJwt,
     emailListId: string,
     body: string
   ) {
     const payload = JSON.parse(body);
-    await validateAddEmailsToEmailList(
-      employee.currentTeamId,
-      emailListId,
-      payload
-    );
+    await validateAddDeleteEmailsToEmailList(emailListId, payload);
     const { emails } = payload;
     const existingEmailAddresses: IEmailAddresses[] =
       await EmailAddressesModel.query().whereIn("email", emails);
@@ -302,5 +247,32 @@ export class EmailListService implements IEmailListServiceService {
       .insert(newRelations)
       .onConflict()
       .ignore();
+  }
+
+  async deleteEmailsFromEmailList(
+    employee: IEmployeeJwt,
+    emailListId: string,
+    body: string
+  ) {
+    const payload = JSON.parse(body);
+    await validateAddDeleteEmailsToEmailList(emailListId, payload);
+    const { emails } = payload;
+    const existingEmailAddresses: IEmailAddresses[] =
+      await EmailAddressesModel.query().whereIn("email", emails);
+
+    const deletePromises = existingEmailAddresses.map((x) => {
+      return this.docClient
+        .getKnexClient()(EmailAddressToEmailListModel.tableName)
+        .where({ emailListId, emailAddressId: x.id })
+        .delete();
+    });
+
+    const resp = await Promise.all(deletePromises);
+    return existingEmailAddresses.map((x, index) => {
+      return {
+        email: x.email,
+        deleted: !!resp[index],
+      };
+    });
   }
 }

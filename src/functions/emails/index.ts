@@ -90,20 +90,13 @@ const emailHandler = {
         cors: true,
       },
     },
-    // {
-    //   http: {
-    //     method: "post",
-    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-    //     cors: true,
-    //   },
-    // },
-    // {
-    //   http: {
-    //     method: "delete",
-    //     path: "email-list/{emailListId}/contact-email/{contactEmailId}",
-    //     cors: true,
-    //   },
-    // },
+    {
+      http: {
+        method: "delete",
+        path: "email-list/{emailListId}/delete-emails",
+        cors: true,
+      },
+    },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };

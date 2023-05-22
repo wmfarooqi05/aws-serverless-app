@@ -17,6 +17,7 @@ import {
   createEmailList,
   deleteContactEmailFromEmailList,
   deleteEmailList,
+  deleteEmailsFromEmailList,
   getAllEmailLists,
   updateEmailList,
 } from "./emailLists/handler";
@@ -93,24 +94,13 @@ app.delete("/email-list/:emailListId", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.post(
-  "/email-list/:emailListId/contact-email/:contactEmailId",
-  async (req, res) => {
-    const resp = await addContactEmailToEmailList(req, {} as any);
-    resHelper(res, resp);
-  }
-);
-
-app.delete(
-  "/email-list/:emailListId/contact-email/:contactEmailId",
-  async (req, res) => {
-    const resp = await deleteContactEmailFromEmailList(req, {} as any);
-    resHelper(res, resp);
-  }
-);
-
 app.post("/email-list/:emailListId/add-emails", async (req, res) => {
   const resp = await addEmailsToEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete("/email-list/:emailListId/delete-emails", async (req, res) => {
+  const resp = await deleteEmailsFromEmailList(req, {} as any);
   resHelper(res, resp);
 });
 
