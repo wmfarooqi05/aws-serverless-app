@@ -131,6 +131,7 @@ export class CompanyService implements ICompanyService {
         join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
       })
       .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
+        // @TODO FIX_TEAM_ID
         join.on("tc.team_id", "=", knex.raw("?", [employee.teamId]));
       })
       .select(returningKeys)
@@ -334,7 +335,7 @@ export class CompanyService implements ICompanyService {
       await TeamCompanyInteractionsModel.query()
         .where({
           companyId,
-          teamId: employee.teamId,
+          teamId: employee.currentTeamId,
         })
         .first();
 

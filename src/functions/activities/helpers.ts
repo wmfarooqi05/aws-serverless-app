@@ -227,6 +227,8 @@ export const attachManagerRestrictions = (
       qb.join("employees as e", "a.created_by", "=", "e.id");
       // qb.select("e.team_id", "e.reporting_manager");
       qb.where("e.team_id", employee.teamId);
+
+      // @TODO FIX_TEAM_ID
       break;
   }
 

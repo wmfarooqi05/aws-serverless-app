@@ -114,7 +114,6 @@ const serverlessConfiguration: AWS = {
     JOBS_FOLDER: process.env.JOBS_FOLDER,
     userPoolId: process.env.COGNITO_USER_POOL_ID,
     snsTopicArn: "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
-
     // cognitoAuthorizerArn:
     //   "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
 

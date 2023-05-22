@@ -106,6 +106,13 @@ export class EmployeeService implements IEmployeeService {
       .paginate(getPaginateClauseObject(body));
   }
 
+  /**
+   * this functionality was moved to jwt validator part
+   * @deprecated
+   * @param employeeJwt
+   * @param requestedUserId
+   * @returns
+   */
   async validateRequestByEmployeeRole(
     employeeJwt: IEmployeeJwt,
     requestedUserId

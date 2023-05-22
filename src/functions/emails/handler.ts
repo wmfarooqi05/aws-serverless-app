@@ -44,6 +44,10 @@ const getEmailsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   }
 };
 
+
+      // @TODO FIX_TEAM_ID
+      // what is this?????
+      // this is not getting used
 export const getEmailById: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {

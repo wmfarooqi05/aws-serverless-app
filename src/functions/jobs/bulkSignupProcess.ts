@@ -121,7 +121,8 @@ export const bulkImportUsersProcessHandler = async (jobId: string) => {
         phoneNumber: x.phone_number,
         role: x.role,
         reportingManager: manager?.id ?? null,
-        teamId: x.team_id,
+        // @TODO FIX_TEAM_ID
+        // teamId: x.team_id,
         addedBy: jobData.uploadedBy,
       });
     }

@@ -4,6 +4,7 @@ export interface IEmployeeJwt {
   sub: string;
   role: IRoles;
   teamId: string[];
+  currentTeamId: string;
   permitted: boolean;
   createPendingApproval: boolean;
   email: string;
@@ -73,3 +74,5 @@ export interface IEmployee {
 export interface IEmployeeWithTeam extends IEmployee {
   teams: ITeam[];
 }
+
+export const TEAM_HEADER_KEY = 'x-team-id';

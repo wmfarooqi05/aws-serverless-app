@@ -12,6 +12,7 @@ import {
   roleKey,
   RolesArray,
   RolesEnum,
+  TEAM_HEADER_KEY,
 } from "@models/interfaces/Employees";
 import {
   returnUnAuthorizedError,
@@ -31,8 +32,15 @@ export const decodeJWTMiddleware = () => {
         event.headers?.Authorization || event.headers?.authorization;
       const token = authorization?.split(" ")[1];
       event.employee = decode(token);
-      if (event.employee?.teamId) {
-        event.employee.teamId = event.employee.teamId.split(",");
+
+      if (event.employee) {
+        const { teamId } = event.employee;
+        event.employee.teamId = teamId?.split(",");
+        if (event.headers[TEAM_HEADER_KEY]) {
+          event.employee.currentTeamId = event.headers[TEAM_HEADER_KEY];
+        } else {
+          event.employee.currentTeamId = event.employee.teamId[0];
+        }
       }
       // we need to handle cognito auth custom way to gain more control
       // V2 will cover this

@@ -75,9 +75,11 @@ export const validateRequestByEmployeeRole = async (
       }
       break;
     case RolesEnum.REGIONAL_MANAGER_GROUP:
-      if (tableRowCreator.teamId !== requestingEmployee.teamId) {
-        return false;
-      }
+      // Commenting due to change in teamId structure. this was working code
+      // update this when we again want this kind of restrictions
+      // if (tableRowCreator.teamId !== requestingEmployee.teamId) {
+      //   return false;
+      // }
       break;
     default:
       break;

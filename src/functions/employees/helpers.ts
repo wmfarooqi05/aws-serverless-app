@@ -3,10 +3,13 @@ import { CustomError } from "@helpers/custom-error";
 import {
   IEmployee,
   IEmployeeJwt,
+  IEmployeeWithTeam,
   roleKey,
   RolesEnum,
 } from "@models/interfaces/Employees";
 
+// This appears to be useless or not valid
+// @TODO FIX_TEAM_ID
 export const getEmployeeFilter = (
   employee: IEmployeeJwt,
   raw: boolean = false,
@@ -46,9 +49,15 @@ export const getEmployeeFilter = (
   }
 };
 
+/**
+ * @deprecated
+ * @param manager
+ * @param employee
+ * @returns
+ */
 export const checkManagerPermissions = (
   manager: IEmployeeJwt,
-  employee: IEmployee
+  employee: IEmployeeWithTeam
 ) => {
   if (!RolesEnum[manager["cognito:groups"][0]]) {
     throw new CustomError("No valid role present", 403);
@@ -68,7 +77,7 @@ export const checkManagerPermissions = (
       if (
         !(
           RolesEnum.REGIONAL_MANAGER_GROUP >= RolesEnum[employee.role] &&
-          manager.teamId === employee.teamId
+          employee.teams.find((x) => x.id === manager.currentTeamId)
         )
       ) {
         throwUnAuthorizedError();

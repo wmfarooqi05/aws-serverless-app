@@ -25,6 +25,18 @@ export const getParamKeyValueFromEvent = (event, key: string) => {
   throw new CustomError("Param key not found", 400);
 };
 
+/**
+ * This was initially build to prevent sales guy to update a company
+ * assigned to another sales guy. But this requirement was changed later on
+ * For now, we dont need such restrictions for now.
+ * If future, this function can be revisited
+ * @deprecated
+ * @param event
+ * @param tableName
+ * @param urlParamKey
+ * @param employeeRelationKey
+ * @returns
+ */
 export const checkIfPermittedWithSpecialPermission = async (
   event: any,
   tableName: string = null,

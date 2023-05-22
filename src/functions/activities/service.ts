@@ -34,7 +34,7 @@ import { unionAllResults } from "./queries";
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt, IEmployeeWithTeam } from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import {
@@ -422,13 +422,20 @@ export class ActivityService implements IActivityService {
       .paginate(getPaginateClauseObject(body));
   }
 
+  /**
+   * the requirements have changed a lot, maybe we dont need that much permissions
+   * @deprecated
+   * @param manager 
+   * @param body 
+   * @returns 
+   */
   async getEmployeeStaleActivityByStatus(manager: IEmployeeJwt, body: any) {
     await validateGetEmployeeStaleActivities(body);
     const createdByIds = body?.createdByIds?.split(",");
     if (createdByIds) {
-      const employees: IEmployee[] = await EmployeeModel.query().findByIds(
+      const employees: IEmployeeWithTeam[] = await EmployeeModel.query().findByIds(
         createdByIds
-      );
+      ).withGraphFetched('teams');
 
       // @TODO add validation for manager permissions
       employees.map((employee) => checkManagerPermissions(manager, employee));
