@@ -38,8 +38,6 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
             filename: Joi.string().required(),
           })
         ),
-        companyId: Joi.string().required(),
-        contactId: Joi.string().required(),
       })
     ),
   }).validateAsync(obj, {
