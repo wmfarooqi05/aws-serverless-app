@@ -19,6 +19,7 @@ import {
   deleteEmailList,
   deleteEmailsFromEmailList,
   getAllEmailLists,
+  syncEmails,
   updateEmailList,
 } from "./emailLists/handler";
 
@@ -101,6 +102,11 @@ app.post("/email-list/:emailListId/add-emails", async (req, res) => {
 
 app.delete("/email-list/:emailListId/delete-emails", async (req, res) => {
   const resp = await deleteEmailsFromEmailList(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/sync-emails", async (req, res) => {
+  const resp = await syncEmails(req, {} as any);
   resHelper(res, resp);
 });
 

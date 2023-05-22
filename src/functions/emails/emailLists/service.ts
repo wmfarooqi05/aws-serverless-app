@@ -275,4 +275,21 @@ export class EmailListService implements IEmailListServiceService {
       };
     });
   }
+
+  async syncEmails() {
+    const query = `
+      INSERT INTO email_addresses (email, email_type)
+      SELECT email, 'CUSTOMER'
+      FROM (
+        SELECT jsonb_array_elements_text(c.emails) AS email
+        FROM contacts c
+      ) AS emails_to_insert
+      WHERE email NOT IN (
+        SELECT email
+        FROM email_addresses
+      );
+    `;
+
+    await this.docClient.getKnexClient().raw(query);
+  }
 }

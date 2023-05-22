@@ -104,6 +104,21 @@ export const deleteEmailsFromEmailListHandler = async (event) => {
   }
 };
 
+export const syncEmailsHandler = async (event) => {
+  try {
+    await container.resolve(EmailListService).syncEmails(event.employee);
+    return formatJSONResponse(
+      {
+        message:
+          "Emails synced from Contacts table to EmailAddresses table successfully",
+      },
+      200
+    );
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getAllEmailLists = checkRolePermission(
   getAllEmailListsHandler,
   "ACTIVITY_UPDATE"
@@ -129,5 +144,10 @@ export const addEmailsToEmailList = checkRolePermission(
 
 export const deleteEmailsFromEmailList = checkRolePermission(
   deleteEmailsFromEmailListHandler,
+  "COMPANY_READ"
+);
+
+export const syncEmails = checkRolePermission(
+  syncEmailsHandler,
   "COMPANY_READ"
 );

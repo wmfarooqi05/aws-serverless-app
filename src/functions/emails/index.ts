@@ -97,6 +97,13 @@ const emailHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "sync-emails",
+        cors: true,
+      },
+    },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
