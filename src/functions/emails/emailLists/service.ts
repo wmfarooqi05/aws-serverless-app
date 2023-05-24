@@ -215,23 +215,28 @@ export class EmailListService implements IEmailListServiceService {
   ) {
     const payload = JSON.parse(body);
     await validateAddDeleteEmailsToEmailList(emailListId, payload);
-    const { emails } = payload;
+    const { emails }: { emails: { name: string; email: string }[] } = payload;
+    const emailList: string[] = emails.map((x) => x.email);
     const existingEmailAddresses: IEmailAddresses[] =
-      await EmailAddressesModel.query().whereIn("email", emails);
+      await EmailAddressesModel.query().whereIn("email", emailList);
 
-    const nonExistingEmails: string[] = emails.filter(
+    const nonExistingEmails: string[] = emailList.filter(
       (email: string) =>
         !existingEmailAddresses.some((existing) => existing.email === email)
     );
 
     let newEmailAddresses: IEmailAddresses[] = [];
-    if (nonExistingEmails.length > 0)
-      newEmailAddresses = await EmailAddressesModel.query().insert(
-        nonExistingEmails.map((email) => {
-          return { email, emailType: "CUSTOMER" };
-        })
-      );
-
+    if (nonExistingEmails.length > 0) {
+      const payloads = nonExistingEmails.map((email) => {
+        const name = emails.find((x) => x.email === email)?.name || null;
+        const payload = { email, emailType: "CUSTOMER" };
+        if (name) {
+          payload["name"] = name;
+        }
+        return payload;
+      });
+      newEmailAddresses = await EmailAddressesModel.query().insert(payloads);
+    }
     const newRelations: IEmailAddressToEmailListModel[] = [
       ...newEmailAddresses.map((x) => x.id),
       ...existingEmailAddresses.map((x) => x.id),
@@ -278,16 +283,22 @@ export class EmailListService implements IEmailListServiceService {
 
   async syncEmails() {
     const query = `
-      INSERT INTO email_addresses (email, email_type)
-      SELECT email, 'CUSTOMER'
-      FROM (
-        SELECT jsonb_array_elements_text(c.emails) AS email
-        FROM contacts c
-      ) AS emails_to_insert
-      WHERE email NOT IN (
-        SELECT email
-        FROM email_addresses
-      );
+      INSERT INTO email_addresses (email, name, email_type)
+      SELECT DISTINCT
+        email,
+        c."name",
+        'CUSTOMER'
+      FROM
+        contacts c,
+        jsonb_array_elements_text(c.emails) AS email
+      WHERE
+        NOT EXISTS (
+          SELECT
+            1
+          FROM
+            email_addresses ea
+          WHERE
+            ea.email = email);
     `;
 
     await this.docClient.getKnexClient().raw(query);

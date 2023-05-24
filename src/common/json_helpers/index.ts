@@ -543,6 +543,7 @@ export const getObjectType = (tableName: string, key: string) => {
       phoneNumbers: "SIMPLE_KEY",
       timezone: "SIMPLE_KEY",
       details: "SIMPLE_KEY",
+      emails: "SIMPLE_KEY",
     },
     activities: {
       id: "SIMPLE_KEY",

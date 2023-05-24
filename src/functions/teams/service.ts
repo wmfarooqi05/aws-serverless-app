@@ -6,7 +6,7 @@ import {
   validateGetTeams,
   validateUpdateTeams,
   validateCreateTeam,
-  validateAddEmployeeToTeam,
+  validateAddDeleteEmployeeToTeam,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
@@ -17,6 +17,7 @@ import {
   RolesEnum,
 } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
+import { EMPLOYEE_TEAMS_TABLE } from "@models/commons";
 
 export interface ITeamService {
   getAllTeams(body: any): Promise<ITeamPaginated>;
@@ -61,6 +62,8 @@ export class TeamService implements ITeamService {
       .returning("*");
   }
 
+  //@TODO: this mail should be team manager or admin only
+  // due to settings key
   async updateTeam(
     employee: IEmployeeJwt,
     id: string,
@@ -91,7 +94,7 @@ export class TeamService implements ITeamService {
     teamId: string,
     employeeId: string
   ) {
-    await validateAddEmployeeToTeam(admin.sub, teamId, employeeId);
+    await validateAddDeleteEmployeeToTeam(admin.sub, teamId, employeeId);
     if (
       RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
       !admin.teamId.includes(teamId)
@@ -103,5 +106,30 @@ export class TeamService implements ITeamService {
     }
 
     await TeamModel.relatedQuery("employees").for(teamId).relate(employeeId);
+  }
+
+  async removeEmployeeFromTeam(
+    admin: IEmployeeJwt,
+    teamId: string,
+    employeeId: string
+  ) {
+    await validateAddDeleteEmployeeToTeam(admin.sub, teamId, employeeId);
+    if (
+      RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
+      !admin.teamId.includes(teamId)
+    ) {
+      throw new CustomError(
+        "You are not authorized to add user to this team",
+        403
+      );
+    }
+
+    await this.docClient
+      .getKnexClient()(EMPLOYEE_TEAMS_TABLE)
+      .where({
+        employeeId,
+        teamId,
+      })
+      .del();
   }
 }

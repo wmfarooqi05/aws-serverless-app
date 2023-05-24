@@ -9,6 +9,8 @@ export interface IEmailTemplate {
   placeholders: string[];
   awsRegion: string;
   version: string;
+  subject: string;
+  contentUrl: string;
   thumbnailUrl?: string;
   sesResponse?: string;
   updatedBy: string;
@@ -33,6 +35,7 @@ export class EmailTemplatesModel extends Model {
         placeholders: { type: "array", default: [] },
         awsRegion: { type: "string" },
         version: { type: "string", default: "version1" },
+        contentUrl: { type: "string" },
         thumbnailUrl: { type: "string" },
         sesResponse: { type: "string" },
         updatedBy: { type: "string" },

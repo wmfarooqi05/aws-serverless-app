@@ -12,6 +12,7 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("placeholders");
       table.string("aws_region").notNullable();
       table.string("version").notNullable().defaultTo("version1");
+      table.string("content_url");
       table.string("thumbnail_url");
       table.jsonb("ses_response");
       table.string("updated_by");

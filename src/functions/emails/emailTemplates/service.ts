@@ -75,12 +75,21 @@ export class EmailTemplateService {
       updatedBy: employee.sub,
       version,
     };
+    const rootKey = `media/email-templates/${templateName}/${version}`;
+
+    const templateContentUrl = await uploadContentToS3(
+      `${rootKey}/template-content`,
+      templateContent
+    );
+    template.contentUrl = templateContentUrl.fileUrl;
+
+    const thumbKey = `${rootKey}/thumbnail.png`;
+
     if (htmlLink || _isHtml) {
-      const newKey = `media/email-templates/${templateName}/${version}/thumbnail.png`;
       if (_isHtml) {
         const thumbBuffer = await generateThumbnailFromHtml(templateContent);
         const thumbnail = await uploadContentToS3(
-          newKey,
+          thumbKey,
           thumbBuffer,
           "public-read"
         );
@@ -89,13 +98,13 @@ export class EmailTemplateService {
         const keys = getKeysFromS3Url(thumbnailUrl);
         await copyS3Object(
           keys.fileKey,
-          newKey,
+          thumbKey,
           "public-read",
           true,
           keys.bucketName,
           keys.region
         );
-        template.thumbnailUrl = newKey;
+        template.thumbnailUrl = thumbKey;
       } else {
         // @TODO
         // Download big template and make its thumbnail and upload :D

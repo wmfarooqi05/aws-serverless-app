@@ -10,6 +10,11 @@ import { EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE } from "./commons";
 import EmailAddressesModel from "./EmailAddresses";
 import EmailListModel from "./EmailLists";
 
+export interface IEmployeeAddressToEmailList {
+  teamId: string;
+  employeeId: string;
+}
+
 export interface IEmployeeTeam {
   teamId: string;
   employeeId: string;

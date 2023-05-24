@@ -134,7 +134,12 @@ export const validateAddDeleteEmailsToEmailList = async (
 ) => {
   await Joi.object({
     emails: Joi.array()
-      .items(Joi.string().email().required())
+      .items(
+        Joi.object({
+          email: Joi.string().email().required(),
+          name: Joi.string().optional(),
+        })
+      )
       .required()
       .min(1),
     emailListId: Joi.string().guid().required(),

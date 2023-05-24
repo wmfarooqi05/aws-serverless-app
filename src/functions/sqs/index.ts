@@ -6,7 +6,7 @@ const sqsJobQueueInvokeHandler = {
   events: [
     {
       sqs: {
-        arn: `arn:aws:sqs:ca-central-1:524073432557:job-queue-dev`,
+        arn: `arn:aws:sqs:ca-central-1:524073432557:job_queue_dev`,
       },
     },
     {
@@ -17,9 +17,7 @@ const sqsJobQueueInvokeHandler = {
       },
     },
   ],
-  layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
-  ],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 export { sqsJobQueueInvokeHandler };

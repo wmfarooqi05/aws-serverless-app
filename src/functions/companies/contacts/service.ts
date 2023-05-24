@@ -5,15 +5,10 @@ import CompanyModel, {
 } from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import {
-  validateCreateContact,
-  validateUpdateContact,
-} from "./schema";
+import { validateCreateContact, validateUpdateContact } from "./schema";
 
 import { inject, injectable } from "tsyringe";
-import {
-  updateHistoryHelper,
-} from "src/common/json_helpers";
+import { updateHistoryHelper } from "src/common/json_helpers";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
@@ -201,13 +196,12 @@ export class ContactService implements IContactService {
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
+        PendingApprovalType.DELETE,
         contactId,
         employee,
         ContactModel.tableName
       );
     }
-
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       contactId,

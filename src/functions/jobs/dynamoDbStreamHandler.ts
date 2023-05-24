@@ -26,7 +26,6 @@ const STREAM_ARN =
 const streamClient = new DynamoDBStreamsClient({ region: "REGION" });
 
 const dynamoDBClient = new DynamoDBClient({ region: REGION });
-const sqs = new SQSClient({ region: REGION });
 
 export const handleStreamRecords = async (event: DynamoDBStreamEvent) => {
   try {

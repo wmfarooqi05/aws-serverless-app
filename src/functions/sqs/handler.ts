@@ -8,7 +8,7 @@ export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
   try {
     // This is for dev testing
     if (event.body) {
-      event.Records = [{ body: event.body }];
+      event.Records = [JSON.parse(event.body)];
     }
     ///////////////////////
 
@@ -16,10 +16,10 @@ export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
     const service = container.resolve(SQSService);
     console.log("service", service);
     const resp = await service.sqsJobQueueInvokeHandler(event.Records);
-    console.log("await ended");
-    console.log("resp", resp);
-    const ids = event.Records.filter((x) => x.messageId);
-    return formatJSONResponse({ resp, ids }, 200);
+    // console.log("await ended");
+    // console.log("resp", resp);
+    // const ids = event.Records.filter((x) => x.messageId);
+    return formatJSONResponse({ resp }, 200);
   } catch (error) {
     return formatErrorResponse({
       message: error.message,

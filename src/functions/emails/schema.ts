@@ -48,11 +48,20 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
 export const validateBulkEmails = (obj) => {
   return Joi.object({
     emailListId: Joi.string().guid().required(),
-    placeholders: Joi.array(),
     templateId: Joi.string().guid().required(),
+    defaultPlaceholders: Joi.array().items(
+      Joi.object({
+        name: Joi.string().required(),
+        value: Joi.string().required(),
+      })
+    ),
+    defaultTags: Joi.array().items(
+      Joi.object({
+        name: Joi.string().required(),
+        value: Joi.string().required(),
+      })
+    ),
     ccList: Joi.array().items(Joi.string().email()),
-    bccList: Joi.array().items(Joi.string().email()),
-    replyTo: Joi.array().items(Joi.string().email()),
   }).validateAsync(obj, {
     allowUnknown: true,
   });

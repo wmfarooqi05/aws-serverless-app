@@ -15,6 +15,7 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(Tables.employees)
         .notNullable();
       table.string("team_name").notNullable().unique();
+      table.jsonb("details").defaultTo({});
       table.jsonb("settings").defaultTo({});
       table
         .timestamp("created_at", { useTz: true })

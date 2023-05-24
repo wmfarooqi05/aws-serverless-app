@@ -85,7 +85,7 @@ const deleteContactHandler: ValidatedEventAPIGatewayProxyEvent<
     // Add guard validation if required
     const contact = await container
       .resolve(ContactService)
-      .deleteContact(event.employee, companyId, contactId);
+      .deleteContact(event.employee, contactId);
 
     return formatJSONResponse(contact, 200);
   } catch (e) {

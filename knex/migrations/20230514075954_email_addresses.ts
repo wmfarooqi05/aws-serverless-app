@@ -1,5 +1,5 @@
 import { Knex } from "knex";
-import { tableName as Tables } from "../tables";
+import { tableName as Tables } from "../email_tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 const tableName = Tables.emailAddresses;
 
@@ -8,6 +8,7 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
+      table.string("name");
       table.string("email").notNullable().unique();
       table.string("email_type");
 

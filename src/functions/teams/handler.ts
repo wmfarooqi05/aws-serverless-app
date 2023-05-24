@@ -95,6 +95,19 @@ const addEmployeeToTeamHandler = async (event) => {
   }
 };
 
+
+const removeEmployeeFromTeamHandler = async (event) => {
+  try {
+    const { teamId, employeeId } = event.params;
+    await container
+      .resolve(TeamService)
+      .removeEmployeeFromTeam(event.employee, teamId, employeeId);
+    return formatJSONResponse({ message: "Employee removed successfully" }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getTeams = checkRolePermission(getTeamsHandler, "COMPANY_READ");
 export const getTeamById = checkRolePermission(
   getTeamByIdHandler,
@@ -118,3 +131,11 @@ export const addEmployeeToTeam = checkRolePermission(
   addEmployeeToTeamHandler,
   "COMPANY_READ"
 );
+
+
+// Make this starting from manager [role 2]
+export const removeEmployeeFromTeam = checkRolePermission(
+  removeEmployeeFromTeamHandler,
+  "COMPANY_READ"
+);
+

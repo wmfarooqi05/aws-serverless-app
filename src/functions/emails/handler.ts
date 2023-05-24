@@ -44,10 +44,9 @@ const getEmailsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   }
 };
 
-
-      // @TODO FIX_TEAM_ID
-      // what is this?????
-      // this is not getting used
+// @TODO FIX_TEAM_ID
+// what is this?????
+// this is not getting used
 export const getEmailById: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
@@ -120,10 +119,10 @@ export const handleEmailEvent = async (event: SESEvent) => {
 
 const sendBulkEmailsHandler = async (event) => {
   try {
-    const emails = await container
+    const jobItem = await container
       .resolve(EmailService)
       .sendBulkEmails(event.employee, event.body);
-    return formatJSONResponse(emails, 200);
+    return formatJSONResponse(jobItem, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }

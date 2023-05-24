@@ -8,6 +8,7 @@ import {
   deleteTeam,
   getTeamById,
   getTeams,
+  removeEmployeeFromTeam,
   updateTeam,
 } from "./handler";
 
@@ -48,6 +49,11 @@ app.delete("/team/:teamId", async (req, res) => {
 
 app.post("/team/:teamId/add-employee/:employeeId", async (req, res) => {
   const resp = await addEmployeeToTeam(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete("/team/:teamId/remove-employee/:employeeId", async (req, res) => {
+  const resp = await removeEmployeeFromTeam(req, {} as any);
   resHelper(res, resp);
 });
 

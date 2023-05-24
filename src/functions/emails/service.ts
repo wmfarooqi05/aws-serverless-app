@@ -5,7 +5,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailRecordsModel from "@models/dynamoose/Jobs";
+import EmailRecordsModel, { JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import {
@@ -36,7 +36,9 @@ import {
 } from "@aws-sdk/client-s3";
 import moment from "moment-timezone";
 import { EmailTemplatesModel, IEmailTemplate } from "./models/EmailTemplate";
-import EmailAddressesModel, { IEmailAddresses } from "@functions/emails/models/EmailAddresses";
+import EmailAddressesModel, {
+  IEmailAddresses,
+} from "@functions/emails/models/EmailAddresses";
 import {
   GetTemplateCommand,
   GetTemplateCommandInput,
@@ -54,6 +56,7 @@ import { mergeEmailAndSenderName } from "@utils/emails";
 import EmployeeModel from "@models/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { RecipientModel } from "./models/Recipient";
+import { I_BULK_EMAIL_JOB_PREPARE } from "./models/interfaces/bulkEmail";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -337,12 +340,22 @@ export class EmailService implements IEmailService {
    * @param body
    * @returns
    */
-  async sendBulkEmails(employee: IEmployeeJwt, body) {
+  async sendBulkEmails(employeeJwt: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
 
+    /**
+     * @TODO
+     * add some logic to validate default placeholder with template placeholders
+     */
     await validateBulkEmails(payload);
 
-    const { emailListId, templateId, placeholders } = payload;
+    const {
+      emailListId,
+      templateId,
+      defaultPlaceholders,
+      defaultTags,
+      ccList,
+    } = payload;
 
     const emailTemplate: IEmailTemplate =
       await EmailTemplatesModel.query().findById(templateId);
@@ -350,6 +363,31 @@ export class EmailService implements IEmailService {
       throw new CustomError("Template doesn't exists", 400);
     }
 
+    const employee: IEmployee = await EmployeeModel.query().findById(
+      employeeJwt.sub
+    );
+
+    // Add logic for employees having multiple emails
+    const details: I_BULK_EMAIL_JOB_PREPARE = {
+      emailListId,
+      templateName: emailTemplate.templateName,
+      defaultTags: defaultTags || [],
+      defaultPlaceholders: defaultPlaceholders || [],
+      senderEmail: employee.email,
+      senderName: employee.name,
+      configurationSetName: "email_sns_config",
+      replyToAddresses: [`${employee.name} <${employee.email}>`],
+      ccList: ccList || [],
+    };
+
+    const jobItem = new JobsModel({
+      jobId: randomUUID(),
+      uploadedBy: employee.id,
+      jobType: "BULK_EMAIL_PREPARE",
+      details,
+      jobStatus: "PENDING",
+    });
+    return jobItem.save();
     const emailAddresses: IEmailAddresses[] = await EmailAddressesModel.query()
       .joinRelated("emailLists")
       .where("emailLists.id", emailListId);

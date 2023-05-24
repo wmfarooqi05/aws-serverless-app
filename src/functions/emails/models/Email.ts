@@ -56,6 +56,7 @@ export interface IEmail {
   status: EMAIL_STATUS;
   attachments: IATTACHMENT[];
   sesMessageId: string;
+  type: 'SIMPLE_EMAIL' | 'BULK'
 }
 
 @singleton()

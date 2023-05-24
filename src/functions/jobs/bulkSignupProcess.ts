@@ -34,16 +34,14 @@ const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   }
 );
 
-export const bulkImportUsersProcessHandler = async (jobId: string) => {
+export const bulkImportUsersProcessHandler = async (jobData: IJobData) => {
   const errors = [];
   let result = {};
-  console.log("[bulkImportUsersProcessHandler] jobId", jobId);
+  console.log("[bulkImportUsersProcessHandler] jobData", jobData);
   try {
-    const jobData: IJobData = await JobsModel.get(jobId);
     // if (jobData.jobStatus === "SUCCESSFUL") {
     //   return formatJSONResponse({ message: "Job already completed" }, 200);
     // }
-    console.log("[bulkImportUsersProcessHandler] jobData", jobData);
     const signupFile = await getS3BufferFromKey(jobData?.details?.fileKey);
     console.log("signupFile downloaded");
     interface ITmpEmployee {

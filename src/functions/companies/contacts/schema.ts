@@ -72,4 +72,3 @@ export const validateDeleteContact = async (obj) => {
 //     emailId: Joi.string().guid().required(),
 //   }).validateAsync({ employeeId, emailId });
 // };
-

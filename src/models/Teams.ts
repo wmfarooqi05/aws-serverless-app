@@ -34,6 +34,16 @@ export default class TeamModel extends Model {
         id: { type: "string" },
         teamName: { type: "string" },
         updatedBy: { type: "string" },
+        details: {
+          type: "object",
+          default: {},
+          nullable: true,
+        },
+        settings: {
+          type: "object",
+          default: {},
+          nullable: true,
+        },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },

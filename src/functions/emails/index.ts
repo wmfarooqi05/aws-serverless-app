@@ -133,7 +133,7 @@ const receiveEmailHandler = {
     },
     {
       sqs: {
-        arn: `arn:aws:sqs:ca-central-1:524073432557:job-queue-dev`,
+        arn: `arn:aws:sqs:ca-central-1:524073432557:job_queue_dev`,
       },
     },
   ],

@@ -10,6 +10,7 @@ import EmailListModel from "./EmailLists";
 
 export interface IEmailAddresses {
   id: string;
+  name: string;
   email: string;
   emailType: string;
   updatedAt: string;
@@ -30,6 +31,7 @@ export default class EmailAddressesModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
+        name: { type: "string" },
         email: { type: "string" },
         emailType: { type: "string" },
         updatedAt: { type: "string" },

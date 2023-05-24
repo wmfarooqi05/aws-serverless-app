@@ -46,6 +46,13 @@ const teamHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "delete",
+        path: "team/{teamId}/remove-employee/{employeeId}",
+        cors: true,
+      },
+    },
   ],
   layers: [
     "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
