@@ -125,13 +125,6 @@ const receiveEmailHandler = {
   handler: `${handlerPath(__dirname)}/handler.receiveEmailHandler`,
   events: [
     {
-      http: {
-        method: "post",
-        path: "receive-email-test",
-        cors: true,
-      },
-    },
-    {
       sqs: {
         arn: `arn:aws:sqs:ca-central-1:524073432557:job_queue_dev`,
       },
@@ -139,6 +132,16 @@ const receiveEmailHandler = {
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
+
+if (process.env.NODE_ENV === "local") {
+  receiveEmailHandler.events.push({
+    http: {
+      method: "post",
+      path: "receive-email-test",
+      cors: true,
+    },
+  } as any);
+}
 
 // const handleEmailEvent = {
 //   handler: `${handlerPath(__dirname)}/handler.handleEmailEvent`,

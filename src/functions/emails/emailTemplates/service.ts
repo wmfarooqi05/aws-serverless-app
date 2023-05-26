@@ -24,6 +24,9 @@ import {
   DeleteItemCommandInput,
   DynamoDBClient,
 } from "@aws-sdk/client-dynamodb";
+import { getS3BufferFromUrl } from "@functions/jobs/upload";
+import { replaceImageUrls } from "@utils/image";
+import { checkTemplateExists } from "./helpers";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -45,14 +48,24 @@ export class EmailTemplateService {
     const payload = JSON.parse(body);
     await validateCreateEmailTemplate(payload);
     const {
-      templateContent,
+      templateContent: templatePart,
       placeholders,
       templateName,
       subjectPart,
       version,
-      htmlLink,
+      htmlS3Link,
       thumbnailUrl,
     } = payload;
+
+    const templateExistsOnSes = await checkTemplateExists(templateName, sesClient);
+    // const tempalteExistsOnDB = await EmailTemplatesModel
+
+    let templateContent = templatePart;
+    if (htmlS3Link) {
+      // download it into templateContent
+      const templateS3Buffer = await getS3BufferFromUrl(htmlS3Link);
+      templateContent = templateS3Buffer.toString();
+    }
 
     const commandInput: CreateTemplateCommandInput = {
       Template: {
@@ -60,8 +73,12 @@ export class EmailTemplateService {
         SubjectPart: subjectPart,
       },
     };
-    const _isHtml = isHtml(templateContent);
-    if (htmlLink || _isHtml) {
+    const _isHtml = htmlS3Link || isHtml(templateContent);
+    if (htmlS3Link || _isHtml) {
+      templateContent = await replaceImageUrls(
+        templateContent,
+        `media/email-templates/${templateName}/${version}`
+      );
       commandInput.Template.HtmlPart = templateContent;
     } else {
       commandInput.Template.TextPart = templateContent;
@@ -74,27 +91,35 @@ export class EmailTemplateService {
       awsRegion: process.env.REGION,
       updatedBy: employee.sub,
       version,
+      subject: subjectPart,
     };
     const rootKey = `media/email-templates/${templateName}/${version}`;
 
-    const templateContentUrl = await uploadContentToS3(
-      `${rootKey}/template-content`,
-      templateContent
-    );
-    template.contentUrl = templateContentUrl.fileUrl;
+    // content handling part
+    if (htmlS3Link) {
+      const newKey = `${rootKey}/template-content`;
+      await copyS3Object(
+        getKeysFromS3Url(htmlS3Link).fileKey,
+        newKey,
+        "public-read",
+        false
+      );
+
+      template.contentUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`;
+      template.contentUrl = htmlS3Link;
+    } else {
+      const templateContentUrl = await uploadContentToS3(
+        `${rootKey}/template-content`,
+        templateContent
+      );
+      template.contentUrl = templateContentUrl.fileUrl;
+    }
 
     const thumbKey = `${rootKey}/thumbnail.png`;
 
-    if (htmlLink || _isHtml) {
-      if (_isHtml) {
-        const thumbBuffer = await generateThumbnailFromHtml(templateContent);
-        const thumbnail = await uploadContentToS3(
-          thumbKey,
-          thumbBuffer,
-          "public-read"
-        );
-        template.thumbnailUrl = thumbnail.fileUrl;
-      } else if (thumbnailUrl) {
+    // thumbnail part
+    if (htmlS3Link || _isHtml) {
+      if (thumbnailUrl) {
         const keys = getKeysFromS3Url(thumbnailUrl);
         await copyS3Object(
           keys.fileKey,
@@ -105,6 +130,14 @@ export class EmailTemplateService {
           keys.region
         );
         template.thumbnailUrl = thumbKey;
+      } else if (_isHtml) {
+        const thumbBuffer = await generateThumbnailFromHtml(templateContent);
+        const thumbnail = await uploadContentToS3(
+          thumbKey,
+          thumbBuffer,
+          "public-read"
+        );
+        template.thumbnailUrl = thumbnail.fileUrl;
       } else {
         // @TODO
         // Download big template and make its thumbnail and upload :D

@@ -25,6 +25,7 @@ import {
 } from "@functions/jobs/upload";
 import { EmailModel, IEmail, IATTACHMENT, IEmailModel } from "./models/Email";
 import * as stream from "stream";
+import { JSDOM } from "jsdom";
 
 import { IRecipient } from "./models/Recipient";
 import {
@@ -47,6 +48,8 @@ import {
   SendBulkTemplatedEmailCommandInput,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
+  SendTemplatedEmailCommand,
+  SendTemplatedEmailCommandInput,
 } from "@aws-sdk/client-ses";
 import { formatErrorResponse } from "@libs/api-gateway";
 
@@ -380,40 +383,42 @@ export class EmailService implements IEmailService {
       ccList: ccList || [],
     };
 
-    const jobItem = new JobsModel({
-      jobId: randomUUID(),
-      uploadedBy: employee.id,
-      jobType: "BULK_EMAIL_PREPARE",
-      details,
-      jobStatus: "PENDING",
-    });
-    return jobItem.save();
+    // const jobItem = new JobsModel({
+    //   jobId: randomUUID(),
+    //   uploadedBy: employee.id,
+    //   jobType: "BULK_EMAIL_PREPARE",
+    //   details,
+    //   jobStatus: "PENDING",
+    // });
+    // jobItem.save();
     const emailAddresses: IEmailAddresses[] = await EmailAddressesModel.query()
       .joinRelated("emailLists")
       .where("emailLists.id", emailListId);
 
-    const destinations: SendBulkTemplatedEmailCommandInput["Destinations"] =
-      emailAddresses.map((x) => {
-        return {
-          Destination: {
-            ToAddresses: [x.email],
-          },
-          ReplacementTemplateData: JSON.stringify({ name: "Recipient 1" }),
-        };
-      });
+    const destination: SendTemplatedEmailCommandInput["Destination"] = {
+      ToAddresses: ["Waleed Farooqi <wmfarooqi05@gmail.com>"],
+      // ToAddresses: [`${emailAddresses[0].name}<${emailAddresses[0].email}>`],
+    };
+    // emailAddresses.map((x) => {
+    //   return {
+    //     Destination: {
+    //       ToAddresses: [x.email],
+    //     },
+    //     ReplacementTemplateData: JSON.stringify({ name: "Recipient 1" }),
+    //   };
+    // });
 
-    const params: SendBulkTemplatedEmailCommandInput = {
+    const params: SendTemplatedEmailCommandInput = {
       Source: "admin@elywork.com",
-      Template: "templateAbc", //emailTemplate.templateName,
-      Destinations: destinations,
+      Template: emailTemplate.templateName,
+      Destination: destination,
       ConfigurationSetName: "email_sns_config",
-      DefaultTemplateData: JSON.stringify({ name: "Recipient 1" }),
+      TemplateData: '{ "name":"Alejandro", "favoriteanimal": "alligator" }',
+      // DefaultTemplateData: JSON.stringify({ name: "Recipient 1" }),
     };
 
     try {
-      const resp = await sesClient.send(
-        new SendBulkTemplatedEmailCommand(params)
-      );
+      const resp = await sesClient.send(new SendTemplatedEmailCommand(params));
       return resp;
     } catch (e) {
       console.log(e);
@@ -503,12 +508,22 @@ export class EmailService implements IEmailService {
 
       const messagePayload = JSON.parse(payload?.Message);
       console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
-      // const mailStream = fs.createReadStream(payload.filePath);
-      const mailStream = await this.downloadStreamFromUSEastBucket(
-        `incoming-emails/${messagePayload.mail.messageId}`
-      );
+      let mailStream: fs.ReadStream;
+      if (process.env.STAGE === "local") {
+        mailStream = fs.createReadStream(payload.filePath);
+      } else {
+        mailStream = await this.downloadStreamFromUSEastBucket(
+          `incoming-emails/${messagePayload.mail.messageId}`
+        );
+      }
 
-      const mailObject = await simpleParser(mailStream);
+      const mailObject = await simpleParser(mailStream, {
+        // keepCidLinks: false,
+        // allowHalfOpen: true,
+        decodeStrings: true,
+        skipImageLinks: true,
+      });
+
       const attachmentsS3Promises = mailObject.attachments.map((x) => {
         return uploadContentToS3(
           `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
@@ -517,8 +532,9 @@ export class EmailService implements IEmailService {
           x.content
         );
       });
-
       const attachmentsS3 = await Promise.all(attachmentsS3Promises);
+
+      return;
       console.log("attachmentsS3", attachmentsS3);
 
       let body = mailObject.html ? mailObject.html : mailObject.text;

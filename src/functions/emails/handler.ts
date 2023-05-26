@@ -131,9 +131,15 @@ const sendBulkEmailsHandler = async (event) => {
 export const receiveEmailHandler = async (event: SQSEvent) => {
   try {
     // This is for dev testing
-    // if (event.body) {
-    //   event.Records = [{ body: event.body }];
-    // }
+    if (process.env.STAGE === "local") {
+      if (event.body) {
+        event.Records = [
+          {
+            body: event.body,
+          } as any,
+        ];
+      }
+    }
     ///////////////////////
     const resp = await container
       .resolve(EmailService)
