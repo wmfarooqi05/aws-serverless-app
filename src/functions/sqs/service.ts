@@ -72,12 +72,12 @@ export class SQSService {
         });
 
         try {
-          // if (jobItem.jobStatus === "SUCCESSFUL") {
-          //   console.log(
-          //     `Message ${record.messageId} has already been processed. Skipping...`
-          //   );
-          //   continue;
-          // }
+          if (jobItem.jobStatus === "SUCCESSFUL") {
+            console.log(
+              `Message ${record.messageId} has already been processed. Skipping...`
+            );
+            continue;
+          }
 
           if (!this.emailDbClient) {
             this.emailDbClient = this.docClient;
@@ -88,12 +88,6 @@ export class SQSService {
             resp = await container
               .resolve(EmailService)
               .receiveEmailHelper(record);
-          } else if (payload.eventType === "REMINDER") {
-            resp = await this.reminderSqsEventHandler(payload);
-          } else if (payload.eventType === "SEND_EMAIL") {
-            resp = await this.emailSqsEventHandler(payload);
-          } else if (payload.eventType === "JOB") {
-            resp = await this.jobSqsEventHandler(payload);
           } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
             resp = await bulkImportUsersProcessHandler(jobItem);
           } else if (payload?.MessageBody.eventType === "BULK_EMAIL_PREPARE") {

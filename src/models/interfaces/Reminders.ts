@@ -1,6 +1,6 @@
 import { ReminderTimeType } from "@models/Reminders";
 
-export type SQSEventType = "REMINDER" | "JOB" | "SEND_EMAIL" | "BULK_SIGNUP" | "BULK_SIGNUP_PREPARE";
+export type SQSEventType = "REMINDER" | "JOB" | "BULK_SIGNUP" | "BULK_SIGNUP_PREPARE";
 
 export interface I_SQS_EVENT_INPUT {
   jobId?: string;
