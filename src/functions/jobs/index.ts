@@ -12,7 +12,7 @@ const importData = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 // const uploadCompanySheetToS3 = {
@@ -61,9 +61,10 @@ const bulkCognitoSignup = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
+// @DEV i guess not in use now
 const streamRecordHelper = {
   handler: `${handlerPath(__dirname)}/dynamoDbStreamHandler.streamRecordHelper`,
   events: [
@@ -75,7 +76,7 @@ const streamRecordHelper = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 const uploadSignupBulkJob = {
@@ -89,7 +90,7 @@ const uploadSignupBulkJob = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 // dev only
@@ -106,7 +107,7 @@ const bulkImportUsersProcessHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 const handleDynamoStreamRecords = {
@@ -136,7 +137,7 @@ const handleSESEmailToSNSEvent = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:2"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 export {

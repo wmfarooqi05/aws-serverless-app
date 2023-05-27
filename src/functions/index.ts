@@ -9,15 +9,6 @@ import {
 
 import {
   handleEBSchedulerLambdaInvoke,
-  createReminder,
-  deleteReminder,
-  dailyReminderCleanup,
-  // schedulers
-  updateScheduleReminder,
-  getSchedulerGroups,
-  getSchedulers,
-  deleteScheduleReminder,
-  deleteAllReminders,
 } from "@functions/reminders";
 
 import {
@@ -30,11 +21,7 @@ import { notificationHandler } from "@functions/notifications";
 import {
   googleOauthCallbackHandler,
   googleOauthHandler,
-  googleOauthExtendRefreshToken,
-  googleOauthTokenScope,
 } from "@functions/google/oauth";
-
-import { createAndSendEmail } from "@functions/google/gmail";
 
 import {
   getAllCalendars,
@@ -46,8 +33,6 @@ import {
 } from "@functions/google/calendar";
 
 import {
-  // sendEmail,
-  sendBulkEmails,
   // sendEmailText,
   receiveEmailHandler,
 } from "@functions/emails";
@@ -56,9 +41,7 @@ import { emailHandler } from "@functions/emails";
 import {
   importData,
   bulkCognitoSignup,
-  bulkImportUsersProcessHandler,
   uploadSignupBulkJob,
-  streamRecordHelper,
   handleDynamoStreamRecords,
   // handleSESEmailToSNSEvent,
 } from "@functions/jobs";
@@ -70,6 +53,8 @@ import { sqsJobQueueInvokeHandler } from "@functions/sqs";
 import { teamHandler } from "@functions/teams";
 import { cognitoOAuthHandler } from "./auth";
 
+import { utilsHandler } from "@functions/utils";
+
 export default {
   companyHandler,
   activitiesHandler,
@@ -77,11 +62,11 @@ export default {
   emailHandler,
   notificationHandler,
   cognitoOAuthHandler,
-
+  utilsHandler,
   // Jobs
   importData,
   bulkCognitoSignup,
-  streamRecordHelper,
+  // streamRecordHelper,
   handleDynamoStreamRecords,
   // handleSESEmailToSNSEvent,
 
@@ -91,9 +76,9 @@ export default {
 
   // Reminders
   handleEBSchedulerLambdaInvoke,
-  createReminder,
-  deleteReminder,
-  dailyReminderCleanup,
+  // createReminder,
+  // deleteReminder,
+  // dailyReminderCleanup,
   // WebSocketapproveOrRejectRequest
   webSocketHandler,
   broadcastMessage,
@@ -102,8 +87,6 @@ export default {
   // google
   googleOauthHandler,
   googleOauthCallbackHandler,
-  googleOauthExtendRefreshToken,
-  googleOauthTokenScope,
 
   // calendar
   // getMeetings,
@@ -113,11 +96,11 @@ export default {
   // updateMeetingById,
   // deleteMeetingById,
 
-  createAndSendEmail,
+  // createAndSendEmail,
 
   /// emails
   // sendEmail,
-  sendBulkEmails,
+  // sendBulkEmails,
   // sendEmailText,
   receiveEmailHandler,
 
@@ -127,13 +110,13 @@ export default {
 
   //
   sqsJobQueueInvokeHandler,
-  bulkImportUsersProcessHandler,
+  // bulkImportUsersProcessHandler,
   uploadSignupBulkJob,
 
   // schedulers
-  updateScheduleReminder,
-  getSchedulerGroups,
-  getSchedulers,
-  deleteScheduleReminder,
-  deleteAllReminders,
+  // updateScheduleReminder,
+  // getSchedulerGroups,
+  // getSchedulers,
+  // deleteScheduleReminder,
+  // deleteAllReminders,
 };

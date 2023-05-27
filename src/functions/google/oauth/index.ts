@@ -11,6 +11,20 @@ const googleOauthHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "google/oauth/extendToken",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "post",
+        path: "google/oauth/googleOauthTokenScope",
+        cors: true,
+      },
+    },
   ],
   layers: [
     "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
@@ -33,41 +47,4 @@ const googleOauthCallbackHandler = {
   ],
 };
 
-const googleOauthExtendRefreshToken = {
-  handler: `${handlerPath(__dirname)}/handler.googleOauthExtendRefreshToken`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "google/oauth/extendToken",
-        cors: true,
-      },
-    },
-  ],
-  layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
-  ],
-};
-
-const googleOauthTokenScope = {
-  handler: `${handlerPath(__dirname)}/handler.googleOauthTokenScope`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "google/oauth/googleOauthTokenScope",
-        cors: true,
-      },
-    },
-  ],
-  layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
-  ],
-};
-
-export {
-  googleOauthCallbackHandler,
-  googleOauthHandler,
-  googleOauthExtendRefreshToken,
-  googleOauthTokenScope,
-};
+export { googleOauthCallbackHandler, googleOauthHandler };

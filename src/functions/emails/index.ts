@@ -104,13 +104,6 @@ const emailHandler = {
         cors: true,
       },
     },
-  ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
-};
-
-const sendBulkEmails = {
-  handler: `${handlerPath(__dirname)}/handler.sendBulkEmails`,
-  events: [
     {
       http: {
         method: "post",
@@ -119,6 +112,7 @@ const sendBulkEmails = {
       },
     },
   ],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
 };
 
 const receiveEmailHandler = {

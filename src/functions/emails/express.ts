@@ -110,6 +110,11 @@ app.post("/sync-emails", async (req, res) => {
   resHelper(res, resp);
 });
 
+app.post("/bulk-email", async (req, res) => {
+  const resp = await sendBulkEmails(req, {} as any);
+  resHelper(res, resp);
+});
+
 exports.handler = awsSlsExpress({ app });
 
 const resHelper = (res, apiResponse) => {

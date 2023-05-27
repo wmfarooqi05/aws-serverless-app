@@ -37,7 +37,7 @@ export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
 
 export const googleOauthCallbackHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
-> = async (event, _context) => {
+> = async (event) => {
   try {
     const { code, state } = event.queryStringParameters;
     const returningUrl = JSON.parse(state)?.origin;
