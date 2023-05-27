@@ -19,7 +19,8 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("attachments");
       table.boolean("is_body_uploaded").defaultTo(false);
       table.string("ses_message_id");
-      table.enum('type', ['SIMPLE_MAIL', 'BULK']).defaultTo('SIMPLE_MAIL');
+      table.enum("email_type", ["SIMPLE_MAIL", "BULK"]).defaultTo("SIMPLE_MAIL");
+      table.jsonb("details");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

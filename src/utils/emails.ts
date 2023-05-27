@@ -32,14 +32,41 @@ export const isHtml = (str) => {
   return htmlRegex.test(str);
 };
 
-export const mergeEmailAndSenderName = (
+export const mergeEmailAndNameList = (
   list: { email: string; name?: string }[]
 ): string[] => {
   if (!list?.length) return [];
-  return list.map((x) => {
-    if (x.name) {
-      return `${x.name} <${x.email}>`;
-    }
-    return x.email;
-  });
+  return list.map((x) => mergeEmailAndName(x));
+};
+
+export const mergeEmailAndName = (obj): string => {
+  if (obj.name) {
+    return `${obj.name} <${obj.email}>`;
+  }
+  return obj.email;
+};
+
+export const splitEmailAndName = (
+  emailString: string
+): { email: string; name?: string } => {
+  const emailRegex = /[\w.-]+@[\w.-]+\.[\w]+/;
+  const nameRegex = /(.*)\s<[\w.-]+@[\w.-]+\.[\w]+>/;
+
+  const emailMatch = emailString.match(emailRegex);
+  const nameMatch = emailString.match(nameRegex);
+
+  let email, name;
+
+  if (emailMatch) {
+    email = emailMatch[0];
+  }
+
+  if (nameMatch) {
+    name = nameMatch[1].trim();
+  }
+
+  return {
+    email,
+    name,
+  };
 };

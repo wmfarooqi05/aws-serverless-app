@@ -1,18 +1,23 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../email_tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
-const tableName = Tables.emailAddresses;
+
+const tableName = Tables.emailMetrics;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-
-      table.string("name");
-      table.string("email").notNullable().unique();
-      table.string("email_type");
-
-      table.uuid("contact_id");
+      table
+        .uuid("email_id")
+        .index()
+        .references("id")
+        .inTable(Tables.emails)
+        .onDelete("SET NULL")
+        .notNullable();
+      table.string("event_type").notNullable();
+      table.string("event_value", 1000).notNullable();
+      table.timestamp("timestamp");
 
       table
         .timestamp("created_at", { useTz: true })

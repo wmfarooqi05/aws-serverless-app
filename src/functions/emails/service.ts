@@ -55,11 +55,18 @@ import { formatErrorResponse } from "@libs/api-gateway";
 
 import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
-import { mergeEmailAndSenderName } from "@utils/emails";
+import { mergeEmailAndName, mergeEmailAndNameList } from "@utils/emails";
 import EmployeeModel from "@models/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { RecipientModel } from "./models/Recipient";
-import { I_BULK_EMAIL_JOB_PREPARE } from "./models/interfaces/bulkEmail";
+import {
+  EmailTemplatePlaceholder,
+  I_BULK_EMAIL_JOB,
+  I_BULK_EMAIL_JOB_PREPARE,
+} from "./models/interfaces/bulkEmail";
+import ContactModel, { IContact } from "@models/Contacts";
+import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
+import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -90,9 +97,13 @@ export class EmailService implements IEmailService {
     const payload = JSON.parse(_body);
     await validateSendEmail(payload);
 
-    const employee: IEmployee = await EmployeeModel.query().findById(
-      employeeJwt.sub
-    );
+    // const employee: IEmployee = await EmployeeModel.query().findById(
+    //   employeeJwt.sub
+    // );
+    const employee = {
+      name: "waleed admin",
+      email: "admin@elywork.com",
+    };
 
     const { name: senderName, email: senderEmail, id: senderId } = employee;
     const {
@@ -145,9 +156,9 @@ export class EmailService implements IEmailService {
         },
         ConfigurationSetName: "email_sns_config",
         Destinations: [
-          ...mergeEmailAndSenderName(toList),
-          ...mergeEmailAndSenderName(ccList),
-          ...mergeEmailAndSenderName(bccList),
+          ...mergeEmailAndNameList(toList),
+          ...mergeEmailAndNameList(ccList),
+          ...mergeEmailAndNameList(bccList),
         ],
         Source: `${senderName} <${senderEmail}>`,
       };
@@ -370,8 +381,64 @@ export class EmailService implements IEmailService {
       employeeJwt.sub
     );
 
+    const emailAddresses: IEmailAddresses[] = await EmailAddressesModel.query()
+      .joinRelated("emailLists")
+      .where("emailLists.id", emailListId);
+    // const values = emailAddresses.map((x) => x.email).join(",");
+    // const values = emailAddresses.map(email => `'${email}'`).join(',')}
+
+    const emailList = emailAddresses.map((x) => x.email);
+    const emails = [
+      "hassan@gmail.com",
+      "hassan2@gmail.com",
+      "jhon@gmail.com",
+      "wm2@gmail.com",
+      "wmfarooqi05@gmail.com",
+      "hazyhassan888@gmail.com",
+      "wmfarooqi70@gmail.com",
+    ];
+
+    // const knex = this.docClient.getKnexClient();
+    const values: string = emailList.map((email) => `'${email}'`).join(",");
+
+    // const contacts = await this.docClient
+    //   .getKnexClient()("contacts")
+    //   .select("company.*", "companies.company_name")
+    //   .leftJoin("companies", "companies.id", "contacts.company_id")
+    //   .whereRaw("emails @> any(?)", [
+    //     emails.map((email) => JSON.stringify([email])),
+    //   ]);
+
+    const contactsData: {
+      email: string;
+      name: string;
+      contactId: string;
+      designation: string;
+      phoneNumbers: string[];
+      companyName: string;
+    }[] = await this.docClient
+      .getKnexClient()(EMAIL_ADDRESSES_TABLE)
+      .select(
+        `${EMAIL_ADDRESSES_TABLE}.email`,
+        `${CONTACTS_TABLE}.name`,
+        `${CONTACTS_TABLE}.id as contact_id`,
+        `${CONTACTS_TABLE}.designation`,
+        `${CONTACTS_TABLE}.phone_numbers`,
+        `${COMPANIES_TABLE_NAME}.company_name`
+      )
+      .leftJoin(
+        `${CONTACTS_TABLE}`,
+        `${CONTACTS_TABLE}.id`,
+        `${EMAIL_ADDRESSES_TABLE}.contact_id`
+      )
+      .leftJoin(
+        `${COMPANIES_TABLE_NAME}`,
+        `${COMPANIES_TABLE_NAME}.id`,
+        `${CONTACTS_TABLE}.company_id`
+      );
+
     // Add logic for employees having multiple emails
-    const details: I_BULK_EMAIL_JOB_PREPARE = {
+    const details: I_BULK_EMAIL_JOB = {
       emailListId,
       templateName: emailTemplate.templateName,
       defaultTags: defaultTags || [],
@@ -381,24 +448,27 @@ export class EmailService implements IEmailService {
       configurationSetName: "email_sns_config",
       replyToAddresses: [`${employee.name} <${employee.email}>`],
       ccList: ccList || [],
+      templateData: contactsData.map((x) => {
+        return {
+          destination: mergeEmailAndName(x),
+          placeholders: JSON.stringify(x),
+        };
+      }),
     };
 
-    // const jobItem = new JobsModel({
-    //   jobId: randomUUID(),
-    //   uploadedBy: employee.id,
-    //   jobType: "BULK_EMAIL_PREPARE",
-    //   details,
-    //   jobStatus: "PENDING",
-    // });
-    // jobItem.save();
-    const emailAddresses: IEmailAddresses[] = await EmailAddressesModel.query()
-      .joinRelated("emailLists")
-      .where("emailLists.id", emailListId);
-
+    const jobItem = new JobsModel({
+      jobId: randomUUID(),
+      uploadedBy: employee.id,
+      jobType: "BULK_EMAIL",
+      details,
+      jobStatus: "PENDING",
+    });
+    return jobItem.save();
     const destination: SendTemplatedEmailCommandInput["Destination"] = {
       ToAddresses: ["Waleed Farooqi <wmfarooqi05@gmail.com>"],
       // ToAddresses: [`${emailAddresses[0].name}<${emailAddresses[0].email}>`],
     };
+
     // emailAddresses.map((x) => {
     //   return {
     //     Destination: {
@@ -408,13 +478,13 @@ export class EmailService implements IEmailService {
     //   };
     // });
 
+    const dataTmp = { name: "Alejandro", favoriteAnimal: "alligator" };
     const params: SendTemplatedEmailCommandInput = {
-      Source: "admin@elywork.com",
+      Source: "admin@elywork.com", // `${employee.name} <${employee.email}>`,
       Template: emailTemplate.templateName,
       Destination: destination,
       ConfigurationSetName: "email_sns_config",
-      TemplateData: '{ "name":"Alejandro", "favoriteanimal": "alligator" }',
-      // DefaultTemplateData: JSON.stringify({ name: "Recipient 1" }),
+      TemplateData: JSON.stringify(contactsData[0]),
     };
 
     try {

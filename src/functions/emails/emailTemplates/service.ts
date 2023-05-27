@@ -57,8 +57,22 @@ export class EmailTemplateService {
       thumbnailUrl,
     } = payload;
 
-    const templateExistsOnSes = await checkTemplateExists(templateName, sesClient);
-    // const tempalteExistsOnDB = await EmailTemplatesModel
+    const templateExistsOnSes = await checkTemplateExists(
+      templateName,
+      sesClient
+    );
+    if (templateExistsOnSes) {
+      throw new CustomError("Template already exists on SES", 400);
+    }
+    // const tempalteExistsOnDB: IEmailTemplate = await EmailTemplatesModel.query()
+    //   .where({
+    //     templateName,
+    //   })
+    //   .first();
+
+    // if (!tempalteExistsOnDB) {
+    //   //create it in db by downloading content from SES, not from provided
+    // }
 
     let templateContent = templatePart;
     if (htmlS3Link) {

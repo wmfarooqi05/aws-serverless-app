@@ -21,32 +21,10 @@ import { ReminderService } from "@functions/reminders/service";
 import { EmailService } from "@functions/emails/service";
 import {
   DynamoDBClient,
-  GetItemCommand,
-  PutItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import {
-  EMAIL_ADDRESSES_TABLE,
-  EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE,
-  EMAIL_LIST_TABLE,
-} from "@functions/emails/models/commons";
 import JobsModel, { IJobData, JOB_STATUS } from "@models/dynamoose/Jobs";
-import {
-  IEmailAddress,
-  I_BULK_EMAIL_JOB,
-  I_BULK_EMAIL_JOB_DETAILS,
-  I_BULK_EMAIL_JOB_PREPARE,
-} from "@functions/emails/models/interfaces/bulkEmail";
-import {
-  IEmailAddressToEmailListModel,
-  IEmployeeAddressToEmailList,
-} from "@functions/emails/models/EmailAddressToEmailList";
-import { chunk, random } from "lodash";
-import { IEmailAddresses } from "@functions/emails/models/EmailAddresses";
-import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import { x } from "joi";
-import { randomUUID } from "crypto";
-import { IWithPagination } from "knex-paginate";
+import { formatErrorResponse } from "@libs/api-gateway";
 import { bulkEmailPrepareSqsEventHandler } from "./jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "./jobs/bulkEmailSqsEventHandler";
 
@@ -94,12 +72,12 @@ export class SQSService {
           jobId: payload.MessageBody.jobId,
         });
 
-        if (jobItem.jobStatus === "SUCCESSFUL") {
-          console.log(
-            `Message ${record.messageId} has already been processed. Skipping...`
-          );
-          continue;
-        }
+        // if (jobItem.jobStatus === "SUCCESSFUL") {
+        //   console.log(
+        //     `Message ${record.messageId} has already been processed. Skipping...`
+        //   );
+        //   continue;
+        // }
 
         if (!this.emailDbClient) {
           this.emailDbClient = this.docClient;

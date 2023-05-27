@@ -1,10 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import {
-  EMAIL_METRICS_TABLE,
-  EMAIL_TABLE,
-} from "./commons";
+import { EMAIL_METRICS_TABLE, EMAIL_TABLE } from "./commons";
 import { RecipientModel } from "./Recipient";
 
 // we can add things like
@@ -56,7 +53,8 @@ export interface IEmail {
   status: EMAIL_STATUS;
   attachments: IATTACHMENT[];
   sesMessageId: string;
-  type: 'SIMPLE_EMAIL' | 'BULK'
+  emailType: "SIMPLE_EMAIL" | "BULK";
+  details: any;
 }
 
 @singleton()
@@ -82,6 +80,7 @@ export class EmailModel extends Model {
           type: "array",
           default: [],
         },
+        emailType: { type:"string" },
         status: {
           type: "string",
           default: "PENDING",

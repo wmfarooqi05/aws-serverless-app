@@ -7,9 +7,10 @@ import {
   SendTemplatedEmailCommandInput,
 } from "@aws-sdk/client-ses";
 import { SQSClient } from "@aws-sdk/client-sqs";
-import { IEmail } from "@functions/emails/models/Email";
+import { EmailModel, IEmail } from "@functions/emails/models/Email";
 import { IEmailAddresses } from "@functions/emails/models/EmailAddresses";
 import { IEmailTemplate } from "@functions/emails/models/EmailTemplate";
+import { IRecipient } from "@functions/emails/models/Recipient";
 import {
   EMAIL_ADDRESSES_TABLE,
   EMAIL_TEMPLATES_TABLE,
@@ -18,7 +19,8 @@ import { I_BULK_EMAIL_JOB } from "@functions/emails/models/interfaces/bulkEmail"
 import { uploadContentToS3 } from "@functions/jobs/upload";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IJobData } from "@models/dynamoose/Jobs";
-import { mergeEmailAndSenderName } from "@utils/emails";
+import { mergeEmailAndNameList, splitEmailAndName } from "@utils/emails";
+import moment from "moment-timezone";
 
 // When we will make separate lambda for email jobs, we can call ses service
 const sesClient: SESClient = new SESClient({ region: process.env.REGION });
@@ -38,6 +40,8 @@ export const bulkEmailSqsEventHandler = async (
       senderName,
       templateData: sendEmailPayload,
       templateName,
+      emailTemplateS3Url,
+      subject,
     },
   }: { details: I_BULK_EMAIL_JOB } = jobItem as any;
   const result = {
@@ -51,29 +55,58 @@ export const bulkEmailSqsEventHandler = async (
     })
   );
 
-  if (template.Template.HtmlPart.length > 4000) {
-  }
-  const MAX_DB_SIZE = 4000;
-  if (template.Template.HtmlPart.length > MAX_DB_SIZE) {
-    // Upload it to s3
-    const templateEntity: IEmailTemplate = await emailDbClient
-      .getKnexClient()(EMAIL_TEMPLATES_TABLE)
-      .where({
-        templateName,
-      });
+  const dbObjects = [];
+  sendEmailPayload.map((x) => {
+    return {
+      attachments: [],
+      body: emailTemplateS3Url,
+      isBodyUploaded: true,
+      type: "BULK",
+      direction: "SENT",
+      subject,
+      status: "SENDING",
+      details: { placeholders: x.placeholders },
+    } as IEmail;
+  });
 
-  }
+  const insertData = sendEmailPayload.map((x) => {
+    const email: any = {
+      attachments: [],
+      body: emailTemplateS3Url,
+      isBodyUploaded: true,
+      emailType: "BULK",
+      direction: "SENT",
+      subject,
+      status: "SENDING",
+      details: { placeholders: x.placeholders },
+    } as IEmail;
+    const nameEmail = splitEmailAndName(x.destination);
+    const recipients = [
+      {
+        recipientEmail: nameEmail.email,
+        recipientType: "TO_LIST",
+        recipientName: nameEmail.name,
+      },
+    ] as IRecipient[];
+    ccList.forEach((cc) => {
+      recipients.push({
+        recipientEmail: cc.email,
+        recipientName: cc.name,
+        recipientType: "CC_LIST",
+      } as IRecipient);
+    });
+    email["recipients"] = recipients;
+    return email;
+  });
+  // await emailDbClient.getKnexClient().transaction(async (trx) => {
+  // try {
+  const emailEntities = await EmailModel.query().insertGraph(insertData);
 
   for (const payload of sendEmailPayload) {
     const command: SendTemplatedEmailCommandInput = {
       Destination: {
-        CcAddresses: mergeEmailAndSenderName(ccList),
-        ToAddresses: mergeEmailAndSenderName([
-          {
-            email: payload.destination.toAddressEmail,
-            name: payload.destination.toAddressName,
-          },
-        ]),
+        CcAddresses: mergeEmailAndNameList(ccList),
+        ToAddresses: [payload.destination],
       },
       ConfigurationSetName: configurationSetName,
       Source: `${senderName}<${senderEmail}>`,
@@ -82,15 +115,19 @@ export const bulkEmailSqsEventHandler = async (
         return { Name: x.name, Value: x.value };
       }),
       ReplyToAddresses: replyToAddresses,
-      TemplateData: JSON.stringify(payload.replacementTemplateData || {}),
+      TemplateData: payload.placeholders,
     };
     try {
       const resp = await sesClient.send(new SendTemplatedEmailCommand(command));
       result.successful.push({
-        body: template.Template.HtmlPart,
-        subject: template.Template.SubjectPart,
+        body: emailTemplateS3Url,
+        isBodyUploaded: true,
+        type: "BULK",
         direction: "SENT",
-        type: "SINGLE",
+        sesMessageId: resp.MessageId,
+        subject,
+        status: "SENT",
+        sentAt: moment().utc().format(),
       } as IEmail);
     } catch (e) {
       result.failed.push({ payload });

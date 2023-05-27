@@ -283,11 +283,12 @@ export class EmailListService implements IEmailListServiceService {
 
   async syncEmails() {
     const query = `
-      INSERT INTO email_addresses (email, name, email_type)
+      INSERT INTO email_addresses (email, name, email_type, contact_id)
       SELECT DISTINCT
         email,
         c."name",
-        'CUSTOMER'
+        'CUSTOMER',
+        c."id"
       FROM
         contacts c,
         jsonb_array_elements_text(c.emails) AS email

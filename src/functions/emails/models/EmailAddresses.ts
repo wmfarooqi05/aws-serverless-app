@@ -13,6 +13,7 @@ export interface IEmailAddresses {
   name: string;
   email: string;
   emailType: string;
+  contactId: string;
   updatedAt: string;
 }
 
@@ -34,6 +35,7 @@ export default class EmailAddressesModel extends Model {
         name: { type: "string" },
         email: { type: "string" },
         emailType: { type: "string" },
+        contactId: { type: "string" },
         updatedAt: { type: "string" },
       },
       required: ["email"],

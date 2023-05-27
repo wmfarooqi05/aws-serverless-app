@@ -7,6 +7,14 @@ import {
 } from "./commons";
 import CompanyModel from "./Company";
 
+export const validPlaceHolders = [
+  "email",
+  "name",
+  "designation",
+  "phoneNumbers",
+  "companyName",
+]
+
 export interface IContact {
   id: string;
   name: string;
