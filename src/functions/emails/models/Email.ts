@@ -2,7 +2,7 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { EMAIL_METRICS_TABLE, EMAIL_TABLE } from "./commons";
-import { RecipientModel } from "./Recipient";
+import { IRecipient, RecipientModel } from "./Recipient";
 
 // we can add things like
 export type EMAIL_SENDER_TYPE = "COMPANY" | "EMPLOYEE";
@@ -18,7 +18,8 @@ export type EMAIL_STATUS =
   | "BOUNCED"
   | "BLOCKED"
   | "OPT_OUT"
-  | "RECEIVED";
+  | "RECEIVED"
+  | "FAILED";
 export const emailStatuses: EMAIL_STATUS[] = [
   "PENDING",
   "QUEUED",
@@ -32,6 +33,7 @@ export const emailStatuses: EMAIL_STATUS[] = [
   "BLOCKED",
   "OPT_OUT",
   "RECEIVED",
+  "FAILED",
 ];
 
 export interface IATTACHMENT {
@@ -47,14 +49,23 @@ export interface IEmail {
   id: string;
   subject: string;
   body: string;
-  isBodyUploaded: boolean;
-  direction: EMAIL_DIRECTION;
+  senderEmail: string;
+  senderName: string;
+  senderId: string;
   sentAt: string;
+  emailSenderType: string;
   status: EMAIL_STATUS;
   attachments: IATTACHMENT[];
+  isBodyUploaded: boolean;
+  direction: EMAIL_DIRECTION;
   sesMessageId: string;
   emailType: "SIMPLE_EMAIL" | "BULK";
   details: any;
+  result: any;
+}
+
+export interface IEmailWithRecipients extends IEmail {
+  recipients: IRecipient[];
 }
 
 @singleton()
@@ -80,7 +91,8 @@ export class EmailModel extends Model {
           type: "array",
           default: [],
         },
-        emailType: { type:"string" },
+        emailType: { type: "string" },
+        result: { type: "string" },
         status: {
           type: "string",
           default: "PENDING",

@@ -21,6 +21,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("ses_message_id");
       table.enum("email_type", ["SIMPLE_MAIL", "BULK"]).defaultTo("SIMPLE_MAIL");
       table.jsonb("details");
+      table.jsonb("result");
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()
