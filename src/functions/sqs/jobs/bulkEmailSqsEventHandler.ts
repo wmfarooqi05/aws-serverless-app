@@ -12,6 +12,7 @@ import {
 } from "@functions/emails/models/Email";
 import { IRecipient } from "@functions/emails/models/Recipient";
 import { I_BULK_EMAIL_JOB } from "@functions/emails/models/interfaces/bulkEmail";
+import { CustomError } from "@helpers/custom-error";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IJobData } from "@models/dynamoose/Jobs";
 import { mergeEmailAndNameList, splitEmailAndName } from "@utils/emails";
@@ -19,240 +20,121 @@ import moment from "moment-timezone";
 
 // When we will make separate lambda for email jobs, we can call ses service
 const sesClient: SESClient = new SESClient({ region: process.env.REGION });
+const dlqUrl = "YOUR_DLQ_URL";
 
 export const bulkEmailSqsEventHandler = async (
   emailDbClient: DatabaseService,
   _: SQSClient,
   jobItem: IJobData
 ) => {
-  try {
-    const {
-      details: {
-        ccList,
-        configurationSetName,
-        defaultTags,
-        replyToAddresses,
-        senderEmail,
-        senderName,
-        templateData: sendEmailPayload,
-        templateName,
-        emailTemplateS3Url,
-        subject,
+  const {
+    details: {
+      ccList,
+      configurationSetName,
+      defaultTags,
+      replyToAddresses,
+      senderEmail,
+      senderName,
+      templateData: sendEmailPayload,
+      templateName,
+      emailTemplateS3Url,
+      subject,
+    },
+  }: { details: I_BULK_EMAIL_JOB } = jobItem as any;
+  const results: {
+    emailId: string;
+    email: string;
+    updatePayload: Partial<IEmail>;
+  }[] = [];
+
+  throw new CustomError("A strange error", 400);
+
+  const insertData = sendEmailPayload.map((x) => {
+    const email: any = {
+      attachments: [],
+      body: emailTemplateS3Url,
+      isBodyUploaded: true,
+      emailType: "BULK",
+      direction: "SENT",
+      subject,
+      status: "SENDING",
+      details: { placeholders: x.placeholders },
+    } as IEmail;
+    const toEmailObject = splitEmailAndName(x.destination);
+    const recipients = [
+      {
+        recipientEmail: toEmailObject.email,
+        recipientType: "TO_LIST",
+        recipientName: toEmailObject.name,
       },
-    }: { details: I_BULK_EMAIL_JOB } = jobItem as any;
-    const results: {
-      emailId: string;
-      email: string;
-      updatePayload: Partial<IEmail>;
-    }[] = [];
-
-    const insertData = sendEmailPayload.map((x) => {
-      const email: any = {
-        attachments: [],
-        body: emailTemplateS3Url,
-        isBodyUploaded: true,
-        emailType: "BULK",
-        direction: "SENT",
-        subject,
-        status: "SENDING",
-        details: { placeholders: x.placeholders },
-      } as IEmail;
-      const toEmailObject = splitEmailAndName(x.destination);
-      const recipients = [
-        {
-          recipientEmail: toEmailObject.email,
-          recipientType: "TO_LIST",
-          recipientName: toEmailObject.name,
-        },
-      ] as IRecipient[];
-      ccList.forEach((cc) => {
-        recipients.push({
-          recipientEmail: cc.email,
-          recipientName: cc.name,
-          recipientType: "CC_LIST",
-        } as IRecipient);
-      });
-      email["recipients"] = recipients;
-      return email;
+    ] as IRecipient[];
+    ccList.forEach((cc) => {
+      recipients.push({
+        recipientEmail: cc.email,
+        recipientName: cc.name,
+        recipientType: "CC_LIST",
+      } as IRecipient);
     });
-
-    const emailEntities: IEmailWithRecipients[] =
-      await EmailModel.query().insertGraph(insertData);
-
-    for (const payload of sendEmailPayload) {
-      const command: SendTemplatedEmailCommandInput = {
-        Destination: {
-          CcAddresses: mergeEmailAndNameList(ccList),
-          ToAddresses: [payload.destination],
-        },
-        ConfigurationSetName: configurationSetName,
-        Source: `${senderName}<${senderEmail}>`,
-        Template: templateName,
-        Tags: defaultTags.map((x) => {
-          return { Name: x.name, Value: x.value };
-        }),
-        ReplyToAddresses: replyToAddresses,
-        TemplateData: payload.placeholders,
-      };
-
-      const toEmailObject = splitEmailAndName(payload.destination);
-      const emailEntity = emailEntities.find((obj) =>
-        obj.recipients.some(
-          (item) => item.recipientEmail === toEmailObject.email
-        )
-      );
-      try {
-        const resp: SendTemplatedEmailCommandOutput = await sesClient.send(
-          new SendTemplatedEmailCommand(command)
-        );
-        results.push({
-          emailId: emailEntity.id,
-          email: senderEmail,
-          updatePayload: {
-            direction: "SENT",
-            sesMessageId: resp.MessageId,
-            status: "SENT",
-            sentAt: moment().utc().format(),
-          },
-        });
-      } catch (e) {
-        results.push({
-          emailId: emailEntity.id,
-          email: senderEmail,
-          updatePayload: {
-            status: "FAILED",
-            result: JSON.stringify(e),
-          } as IEmail,
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    // outside loop
-    await emailDbClient.getKnexClient().transaction(async (trx) => {
-      for (const emailResp of results) {
-        await EmailModel.query(trx)
-          .findById(emailResp.emailId)
-          .patch(emailResp.updatePayload);
-      }
-    });
-  } catch (e) {
-    console.log("Error: ", e);
-  }
-};
-
-const queueUrl = "YOUR_QUEUE_URL";
-const dbTable = "YOUR_DB_TABLE";
-
-interface EmailData {
-  recipient: string;
-  subject: string;
-  message: string;
-}
-
-async function processEmails(jobData: I_BULK_EMAIL_JOB) {
-  const emailPromises = jobData.templateData.map(async (email) => {
-    // Send email using SES or your preferred email service provider
-
-    // Simulate email sending by delaying for a short period
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Update email status in the database
-    const params = {
-      TableName: dbTable,
-      Key: { recipient: email.recipient },
-      UpdateExpression: "SET #status = :status",
-      ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: { ":status": "Sent" },
-    };
-
-    try {
-      await dynamodb.update(params).promise();
-      console.log(`Email sent to ${email.recipient}`);
-    } catch (error) {
-      console.error(
-        `Error updating status for ${email.recipient} in the database:`,
-        error
-      );
-      // Send the email to DLQ for reprocessing
-      await sendToDLQ(email);
-    }
+    email["recipients"] = recipients;
+    return email;
   });
 
-  await Promise.all(emailPromises);
-}
+  const emailEntities: IEmailWithRecipients[] =
+    await EmailModel.query().insertGraph(insertData);
 
-async function sendToDLQ(email: EmailData) {
-  const dlqUrl = "YOUR_DLQ_URL";
-
-  const params = {
-    MessageBody: JSON.stringify(email),
-    QueueUrl: dlqUrl,
-  };
-
-  try {
-    await sqs.sendMessage(params).promise();
-    console.log(`Email sent to DLQ for reprocessing: ${email.recipient}`);
-  } catch (error) {
-    console.error(`Error sending email to DLQ:`, error);
-  }
-}
-
-async function processQueueMessages() {
-  const params = {
-    QueueUrl: queueUrl,
-    MaxNumberOfMessages: 10, // Number of messages to retrieve from the queue
-    WaitTimeSeconds: 5, // Long polling to wait for messages
-  };
-
-  try {
-    const response = await sqs.receiveMessage(params).promise();
-
-    if (response.Messages && response.Messages.length > 0) {
-      const emails = response.Messages.map(
-        (message) => JSON.parse(message.Body!) as EmailData
-      );
-      await processEmails(emails);
-
-      const deleteParams = {
-        Entries: response.Messages.map((message) => ({
-          Id: message.MessageId!,
-          ReceiptHandle: message.ReceiptHandle!,
-        })),
-        QueueUrl: queueUrl,
-      };
-
-      await sqs.deleteMessageBatch(deleteParams).promise();
-    }
-  } catch (error) {
-    console.error("Error receiving messages from the queue:", error);
-  }
-}
-
-processQueueMessages();
-
-async function sendEmails(
-  emailData: Array<{ to: string; subject: string; message: string }>
-) {
-  const params = {
-    Source: "your-email@example.com", // Replace with your verified email address
-    Destination: {},
-    Template: "your-template-name", // Replace with your SES template name
-    TemplateData: "",
-  };
-
-  for (const email of emailData) {
-    params.Destination.ToAddresses = [email.to];
-    params.Message = {
-      Subject: { Data: email.subject },
-      Body: { Text: { Data: email.message } },
+  for (const payload of sendEmailPayload) {
+    const command: SendTemplatedEmailCommandInput = {
+      Destination: {
+        CcAddresses: mergeEmailAndNameList(ccList),
+        ToAddresses: [payload.destination],
+      },
+      ConfigurationSetName: configurationSetName,
+      Source: `${senderName}<${senderEmail}>`,
+      Template: templateName,
+      Tags: defaultTags.map((x) => {
+        return { Name: x.name, Value: x.value };
+      }),
+      ReplyToAddresses: replyToAddresses,
+      TemplateData: payload.placeholders,
     };
 
+    const toEmailObject = splitEmailAndName(payload.destination);
+    const emailEntity = emailEntities.find((obj) =>
+      obj.recipients.some((item) => item.recipientEmail === toEmailObject.email)
+    );
     try {
-      await ses.sendTemplatedEmail(params).promise();
-      console.log(`Email sent to ${email.to}`);
-    } catch (err) {
-      console.error(`Error sending email to ${email.to}:`, err);
+      const resp: SendTemplatedEmailCommandOutput = await sesClient.send(
+        new SendTemplatedEmailCommand(command)
+      );
+      results.push({
+        emailId: emailEntity.id,
+        email: senderEmail,
+        updatePayload: {
+          direction: "SENT",
+          sesMessageId: resp.MessageId,
+          status: "SENT",
+          sentAt: moment().utc().format(),
+        },
+      });
+    } catch (e) {
+      results.push({
+        emailId: emailEntity.id,
+        email: senderEmail,
+        updatePayload: {
+          status: "FAILED",
+          result: JSON.stringify(e),
+        } as IEmail,
+      });
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-}
+  // outside loop
+  await emailDbClient.getKnexClient().transaction(async (trx) => {
+    for (const emailResp of results) {
+      await EmailModel.query(trx)
+        .findById(emailResp.emailId)
+        .patch(emailResp.updatePayload);
+    }
+  });
+};

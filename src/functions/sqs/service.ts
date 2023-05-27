@@ -19,14 +19,13 @@ import {
 import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
 import { ReminderService } from "@functions/reminders/service";
 import { EmailService } from "@functions/emails/service";
-import {
-  DynamoDBClient,
-} from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import JobsModel, { IJobData, JOB_STATUS } from "@models/dynamoose/Jobs";
 import { formatErrorResponse } from "@libs/api-gateway";
 import { bulkEmailPrepareSqsEventHandler } from "./jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "./jobs/bulkEmailSqsEventHandler";
+import moment from "moment-timezone";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -72,52 +71,56 @@ export class SQSService {
           jobId: payload.MessageBody.jobId,
         });
 
-        // if (jobItem.jobStatus === "SUCCESSFUL") {
-        //   console.log(
-        //     `Message ${record.messageId} has already been processed. Skipping...`
-        //   );
-        //   continue;
-        // }
+        try {
+          // if (jobItem.jobStatus === "SUCCESSFUL") {
+          //   console.log(
+          //     `Message ${record.messageId} has already been processed. Skipping...`
+          //   );
+          //   continue;
+          // }
 
-        if (!this.emailDbClient) {
-          this.emailDbClient = this.docClient;
+          if (!this.emailDbClient) {
+            this.emailDbClient = this.docClient;
+          }
+
+          let resp = null;
+          if (payload.Type === "Notification" && payload.MessageId) {
+            resp = await container
+              .resolve(EmailService)
+              .receiveEmailHelper(record);
+          } else if (payload.eventType === "REMINDER") {
+            resp = await this.reminderSqsEventHandler(payload);
+          } else if (payload.eventType === "SEND_EMAIL") {
+            resp = await this.emailSqsEventHandler(payload);
+          } else if (payload.eventType === "JOB") {
+            resp = await this.jobSqsEventHandler(payload);
+          } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
+            resp = await bulkImportUsersProcessHandler(jobItem);
+          } else if (payload?.MessageBody.eventType === "BULK_EMAIL_PREPARE") {
+            resp = await bulkEmailPrepareSqsEventHandler(
+              this.emailDbClient,
+              jobItem
+            );
+          } else if (payload?.MessageBody.eventType === "BULK_EMAIL") {
+            resp = await bulkEmailSqsEventHandler(
+              this.emailDbClient,
+              this.sqsClient,
+              jobItem
+            );
+          }
+
+          // For Email jobs, we will be using different lambda due to layers
+
+          await this.markMessageProcessed(payload.MessageBody.jobId);
+          // await this.deleteMessage(record.receiptHandle);
+        } catch (error) {
+          console.error(error);
+          await this.markMessageAsFailed(payload.MessageBody.jobId, error);
+          return formatErrorResponse(error);
+          // Push to DLQ or set job
         }
-
-        let resp = null;
-        if (payload.Type === "Notification" && payload.MessageId) {
-          resp = await container
-            .resolve(EmailService)
-            .receiveEmailHelper(record);
-        } else if (payload.eventType === "REMINDER") {
-          resp = await this.reminderSqsEventHandler(payload);
-        } else if (payload.eventType === "SEND_EMAIL") {
-          resp = await this.emailSqsEventHandler(payload);
-        } else if (payload.eventType === "JOB") {
-          resp = await this.jobSqsEventHandler(payload);
-        } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
-          resp = await bulkImportUsersProcessHandler(jobItem);
-        } else if (payload?.MessageBody.eventType === "BULK_EMAIL_PREPARE") {
-          resp = await bulkEmailPrepareSqsEventHandler(
-            this.emailDbClient,
-            jobItem
-          );
-        } else if (payload?.MessageBody.eventType === "BULK_EMAIL") {
-          resp = await bulkEmailSqsEventHandler(
-            this.emailDbClient,
-            this.sqsClient,
-            jobItem
-          );
-        }
-
-        // For Email jobs, we will be using different lambda due to layers
-
-        await this.markMessageProcessed(payload.MessageBody.jobId, resp);
-        // await this.deleteMessage(record.receiptHandle);
       } catch (error) {
-        console.error(error);
-        await this.addErrorToMessage(record.receiptHandle, error);
-        return formatErrorResponse(error);
-        // Push to DLQ or set job
+        console.error("[SQS] Error: ", error);
       }
     }
   }
@@ -261,22 +264,38 @@ export class SQSService {
     return jobItem.jobStatus === "SUCCESSFUL";
   }
 
-  async markMessageProcessed(jobId: string, resp: any): Promise<void> {
+  async markMessageProcessed(jobId: string): Promise<void> {
     await JobsModel.update(
       { jobId },
       {
         jobStatus: "SUCCESSFUL" as JOB_STATUS,
-        result: { jobIds: resp },
       }
     );
-    // const putCommand = new PutItemCommand({
-    //   TableName: process.env.JOBS_DYNAMO_TABLE,
-    //   Item: {
-    //     messageId: { S: messageId },
-    //     result: { S: result },
-    //   },
-    // });
-
-    // await this.dynamoDBClient.send(putCommand);
   }
+
+  async markMessageAsFailed(jobId: string, resp: any): Promise<void> {
+    const job: IJobData = await JobsModel.get(jobId);
+    let result = {};
+    try {
+      result = job.result && JSON.parse(job.result);
+    } catch (e) {}
+    const errorObj = {
+      error: (resp && JSON.stringify(resp)) || "An error occurred",
+      updatedAt: moment().utc().format(),
+    };
+    if (result?.errors?.length) {
+      result.errors.push(errorObj);
+    } else {
+      result.errors = [errorObj];
+    }
+    await JobsModel.update(
+      { jobId },
+      {
+        jobStatus: "FAILED" as JOB_STATUS,
+        result,
+      }
+    );
+  }
+
+  async markSQSMessageAsFailed(rec): Promise<void> {}
 }
