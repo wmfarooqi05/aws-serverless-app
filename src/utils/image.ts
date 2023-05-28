@@ -1,5 +1,4 @@
 import { uploadContentToS3 } from "@functions/jobs/upload";
-import { CustomError } from "@helpers/custom-error";
 import axios, { AxiosResponse } from "axios";
 import { randomUUID } from "crypto";
 
@@ -59,11 +58,12 @@ interface ImageReplacement {
 
 export const replaceImageUrls = async (
   html: string,
-  rootKey: string
-): Promise<[string, ImageReplacement[]]> => {
+  rootKey: string,
+  existingKeyPattern?: string
+): Promise<{ html: string; replacements: ImageReplacement[] }> => {
   const imageTags = html.match(/<img[^>]+src="([^">]+)"/g);
   if (!imageTags) {
-    return [html, []];
+    return { html, replacements: [] };
   }
 
   const replacements: ImageReplacement[] = [];
@@ -72,14 +72,24 @@ export const replaceImageUrls = async (
     const matches = /<img[^>]+src="([^">]+)"/.exec(imageTag);
     if (matches && matches[1]) {
       const imageUrl = matches[1];
+      if (existingKeyPattern && imageUrl.includes(existingKeyPattern)) {
+        continue;
+      }
       const imageData = await downloadImage(imageUrl);
-      const s3Key = `${rootKey}/${randomUUID()}}.${imageData.fileType}`; // Modify the key as per your requirement
-      const s3Url = await uploadContentToS3(s3Key, imageData, "public-read");
+      const s3Key = `${rootKey}/${randomUUID()}.${imageData.fileType}`; // Modify the key as per your requirement
+      const s3Url = await uploadContentToS3(
+        s3Key,
+        imageData.data,
+        "public-read"
+      );
 
+      // const s3Url = {
+      //   fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${s3Key}`,
+      // };
       replacements.push({ originalUrl: imageUrl, s3Url: s3Url.fileUrl });
       html = html.replace(imageUrl, s3Url.fileUrl);
     }
   }
 
-  return [html, replacements];
+  return { html, replacements };
 };

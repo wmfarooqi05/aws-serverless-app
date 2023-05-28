@@ -1,8 +1,9 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
+import { tableName as EmailTables } from "../email_tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.emailList;
+const tableName = EmailTables.emailList;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema

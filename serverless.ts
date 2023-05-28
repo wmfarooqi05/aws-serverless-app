@@ -12,7 +12,7 @@ const dependencies: string[] = Object.keys(
 
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
-const serviceName = "gel-api";
+const serviceName = "global-employment";
 
 ensureEnvConfigs();
 
@@ -204,12 +204,12 @@ const serverlessConfiguration: AWS = {
           },
         },
       },
-      JobQueue: {
-        Type: "AWS::SQS::Queue",
-        Properties: {
-          QueueName: "${self:custom.JOB_QUEUE}",
-        },
-      },
+      // JobQueue: {
+      //   Type: "AWS::SQS::Queue",
+      //   Properties: {
+      //     QueueName: "${self:custom.JOB_QUEUE}",
+      //   },
+      // },
       // JobTable: {
       //   Type: "AWS::DynamoDB::Table",
       //   Properties: {

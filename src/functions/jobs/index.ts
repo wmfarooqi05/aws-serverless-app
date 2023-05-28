@@ -12,7 +12,7 @@ const importData = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 // const uploadCompanySheetToS3 = {
@@ -61,7 +61,7 @@ const bulkCognitoSignup = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 // @DEV i guess not in use now
@@ -76,7 +76,7 @@ const streamRecordHelper = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 const uploadSignupBulkJob = {
@@ -90,7 +90,7 @@ const uploadSignupBulkJob = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 // dev only
@@ -107,7 +107,7 @@ const bulkImportUsersProcessHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 const handleDynamoStreamRecords = {
@@ -115,30 +115,30 @@ const handleDynamoStreamRecords = {
     __dirname
   )}/dynamoDbStreamHandler.handleStreamRecords`,
   events: [
-    {
-      stream: {
-        type: "dynamodb",
-        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
-        batchSize: 10,
-      },
-    },
+    // {
+    //   stream: {
+    //     type: "dynamodb",
+    //     arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+    //     batchSize: 10,
+    //   },
+    // },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
-const handleSESEmailToSNSEvent = {
-  handler: `${handlerPath(__dirname)}/email.handleSESEmailToSNSEvent`,
-  events: [
-    {
-      stream: {
-        type: "dynamodb",
-        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
-        batchSize: 100,
-      },
-    },
-  ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
-};
+// const handleSESEmailToSNSEvent = {
+//   handler: `${handlerPath(__dirname)}/email.handleSESEmailToSNSEvent`,
+//   events: [
+//     {
+//       stream: {
+//         type: "dynamodb",
+//         arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+//         batchSize: 100,
+//       },
+//     },
+//   ],
+//   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
+// };
 
 export {
   importData,
@@ -147,5 +147,5 @@ export {
   handleDynamoStreamRecords,
   uploadSignupBulkJob,
   streamRecordHelper,
-  handleSESEmailToSNSEvent,
+  // handleSESEmailToSNSEvent,
 };

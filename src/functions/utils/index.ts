@@ -7,19 +7,12 @@ const utilsHandler = {
     {
       http: {
         method: "post",
-        path: "upload",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "post",
         path: "generate-signed-url",
         cors: true,
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 export { utilsHandler };

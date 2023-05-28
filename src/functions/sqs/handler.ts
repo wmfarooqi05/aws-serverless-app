@@ -7,7 +7,7 @@ import { container } from "tsyringe";
 export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
   try {
     // This is for dev testing
-    if (event.body) {
+    if (process.env.STAGE === "local" && event.body) {
       event.Records = [JSON.parse(event.body)];
     }
     ///////////////////////

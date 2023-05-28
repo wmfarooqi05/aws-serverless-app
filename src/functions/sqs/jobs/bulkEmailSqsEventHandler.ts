@@ -47,8 +47,6 @@ export const bulkEmailSqsEventHandler = async (
     updatePayload: Partial<IEmail>;
   }[] = [];
 
-  throw new CustomError("A strange error", 400);
-
   const insertData = sendEmailPayload.map((x) => {
     const email: any = {
       attachments: [],

@@ -64,7 +64,7 @@ export const uploadFileToS3 = async (
 export const uploadContentToS3 = async (
   Key: string,
   fileContent: any,
-  ACL: string = null
+  ACL: string = 'private'
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const uploadParams: PutObjectCommandInput = {
     Bucket: process.env.DEPLOYMENT_BUCKET,

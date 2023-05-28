@@ -112,19 +112,19 @@ const emailHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 const receiveEmailHandler = {
   handler: `${handlerPath(__dirname)}/handler.receiveEmailHandler`,
   events: [
-    {
-      sqs: {
-        arn: `arn:aws:sqs:ca-central-1:524073432557:job_queue_dev`,
-      },
-    },
+    //   {
+    //     sqs: {
+    //       arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
+    //     },
+    //   },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:3"],
+  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };
 
 if (process.env.NODE_ENV === "local") {
@@ -210,7 +210,7 @@ if (process.env.NODE_ENV === "local") {
 export {
   emailHandler,
   // sendEmail,
-  sendBulkEmails,
+  // sendBulkEmails,
   receiveEmailHandler,
   // handleEmailEvent
 };

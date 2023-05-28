@@ -18,7 +18,9 @@ import {
 } from "@functions/jobs/upload";
 import { validateCreateEmailTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
-import { generateThumbnailFromHtml } from "@utils/thumbnails";
+import {
+  generateThumbnailFromHtml,
+} from "@utils/thumbnails";
 import {
   DeleteItemCommand,
   DeleteItemCommandInput,
@@ -57,22 +59,37 @@ export class EmailTemplateService {
       thumbnailUrl,
     } = payload;
 
+    // const replacements = await replaceImageUrls(
+    //   templatePart,
+    //   `media/email-templates/${templateName}/${version}`,
+    //   `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
+    // );
+
+    // return replacements;
     const templateExistsOnSes = await checkTemplateExists(
       templateName,
       sesClient
     );
-    if (templateExistsOnSes) {
-      throw new CustomError("Template already exists on SES", 400);
-    }
-    // const tempalteExistsOnDB: IEmailTemplate = await EmailTemplatesModel.query()
-    //   .where({
-    //     templateName,
-    //   })
-    //   .first();
-
-    // if (!tempalteExistsOnDB) {
-    //   //create it in db by downloading content from SES, not from provided
+    // if (templateExistsOnSes) {
+    //   throw new CustomError("Template already exists on SES", 400);
     // }
+    const templateExistsOnDB: IEmailTemplate = await EmailTemplatesModel.query()
+      .where({
+        templateName,
+      })
+      .first();
+
+    if (templateExistsOnDB && templateExistsOnSes) {
+      throw new CustomError("Template Name exists on SES and Database", 400);
+      //create it in db by downloading content from SES, not from provided
+    } else if (templateExistsOnDB) {
+      // create template and sync DB
+      // for now just throw errors
+      throw new CustomError("template exists on DB, not on SES", 400);
+    } else if (templateExistsOnSes) {
+      // only sync DB
+      throw new CustomError("template exists on SES, not on DB", 400);
+    }
 
     let templateContent = templatePart;
     if (htmlS3Link) {
@@ -89,10 +106,13 @@ export class EmailTemplateService {
     };
     const _isHtml = htmlS3Link || isHtml(templateContent);
     if (htmlS3Link || _isHtml) {
-      templateContent = await replaceImageUrls(
+      const replacements = await replaceImageUrls(
         templateContent,
-        `media/email-templates/${templateName}/${version}`
+        `media/email-templates/${templateName}/${version}`,
+        `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
       );
+
+      templateContent = replacements.html;
       commandInput.Template.HtmlPart = templateContent;
     } else {
       commandInput.Template.TextPart = templateContent;
@@ -124,7 +144,8 @@ export class EmailTemplateService {
     } else {
       const templateContentUrl = await uploadContentToS3(
         `${rootKey}/template-content`,
-        templateContent
+        templateContent,
+        "public-read"
       );
       template.contentUrl = templateContentUrl.fileUrl;
     }
@@ -159,6 +180,7 @@ export class EmailTemplateService {
     }
     const emailTemplateEntry: IEmailTemplate =
       await EmailTemplatesModel.query().insert(template);
+
     try {
       const resp = await sesClient.send(command);
       const sesResponse = JSON.stringify(resp);

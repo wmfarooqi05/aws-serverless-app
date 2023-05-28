@@ -25,7 +25,6 @@ import {
 } from "@functions/jobs/upload";
 import { EmailModel, IEmail, IATTACHMENT, IEmailModel } from "./models/Email";
 import * as stream from "stream";
-import { JSDOM } from "jsdom";
 
 import { IRecipient } from "./models/Recipient";
 import {
@@ -44,8 +43,6 @@ import {
   GetTemplateCommand,
   GetTemplateCommandInput,
   SESClient,
-  SendBulkTemplatedEmailCommand,
-  SendBulkTemplatedEmailCommandInput,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
   SendTemplatedEmailCommand,
@@ -60,11 +57,8 @@ import EmployeeModel from "@models/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { RecipientModel } from "./models/Recipient";
 import {
-  EmailTemplatePlaceholder,
   I_BULK_EMAIL_JOB,
-  I_BULK_EMAIL_JOB_PREPARE,
 } from "./models/interfaces/bulkEmail";
-import ContactModel, { IContact } from "@models/Contacts";
 import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
 import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
 
