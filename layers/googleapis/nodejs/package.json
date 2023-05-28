@@ -1,0 +1,12 @@
+{
+  "name": "gel-api",
+  "version": "1.0.0",
+  "description": "Serverless aws-nodejs-typescript template",
+  "main": "serverless.ts",
+  "dependencies": {
+    "googleapis": "^111.0.0"
+  },
+  "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
+  "license": "MIT",
+  "packageManager": "yarn@3.4.1"
+}

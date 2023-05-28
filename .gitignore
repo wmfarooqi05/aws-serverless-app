@@ -12,8 +12,6 @@ layers/nodejs/node_modules
 .vscode
 .build
 
-layers/nodejs
-
 # yarn v2
 .yarn/*
 !.yarn/patches
@@ -22,4 +20,5 @@ layers/nodejs
 !.yarn/sdks
 !.yarn/versions
 
-layers
+layers/**/nodejs/node_modules
+layers/**/*.zip

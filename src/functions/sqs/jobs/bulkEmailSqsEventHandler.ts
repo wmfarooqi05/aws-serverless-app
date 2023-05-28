@@ -39,6 +39,7 @@ export const bulkEmailSqsEventHandler = async (
       templateName,
       emailTemplateS3Url,
       subject,
+      defaultPlaceholders,
     },
   }: { details: I_BULK_EMAIL_JOB } = jobItem as any;
   const results: {
@@ -93,7 +94,10 @@ export const bulkEmailSqsEventHandler = async (
         return { Name: x.name, Value: x.value };
       }),
       ReplyToAddresses: replyToAddresses,
-      TemplateData: payload.placeholders,
+      TemplateData: JSON.stringify({
+        ...defaultPlaceholders,
+        ...JSON.parse(payload.placeholders),
+      }),
     };
 
     const toEmailObject = splitEmailAndName(payload.destination);
