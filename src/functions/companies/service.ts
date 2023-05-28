@@ -70,6 +70,8 @@ import TeamCompanyInteractionsModel, {
 import TeamModel, { ITeam } from "@models/Teams";
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import UpdateHistoryModel from "@models/UpdateHistory";
+import { IWithPagination } from "knex-paginate";
+import ContactModel from "@models/Contacts";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -126,7 +128,9 @@ export class CompanyService implements ICompanyService {
     const knex = this.docClient.getKnexClient();
     const returningKeys = this.getSelectKeys(returningFields);
 
-    const companies = await knex(`${CompanyModel.tableName} as c`)
+    const companies: IWithPagination<ICompany> = await knex(
+      `${CompanyModel.tableName} as c`
+    )
       .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
         join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
       })
@@ -152,10 +156,16 @@ export class CompanyService implements ICompanyService {
       .orderBy(...getOrderByItems(body, "c"))
       .paginate(getPaginateClauseObject(body));
 
+    const companyIds = [...new Set(companies.data.map((x) => x.id))];
+    const contacts: IContact[] = await CompanyModel.relatedQuery(
+      "contacts"
+    ).for(companyIds);
+
     return {
-      data: companies?.data?.map((x) =>
-        this.validateCompanyWithInteractions(x)
-      ),
+      data: companies?.data?.map((x) => {
+        x["contacts"] = contacts.filter((y) => y.companyId === x.id);
+        return this.validateCompanyWithInteractions(x);
+      }),
       pagination: companies?.pagination,
     };
   }

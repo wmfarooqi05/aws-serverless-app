@@ -1,10 +1,19 @@
 import { IWithPagination } from "knex-paginate";
-import { Model, ModelObject } from "objection";
+import {
+  Model,
+  ModelObject,
+  RelationMappings,
+  RelationMappingsThunk,
+} from "objection";
 import { singleton } from "tsyringe";
-import { COMPANIES_TABLE_NAME, CONTACTS_TABLE, EMPLOYEES_TABLE_NAME } from "./commons";
-import Employee from "./Employees";
+import {
+  COMPANIES_TABLE_NAME,
+  CONTACTS_TABLE,
+} from "./commons";
 
-import ContactModel from './Contacts';
+import ContactModel from "./Contacts";
+import TeamCompanyInteractionsModel from "./TeamCompanyInteractions";
+import EmployeeCompanyInteractionsModel from "./EmployeeCompanyInteractions";
 
 @singleton()
 export default class CompanyModel extends Model {
@@ -40,38 +49,53 @@ export default class CompanyModel extends Model {
 
   // This object defines the relations to other models. The relationMappings
   // property can be a thunk to prevent circular dependencies.
-  static relationMappings = () => ({
-    assigned_by: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: Employee,
-      join: {
-        from: `${COMPANIES_TABLE_NAME}.assignedBy`,
-        to: `${EMPLOYEES_TABLE_NAME}.id`,
-      },
-    },
-    assigned_to: {
-      relation: Model.BelongsToOneRelation,
-      // The related model.
-      modelClass: Employee,
-      join: {
-        from: `${COMPANIES_TABLE_NAME}.assignedTo`,
-        to: `${EMPLOYEES_TABLE_NAME}.id`,
-      },
-    },
+  static relationMappings: RelationMappings | RelationMappingsThunk = () => ({
+    // assigned_by: {
+    //   relation: Model.BelongsToOneRelation,
+    //   // The related model.
+    //   modelClass: Employee,
+    //   join: {
+    //     from: `${COMPANIES_TABLE_NAME}.assignedBy`,
+    //     to: `${EMPLOYEES_TABLE_NAME}.id`,
+    //   },
+    // },
+    // assigned_to: {
+    //   relation: Model.BelongsToOneRelation,
+    //   // The related model.
+    //   modelClass: Employee,
+    //   join: {
+    //     from: `${COMPANIES_TABLE_NAME}.assignedTo`,
+    //     to: `${EMPLOYEES_TABLE_NAME}.id`,
+    //   },
+    // },
     contacts: {
       relation: Model.HasManyRelation,
-      // The related model.
       modelClass: ContactModel,
       join: {
         from: `${COMPANIES_TABLE_NAME}.id`,
         to: `${CONTACTS_TABLE}.companyId`,
       },
     },
+    teamInteractions: {
+      relation: Model.HasManyRelation,
+      modelClass: TeamCompanyInteractionsModel,
+      join: {
+        from: `${CompanyModel.tableName}.id`,
+        to: `${TeamCompanyInteractionsModel.tableName}.companyId`,
+      },
+    },
+    employeeInteractions: {
+      relation: Model.HasManyRelation,
+      modelClass: EmployeeCompanyInteractionsModel,
+      join: {
+        from: `${CompanyModel.tableName}.id`,
+        to: `${EmployeeCompanyInteractionsModel.tableName}.companyId`,
+      },
+    },
   });
 
   static get jsonAttributes() {
-    return ["activities", "assignmentHistory", "addresses", "notes", "details"];
+    return ["addresses", "details"];
   }
   // $beforeInsert() {
   //   this.createdAt = new Date();
