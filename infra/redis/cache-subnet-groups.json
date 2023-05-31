@@ -1,0 +1,42 @@
+{
+  "CacheSubnetGroups": [
+      {
+          "CacheSubnetGroupName": "project-vpc-public-subnet-group",
+          "CacheSubnetGroupDescription": "project vpc's public subnet group",
+          "VpcId": "vpc-05126227d046548e1",
+          "Subnets": [
+              {
+                  "SubnetIdentifier": "subnet-02752e6de3a0e8a16",
+                  "SubnetAvailabilityZone": {
+                      "Name": "ca-central-1a"
+                  },
+                  "SupportedNetworkTypes": [
+                      "ipv4"
+                  ]
+              },
+              {
+                  "SubnetIdentifier": "subnet-0803209af3915f116",
+                  "SubnetAvailabilityZone": {
+                      "Name": "ca-central-1d"
+                  },
+                  "SupportedNetworkTypes": [
+                      "ipv4"
+                  ]
+              },
+              {
+                  "SubnetIdentifier": "subnet-0d9040076c2e6fc9a",
+                  "SubnetAvailabilityZone": {
+                      "Name": "ca-central-1b"
+                  },
+                  "SupportedNetworkTypes": [
+                      "ipv4"
+                  ]
+              }
+          ],
+          "ARN": "arn:aws:elasticache:ca-central-1:524073432557:subnetgroup:project-vpc-public-subnet-group",
+          "SupportedNetworkTypes": [
+              "ipv4"
+          ]
+      }
+  ]
+}

@@ -33,16 +33,10 @@ export class DynamoCacheService implements IDynamoCacheService {
 
   async initializeClient() {
     try {
-      // console.log(
-      //   "[DynamoService] initializeClient, before client",
-      //   this.client
-      // );
       if (this.client) return;
-      // console.log("[DynamoService] initializeClient, client", this.client);
       this.client = new DynamoDBClient({
         region: process.env.REGION,
       });
-      // console.log("[DynamoService] client: ", this.client);
     } catch (e) {
       console.error("[DynamoService] error", e);
     }

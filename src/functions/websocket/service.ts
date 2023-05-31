@@ -70,7 +70,7 @@ export class WebSocketService implements IWebSocketService {
             "employeeId: ",
             employeeId
           );
-          await this.cacheService.deleteItem(employeeId);
+          await this.cacheService.deleteItem(connectionId);
           break;
 
         case "messageRoute":

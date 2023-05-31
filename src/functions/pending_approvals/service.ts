@@ -12,7 +12,11 @@ import {
   pendingApprovalKnexHelper,
   validatePendingApprovalObject,
 } from "./helper";
-import { validatePendingApprovalBeforeJob } from "./schema";
+import {
+  validateGetPendingApprovalById,
+  validateGetPendingApprovals,
+  validatePendingApprovalBeforeJob,
+} from "./schema";
 // import { WebSocketService } from "@functions/websocket/service";
 import { NotificationService } from "@functions/notifications/service";
 import NotificationModel, { INotification } from "@models/Notification";
@@ -59,6 +63,21 @@ export class PendingApprovalService implements IPendingApprovalService {
       .paginate(getPaginateClauseObject(body));
   }
 
+  async getPendingApprovalById(employee: IEmployeeJwt, requestId) {
+    await validateGetPendingApprovalById(requestId);
+    const pendingApproval: IPendingApprovals =
+      await PendingApprovalModel.query().findById(requestId);
+    if (!pendingApproval) {
+      throw new CustomError("Pending approval not found", 400);
+    }
+    const { tableName, tableRowId } = pendingApproval;
+    const oldPayload = await this.docClient
+      .getKnexClient()(tableName)
+      .where({ id: tableRowId })
+      .first();
+    pendingApproval["oldPayload"] = oldPayload;
+    return pendingApproval;
+  }
   async approveOrRejectRequest(
     requestId: string,
     employee: IEmployeeJwt,

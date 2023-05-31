@@ -1,15 +1,9 @@
 import { companyHandler } from "@functions/companies";
 import { activitiesHandler } from "@functions/activities";
 
-import {
-  sendWebSocketNotification,
-  getMyPendingApprovals,
-  approveOrRejectRequest,
-} from "@functions/pending_approvals";
+import { pendingApprovalsHandler } from "@functions/pending_approvals";
 
-import {
-  handleEBSchedulerLambdaInvoke,
-} from "@functions/reminders";
+import { handleEBSchedulerLambdaInvoke } from "@functions/reminders";
 
 import {
   webSocketHandler,
@@ -63,16 +57,13 @@ export default {
   notificationHandler,
   cognitoOAuthHandler,
   utilsHandler,
+  pendingApprovalsHandler,
   // Jobs
   importData,
   bulkCognitoSignup,
   // streamRecordHelper,
   handleDynamoStreamRecords,
   // handleSESEmailToSNSEvent,
-
-  sendWebSocketNotification,
-  getMyPendingApprovals,
-  approveOrRejectRequest,
 
   // Reminders
   handleEBSchedulerLambdaInvoke,

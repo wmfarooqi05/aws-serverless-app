@@ -179,3 +179,9 @@ const onApprovalActionRequiredSchema = Joi.object({
   }),
   actionType: Joi.string().required(),
 }).required();
+
+export const validateGetPendingApprovalById = async (id) => {
+  await Joi.object({
+    id: Joi.string().guid().required(),
+  }).validateAsync({ id });
+};

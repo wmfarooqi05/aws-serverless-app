@@ -1,9 +1,7 @@
 import { WebSocketService } from "./service";
 import { container } from "@common/container";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import {
-  jwtWebsocketMiddlewareWrapper,
-} from "@libs/middlewares/jwtMiddleware";
+import { jwtWebsocketMiddlewareWrapper } from "@libs/middlewares/jwtMiddleware";
 
 export const _webSocketHandler = async (event) => {
   const {
@@ -14,7 +12,7 @@ export const _webSocketHandler = async (event) => {
     const websocketResponse = await container
       .resolve(WebSocketService)
       .handle(event.employee?.sub, body, connectionId, routeKey);
-    return formatJSONResponse(websocketResponse, 201);
+    return formatJSONResponse(websocketResponse, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -27,7 +25,7 @@ export const sendMessage = async (event) => {
     const newMessage = await container
       .resolve(WebSocketService)
       .sendMessage(body);
-    return formatJSONResponse(newMessage, 201);
+    return formatJSONResponse(newMessage, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -38,12 +36,13 @@ export async function _getAllConnections() {
     const connections = await await container
       .resolve(WebSocketService)
       .getAllConnections();
-    return formatJSONResponse(connections, 201);
+    return formatJSONResponse(connections, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 }
 
-export const webSocketHandler = jwtWebsocketMiddlewareWrapper(_webSocketHandler);
+export const webSocketHandler =
+  jwtWebsocketMiddlewareWrapper(_webSocketHandler);
 export const broadcastMessage = sendMessage;
 export const getAllConnections = _getAllConnections;

@@ -3,6 +3,10 @@ import { inject, injectable } from "tsyringe";
 import { DynamoCacheService } from "./DynamoCacheService";
 import { ElasticCacheService } from "./ElasticCache";
 import moment from "moment-timezone";
+import WebsocketConnectionModel, {
+  IWebsocketConnection,
+} from "@models/dynamoose/WebsocketConnections";
+import { CONNECTION_STATUS } from "@models/dynamoose/WebsocketConnections";
 
 export interface ICache {
   initializeClient: () => Promise<void>;
@@ -13,7 +17,7 @@ export interface ICacheService {}
 @injectable()
 export class CacheService implements ICacheService {
   // isReady: boolean;
-  useElasticCache = true;
+  useElasticCache = false;
   tableName: string = process.env.ConnectionTableName;
   partitionKeyName: string = process.env.ConnectionTablePartitionKey;
 
@@ -21,7 +25,7 @@ export class CacheService implements ICacheService {
   // also, this cache can also be used for values other than connections
   // so we will need to modify in future
   constructor(
-    @inject(DynamoCacheService) private readonly dynamoService: DynamoCacheService,
+    // @inject(DynamoCacheService) private readonly dynamoService: DynamoCacheService,
     @inject(ElasticCacheService)
     private readonly elasticCache: ElasticCacheService
   ) {
@@ -32,13 +36,13 @@ export class CacheService implements ICacheService {
     if (this.useElasticCache) {
       await this.elasticCache.initializeClient();
     } else {
-      await this.dynamoService.initializeClient();
+      // await this.dynamoService.initializeClient();
     }
   }
 
   async storeKey(employeeId: string, connectionId: string) {
     if (this.useElasticCache) {
-      console.log("storing in elastic cache", employeeId, connectionId)
+      console.log("storing in elastic cache", employeeId, connectionId);
       await this.elasticCache.setValueToRedis(
         employeeId,
         JSON.stringify({
@@ -48,11 +52,22 @@ export class CacheService implements ICacheService {
         })
       );
     } else {
-      this.dynamoService.putKey(
-        this.tableName,
+      const connectionItem = new WebsocketConnectionModel({
         employeeId,
-        JSON.stringify(connectionId)
-      );
+        connectionId,
+        connectedAt: moment.utc().format(),
+        connectionStatus: "CONNECTED",
+      } as IWebsocketConnection);
+      try {
+        await connectionItem.save();
+      } catch (e) {
+        // No need apparently
+        if (e.code === "ConditionalCheckFailedException") {
+          const item = await WebsocketConnectionModel.get({ employeeId });
+          item.connectionStatus = "CONNECTED" as CONNECTION_STATUS;
+          await item.save();
+        }
+      }
     }
   }
 
@@ -60,24 +75,45 @@ export class CacheService implements ICacheService {
     if (this.useElasticCache) {
       return this.elasticCache.getValueFromRedis(employeeId);
     } else {
-      const object = await this.dynamoService.getItem(
-        this.tableName,
-        this.partitionKeyName,
-        employeeId
-      );
-      return JSON.stringify(object.Item?.data?.S);
+      const connectionItem: IWebsocketConnection =
+        await WebsocketConnectionModel.get({ employeeId });
+      return JSON.stringify(connectionItem);
     }
   }
 
-  async deleteItem(employeeId: string) {
+  async deleteItem(connectionId: string) {
     if (this.useElasticCache) {
-      await this.elasticCache.removeValueFromRedis(employeeId);
+      // this is actually employeeId, not connectionId
+      await this.elasticCache.removeValueFromRedis(connectionId);
     } else {
-      await this.dynamoService.deleteKey(
-        this.tableName,
-        this.partitionKeyName,
-        employeeId
-      );
+      const item = await WebsocketConnectionModel.query("connectionId")
+        .eq(connectionId)
+        .exec();
+      if (item.length > 0) {
+        // Delete the item
+        item[0].connectionStatus = "DISCONNECTED";
+        await item[0].save();
+        console.log("Item updated successfully.");
+      } else {
+        console.log("Item not found with the provided connectionId.");
+      }
+    }
+  }
+
+  async updateConnectionStatus(
+    connectionId: string,
+    connectionStatus: CONNECTION_STATUS
+  ) {
+    const item = await WebsocketConnectionModel.query("connectionId")
+      .eq(connectionId)
+      .exec();
+    if (item.length > 0) {
+      // Delete the item
+      item[0].connectionStatus = connectionStatus;
+      await item[0].save();
+      console.log("Item updated successfully.");
+    } else {
+      console.log("Item not found with the provided connectionId.");
     }
   }
 
@@ -85,7 +121,7 @@ export class CacheService implements ICacheService {
     if (this.useElasticCache) {
       return this.elasticCache.getAllValues();
     } else {
-      return this.dynamoService.scanTable(this.tableName);
+      return WebsocketConnectionModel.scan().exec();
     }
   }
 }

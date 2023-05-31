@@ -70,7 +70,7 @@ export interface IOnApprovalActionRequired {
    */
   payload?: APPROVAL_ACTION_SIMPLE_KEY | APPROVAL_ACTION_JSONB_PAYLOAD;
   /**
-   * @deprecated The method should not be used
+   * @deprecated We are using it, but i guess its already in main row.
    */
   tableName: string;
   query?: string;

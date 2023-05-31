@@ -61,7 +61,6 @@ export const decodeJWTMiddlewareWebsocket = () => {
       if (event.queryStringParameters?.Authorization) {
         const token = event.queryStringParameters?.Authorization?.split(" ")[1];
         event.employee = decode(token);
-        event.employee.teamId = "team0"; // @TODO fix this with cognito auth
       }
     },
   };
