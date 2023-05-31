@@ -14,7 +14,7 @@ import {
   validateSendEmail,
 } from "./schema";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
-import { SQSRecord } from "aws-lambda";
+import { SQSEvent, SQSRecord } from "aws-lambda";
 import * as fs from "fs";
 import { simpleParser, Attachment, EmailAddress } from "mailparser";
 import {
@@ -23,7 +23,12 @@ import {
   uploadContentToS3,
   getS3ReadableFromUrl,
 } from "@functions/jobs/upload";
-import { EmailModel, IEmail, IATTACHMENT, IEmailModel } from "./models/Email";
+import {
+  EmailRecordModel,
+  IEmailRecord,
+  IATTACHMENT,
+  IEmailRecordModel,
+} from "./models/EmailRecords";
 import * as stream from "stream";
 
 import { IRecipient } from "./models/Recipient";
@@ -92,7 +97,10 @@ export class EmailService implements IEmailService {
    * @param body
    * @returns
    */
-  async sendEmail(employeeJwt: IEmployeeJwt, _body: any): Promise<IEmailModel> {
+  async sendEmail(
+    employeeJwt: IEmployeeJwt,
+    _body: any
+  ): Promise<IEmailRecordModel> {
     // nodemailer.createTransport().sendMail({});
     // @TODO get reporting manager if want to add CC
 
@@ -121,7 +129,7 @@ export class EmailService implements IEmailService {
 
     let deleteS3Items = [];
     // Add email sender id, and use sendername and sender email from JWT
-    const email: IEmail = {
+    const email: IEmailRecord = {
       body,
       isBodyUploaded,
       direction: "SENT",
@@ -175,7 +183,7 @@ export class EmailService implements IEmailService {
           sentAt: moment().utc().format(),
         };
         emailEntity = { ...emailEntity, ...updateParams };
-        await EmailModel.query().patchAndFetchById(
+        await EmailRecordModel.query().patchAndFetchById(
           emailEntity.id,
           updateParams
         );
@@ -191,18 +199,18 @@ export class EmailService implements IEmailService {
   }
 
   async createEmailObject(
-    email: IEmail,
+    email: IEmailRecord,
     senderName: string,
     senderEmail: string,
     toList: any[],
     ccList: any[],
     bccList: any[]
   ) {
-    let emailEntity: IEmail = null;
+    let emailEntity: IEmailRecord = null;
     let error: any = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
-        emailEntity = await EmailModel.query(trx).insert(email);
+        emailEntity = await EmailRecordModel.query(trx).insert(email);
 
         const recipients: IRecipient[] = [
           {
@@ -237,7 +245,7 @@ export class EmailService implements IEmailService {
           });
         });
 
-        emailEntity["recipients"] = await RecipientModel.query().insert(
+        emailEntity["recipients"] = await RecipientModel.query(trx).insert(
           recipients
         );
       } catch (e) {
@@ -502,7 +510,7 @@ export class EmailService implements IEmailService {
     employee: IEmployeeJwt,
     id: string,
     body: any
-  ): Promise<IEmailModel> {}
+  ): Promise<IEmailRecordModel> {}
 
   async deleteEmail(id: string): Promise<any> {}
 
@@ -574,66 +582,102 @@ export class EmailService implements IEmailService {
   async emailQueueInvokeHandler(Records: SQSRecord[]) {
     console.log("[receiveEmailHelper] records", Records);
     for (const record of Records) {
-      const payload = JSON.parse(record.body);
-      if (payload?.notificationType === "Received") {
-        await this.receiveEmailHelper(record);
-      } else if (payload.eventType) {
-        await this.processMetricsEvent(payload);
-      } else {
-        const key = `emails/unprocessed-events/${randomUUID()}`;
-        await uploadContentToS3(key, record);
+      try {
+        const payload = JSON.parse(record.body);
+        console.log("payload", payload?.notificationType, payload.eventType);
+        if (payload?.notificationType === "Received") {
+          await this.receiveEmailHelper(record);
+        } else if (payload.eventType) {
+          await this.processMetricsEvent(record);
+        } else {
+          if (process.env.STAGE === "local") {
+            console.log("no event found");
+            continue;
+          }
+          const key = `emails/unprocessed-events/${randomUUID()}`;
+          const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+          console.log("uploaded to s3", s3Resp);
+        }
+        await this.deleteMessageFromSQS(record.receiptHandle);
+      } catch (e) {
+        if (process.env.STAGE === "local") {
+          console.log("error", e);
+          continue;
+        }
+
+        const key = `emails/unprocessed-events/catch/${randomUUID()}`;
+        const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+        console.log("uploaded to s3", s3Resp);
       }
-      await this.deleteMessageFromSQS(record.receiptHandle);
     }
   }
 
-  async processMetricsEvent(payload) {
+  async processMetricsEvent(record: SQSRecord) {
+    const payload = JSON.parse(record.body);
+    console.log("[processMetricsEvent]", payload);
     const eventType: string = payload.eventType;
     const sender = splitEmailAndName(payload?.mail?.source);
     const details = payload;
+    console.log("details", details);
     delete details?.mail?.headers;
     delete details?.mail?.commonHeaders;
 
     let recipientPayload: any[] =
       payload?.mail?.recipients || payload?.mail.destination;
-    let recipientEntities: IEmailAddresses[] = [];
+    const finalRecipientEmails: { email: string; emailId: string }[] = [];
+
     if (recipientPayload.length > 0) {
       recipientPayload = recipientPayload.map(
         (x) => splitEmailAndName(x).email
       );
-      recipientEntities = await EmailAddressesModel.query().whereIn(
-        "email",
-        recipientPayload
-      );
+      const recipientEntities: IEmailAddresses[] =
+        await EmailAddressesModel.query().whereIn("email", recipientPayload);
+
+      recipientPayload.forEach((x) => {
+        const entity = recipientEntities.find((r) => r.email === x);
+        if (entity) {
+          finalRecipientEmails.push({
+            email: entity.email,
+            emailId: entity.id,
+          });
+        } else {
+          finalRecipientEmails.push({
+            email: splitEmailAndName(x).email,
+            emailId: null,
+          });
+        }
+      });
     }
     let error = null;
+    const emailRecord: IEmailRecord = await EmailRecordModel.query().where({
+      messageId: payload?.mail?.messageId,
+    });
     await EmailMetricsModel.transaction(async (trx) => {
       try {
-        await EmailMetricsModel.query(trx).insert({
-          id: payload?.mail?.messageId,
+        const metricsRecord: IEmailMetrics = await EmailMetricsModel.query(
+          trx
+        ).insert({
+          emailRecordId: emailRecord?.id || undefined,
           eventType,
           senderEmail: sender.email,
-          senderName: sender.name,
           details,
           timestamp: payload?.[eventType.toLowerCase()]?.timestamp,
-        });
+        } as IEmailMetrics);
 
         if (recipientPayload?.length) {
-          const recipients: IEmailMetricsRecipients[] = recipientPayload.map(
-            (x: string) => {
+          const recipients: IEmailMetricsRecipients[] =
+            finalRecipientEmails.map((x) => {
               return {
-                metricsId: payload?.mail?.messageId,
-                recipientEmail: x,
+                metricsId: metricsRecord.id,
+                recipientEmail: x.email,
                 eventType,
-                emailId: recipientEntities.find((r) => r.email === x)?.id,
               } as IEmailMetricsRecipients;
-            }
-          );
+            });
 
           await Promise.all(
             recipients.map((x) =>
               EmailMetricsModel.relatedQuery("recipients", trx)
-                .for(payload?.mail?.messageId)
+                .for(metricsRecord.id)
                 .insert(x)
             )
           );
@@ -666,14 +710,12 @@ export class EmailService implements IEmailService {
   }
 
   async receiveEmailHelper(record: SQSRecord) {
-    const payload = JSON.parse(record.body);
-    console.log("payload", payload);
+    const messagePayload = JSON.parse(record.body);
+    console.log("[receiveEmailHelper], messagePayload", messagePayload);
 
-    const messagePayload = JSON.parse(payload?.Message);
-    console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
     let mailStream: fs.ReadStream;
     if (process.env.STAGE === "local") {
-      mailStream = fs.createReadStream(payload.filePath);
+      mailStream = fs.createReadStream(messagePayload.filePath);
     } else {
       mailStream = await this.downloadStreamFromUSEastBucket(
         `incoming-emails/${messagePayload.mail.messageId}`
@@ -713,12 +755,12 @@ export class EmailService implements IEmailService {
     // else {
     //   body = compressedBody;
     // }
-    const email: IEmail = {
+    const email: IEmailRecord = {
       body,
       sentAt: mailObject.date.toISOString(),
       status: "RECEIVED",
       subject: mailObject?.subject,
-      sesMessageId: messagePayload.mail.messageId,
+      messageId: messagePayload.mail.messageId,
       attachments: attachmentsS3.map((x) => {
         return {
           ...x,
@@ -733,7 +775,9 @@ export class EmailService implements IEmailService {
     let error = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
-        const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
+        const emailEntity: IEmailRecord = await EmailRecordModel.query(
+          trx
+        ).insert(email);
         const recipients: IRecipient[] = [
           {
             recipientEmail: mailObject?.from?.value[0]?.address,
@@ -768,7 +812,7 @@ export class EmailService implements IEmailService {
         });
 
         const recipientsEntriesPromises = recipients.map((x: any) =>
-          EmailModel.relatedQuery("recipients", trx)
+          EmailRecordModel.relatedQuery("recipients", trx)
             .for(emailEntity.id)
             .insert(x)
         );
@@ -939,7 +983,7 @@ export class EmailService implements IEmailService {
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
 
-    const emails = await EmailModel.query()
+    const emails = await EmailRecordModel.query()
       .findByIds(emailIds.data.map((x) => x.emailId))
       .withGraphFetched("recipients");
 

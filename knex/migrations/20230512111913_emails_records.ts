@@ -2,7 +2,7 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../email_tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.emails;
+const tableName = Tables.emailRecords;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
@@ -18,7 +18,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("status").notNullable();
       table.jsonb("attachments");
       table.boolean("is_body_uploaded").defaultTo(false);
-      table.string("ses_message_id");
+      table.string('message_id').unique();
       table.enum("email_type", ["SIMPLE_MAIL", "BULK"]).defaultTo("SIMPLE_MAIL");
       table.jsonb("details");
       table.jsonb("result");

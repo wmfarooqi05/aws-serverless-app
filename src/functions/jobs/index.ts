@@ -115,13 +115,13 @@ const handleDynamoStreamRecords = {
     __dirname
   )}/dynamoDbStreamHandler.handleStreamRecords`,
   events: [
-    // {
-    //   stream: {
-    //     type: "dynamodb",
-    //     arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
-    //     batchSize: 10,
-    //   },
-    // },
+    {
+      stream: {
+        type: "dynamodb",
+        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+        batchSize: 10,
+      },
+    },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };

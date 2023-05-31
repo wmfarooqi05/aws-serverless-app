@@ -6,10 +6,10 @@ import {
 } from "@aws-sdk/client-ses";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import {
-  EmailModel,
-  IEmail,
-  IEmailWithRecipients,
-} from "@functions/emails/models/Email";
+  EmailRecordModel,
+  IEmailRecord,
+  IEmailRecordWithRecipients,
+} from "@functions/emails/models/EmailRecords";
 import { IRecipient } from "@functions/emails/models/Recipient";
 import { I_BULK_EMAIL_JOB } from "@functions/emails/models/interfaces/bulkEmail";
 import { CustomError } from "@helpers/custom-error";
@@ -45,7 +45,7 @@ export const bulkEmailSqsEventHandler = async (
   const results: {
     emailId: string;
     email: string;
-    updatePayload: Partial<IEmail>;
+    updatePayload: Partial<IEmailRecord>;
   }[] = [];
 
   const insertData = sendEmailPayload.map((x) => {
@@ -58,7 +58,7 @@ export const bulkEmailSqsEventHandler = async (
       subject,
       status: "SENDING",
       details: { placeholders: x.placeholders },
-    } as IEmail;
+    } as IEmailRecord;
     const toEmailObject = splitEmailAndName(x.destination);
     const recipients = [
       {
@@ -78,8 +78,8 @@ export const bulkEmailSqsEventHandler = async (
     return email;
   });
 
-  const emailEntities: IEmailWithRecipients[] =
-    await EmailModel.query().insertGraph(insertData);
+  const emailEntities: IEmailRecordWithRecipients[] =
+    await EmailRecordModel.query().insertGraph(insertData);
 
   for (const payload of sendEmailPayload) {
     const command: SendTemplatedEmailCommandInput = {
@@ -113,7 +113,7 @@ export const bulkEmailSqsEventHandler = async (
         email: senderEmail,
         updatePayload: {
           direction: "SENT",
-          sesMessageId: resp.MessageId,
+          messageId: resp.MessageId,
           status: "SENT",
           sentAt: moment().utc().format(),
         },
@@ -125,7 +125,7 @@ export const bulkEmailSqsEventHandler = async (
         updatePayload: {
           status: "FAILED",
           result: JSON.stringify(e),
-        } as IEmail,
+        } as IEmailRecord,
       });
     }
 
@@ -134,7 +134,7 @@ export const bulkEmailSqsEventHandler = async (
   // outside loop
   await emailDbClient.getKnexClient().transaction(async (trx) => {
     for (const emailResp of results) {
-      await EmailModel.query(trx)
+      await EmailRecordModel.query(trx)
         .findById(emailResp.emailId)
         .patch(emailResp.updatePayload);
     }

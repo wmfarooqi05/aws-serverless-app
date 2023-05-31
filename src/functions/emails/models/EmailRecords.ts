@@ -1,7 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { EMAIL_METRICS_TABLE, EMAIL_TABLE } from "./commons";
+import { EMAIL_METRICS_TABLE, EMAIL_RECORDS_TABLE } from "./commons";
 import { IRecipient, RecipientModel } from "./Recipient";
 
 // we can add things like
@@ -45,7 +45,7 @@ export interface IATTACHMENT {
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
-export interface IEmail {
+export interface IEmailRecord {
   id: string;
   subject: string;
   body: string;
@@ -58,20 +58,20 @@ export interface IEmail {
   attachments: IATTACHMENT[];
   isBodyUploaded: boolean;
   direction: EMAIL_DIRECTION;
-  sesMessageId: string;
+  messageId: string;
   emailType: "SIMPLE_EMAIL" | "BULK";
   details: any;
   result: any;
 }
 
-export interface IEmailWithRecipients extends IEmail {
+export interface IEmailRecordWithRecipients extends IEmailRecord {
   recipients: IRecipient[];
 }
 
 @singleton()
-export class EmailModel extends Model {
+export class EmailRecordModel extends Model {
   static get tableName() {
-    return "emails";
+    return EMAIL_RECORDS_TABLE;
   }
 
   static get jsonSchema() {
@@ -86,7 +86,7 @@ export class EmailModel extends Model {
         senderId: { type: "string" },
         direction: { type: "string" },
         sentAt: { type: "string" },
-        sesMessageId: { type: "string" },
+        messageId: { type: "string" },
         attachments: {
           type: "array",
           default: [],
@@ -111,7 +111,7 @@ export class EmailModel extends Model {
         relation: Model.HasManyRelation,
         modelClass: RecipientModel,
         join: {
-          from: `${EmailModel.tableName}.id`,
+          from: `${EmailRecordModel.tableName}.id`,
           to: `${RecipientModel.tableName}.emailId`,
         },
       },
@@ -119,7 +119,7 @@ export class EmailModel extends Model {
         relation: Model.HasManyRelation,
         modelClass: EMAIL_METRICS_TABLE,
         join: {
-          from: `${EMAIL_TABLE}.id`,
+          from: `${EMAIL_RECORDS_TABLE}.id`,
           to: `${EMAIL_METRICS_TABLE}.emailId`,
         },
       },
@@ -127,5 +127,5 @@ export class EmailModel extends Model {
   }
 }
 
-export type IEmailModel = ModelObject<EmailModel>;
-export type IEmailPaginated = IWithPagination<IEmailModel>;
+export type IEmailRecordModel = ModelObject<EmailRecordModel>;
+export type IEmailRecordPaginated = IWithPagination<IEmailRecordModel>;

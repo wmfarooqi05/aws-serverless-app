@@ -133,11 +133,7 @@ export const emailQueueInvokeHandler = async (event: SQSEvent) => {
     // This is for dev testing
     if (process.env.STAGE === "local") {
       if (event.body) {
-        event.Records = [
-          {
-            body: event.body,
-          } as any,
-        ];
+        event.Records = [JSON.parse(event.body)];
       }
     }
     ///////////////////////

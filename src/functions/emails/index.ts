@@ -118,11 +118,11 @@ const emailHandler = {
 const receiveEmailHandler = {
   handler: `${handlerPath(__dirname)}/handler.emailQueueInvokeHandler`,
   events: [
-    //   {
-    //     sqs: {
-    //       arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
-    //     },
-    //   },
+      {
+        sqs: {
+          arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
+        },
+      },
   ],
   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
 };

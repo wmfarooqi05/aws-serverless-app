@@ -9,14 +9,15 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table
-        .uuid("email_id")
+        .uuid("email_record_id")
         .index()
         .references("id")
-        .inTable(Tables.emails)
-        .onDelete("SET NULL")
-        .notNullable();
+        .inTable(Tables.emailRecords)
+        .onDelete("CASCADE")
+      table.string("sender_email").notNullable();
       table.string("event_type").notNullable();
       table.timestamp("timestamp");
+      table.jsonb("details");
 
       table
         .timestamp("created_at", { useTz: true })

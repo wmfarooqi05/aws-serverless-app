@@ -17,9 +17,9 @@ export interface IEmailMetricsRecipients {
 }
 
 @singleton()
-export class EmailRecipientModel extends Model {
+export class EmailMetricsRecipientModel extends Model {
   static get tableName() {
-    return EMAIL_RECIPIENT_TABLE;
+    return EMAIL_METRICS_RECIPIENTS_TABLE;
   }
 
   static get jsonSchema() {
@@ -30,7 +30,7 @@ export class EmailRecipientModel extends Model {
       properties: {
         id: { type: "string" },
         metricsId: { type: "string" },
-        emailId: { type: "string" },
+        emailId: { type: ["string", "null"] },
         eventType: { type: "string" },
         recipientEmail: { type: "string" },
       },
@@ -39,7 +39,7 @@ export class EmailRecipientModel extends Model {
 
   static get relationMappings() {
     return {
-      email: {
+      metrics: {
         relation: Model.HasOneRelation,
         modelClass: EmailMetricsModel,
         join: {
@@ -51,6 +51,6 @@ export class EmailRecipientModel extends Model {
   }
 }
 
-export type IEmailMetricsRecipientsModel = ModelObject<EmailRecipientModel>;
+export type IEmailMetricsRecipientsModel = ModelObject<EmailMetricsRecipientModel>;
 export type IEmailMetricsRecipientsPaginated =
   IWithPagination<IEmailMetricsRecipientsModel>;

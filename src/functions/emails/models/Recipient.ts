@@ -3,10 +3,10 @@ import { Model, ModelObject, QueryContext } from "objection";
 import { singleton } from "tsyringe";
 import {
   EMAIL_RECIPIENT_TABLE,
-  EMAIL_TABLE,
+  EMAIL_RECORDS_TABLE,
   EMAIL_TO_EMAIL_RECIPIENT_TABLE,
 } from "./commons";
-import { EmailModel } from "./Email";
+import { EmailRecordModel } from "./EmailRecords";
 
 export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";
 
@@ -43,17 +43,13 @@ export class RecipientModel extends Model {
     return {
       email: {
         relation: Model.HasOneRelation,
-        modelClass: EmailModel,
+        modelClass: EmailRecordModel,
         join: {
           from: `${EMAIL_RECIPIENT_TABLE}.emailId`,
-          to: `${EMAIL_TABLE}.id`,
+          to: `${EMAIL_RECORDS_TABLE}.id`,
         },
       },
     };
-  }
-
-  async $afterInsert(context: QueryContext): Promise<any> {
-    console.log("context", context);
   }
 }
 

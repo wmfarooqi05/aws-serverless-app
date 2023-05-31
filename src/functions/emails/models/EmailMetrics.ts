@@ -4,10 +4,10 @@ import { singleton } from "tsyringe";
 import {
   EMAIL_METRICS_RECIPIENTS_TABLE,
   EMAIL_METRICS_TABLE,
-  EMAIL_TABLE,
+  EMAIL_RECORDS_TABLE,
 } from "./commons";
 import {
-  EmailRecipientModel,
+  EmailMetricsRecipientModel,
   IEmailMetricsRecipients,
 } from "./EmailMetricsRecipients";
 
@@ -24,10 +24,11 @@ export type MetricsEventType =
 
 export interface IEmailMetrics {
   id?: string;
-  emailId: string;
+  emailRecordId: string;
+  senderEmail: string;
   eventType: string;
-  details?: any;
   timestamp: string;
+  details?: any;
   recipients?: IEmailMetricsRecipients[];
   createdAt?: string;
   updatedAt?: string;
@@ -45,7 +46,8 @@ export class EmailMetricsModel extends Model {
 
       properties: {
         id: { type: "string" },
-        emailId: { type: "string" },
+        emailRecordId: { type: ["string", "null"] },
+        senderEmail: { type: "string" },
         eventType: { type: "string" },
         details: { type: "object" },
         recipients: { type: "string" },
@@ -60,18 +62,18 @@ export class EmailMetricsModel extends Model {
     return {
       email: {
         relation: Model.BelongsToOneRelation,
-        modelClass: EMAIL_TABLE,
+        modelClass: EMAIL_RECORDS_TABLE,
         join: {
-          from: `${EMAIL_METRICS_TABLE}.emailId`,
-          to: `${EMAIL_TABLE}.id`,
+          from: `${EMAIL_METRICS_TABLE}.emailRecordId`,
+          to: `${EMAIL_RECORDS_TABLE}.id`,
         },
       },
       recipients: {
         relation: Model.HasManyRelation,
-        modelClass: EmailRecipientModel,
+        modelClass: EmailMetricsRecipientModel,
         join: {
           from: `${EMAIL_METRICS_TABLE}.id`,
-          to: `${EMAIL_METRICS_RECIPIENTS_TABLE}.emailId`,
+          to: `${EMAIL_METRICS_RECIPIENTS_TABLE}.metricsId`,
         },
       },
     };
