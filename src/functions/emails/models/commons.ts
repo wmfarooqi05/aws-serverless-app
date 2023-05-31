@@ -15,3 +15,5 @@ export const EMAIL_ADDRESS_TO_EMAIL_LIST_TABLE =
 export const EMAIL_LIST_TO_CONTACT_EMAILS =
   process.env.EMAIL_LIST_TO_CONTACT_EMAILS || "email_list_to_contact_emails";
 export const EMAIL_LIST_TABLE = process.env.EMAIL_LIST || "email_lists";
+export const EMAIL_METRICS_RECIPIENTS_TABLE =
+  process.env.EMAIL_METRICS_RECIPIENTS_TABLE || "email_metrics_recipients";

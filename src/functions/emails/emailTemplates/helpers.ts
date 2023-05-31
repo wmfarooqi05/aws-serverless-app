@@ -10,7 +10,7 @@ export const checkTemplateExists = async (
     await sesClient.send(command);
     return true; // Template exists
   } catch (error) {
-    if (error.name === "TemplateDoesNotExist") {
+    if (error.name === "TemplateDoesNotExistException") {
       return false; // Template does not exist
     }
     throw error; // Something went wrong

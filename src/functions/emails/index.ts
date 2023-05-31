@@ -116,7 +116,7 @@ const emailHandler = {
 };
 
 const receiveEmailHandler = {
-  handler: `${handlerPath(__dirname)}/handler.receiveEmailHandler`,
+  handler: `${handlerPath(__dirname)}/handler.emailQueueInvokeHandler`,
   events: [
     //   {
     //     sqs: {

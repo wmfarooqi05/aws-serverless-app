@@ -153,31 +153,31 @@ export class EmailTemplateService {
     const thumbKey = `${rootKey}/thumbnail.png`;
 
     // thumbnail part
-    if (htmlS3Link || _isHtml) {
-      if (thumbnailUrl) {
-        const keys = getKeysFromS3Url(thumbnailUrl);
-        await copyS3Object(
-          keys.fileKey,
-          thumbKey,
-          "public-read",
-          true,
-          keys.bucketName,
-          keys.region
-        );
-        template.thumbnailUrl = thumbKey;
-      } else if (_isHtml) {
-        const thumbBuffer = await generateThumbnailFromHtml(templateContent);
-        const thumbnail = await uploadContentToS3(
-          thumbKey,
-          thumbBuffer,
-          "public-read"
-        );
-        template.thumbnailUrl = thumbnail.fileUrl;
-      } else {
-        // @TODO
-        // Download big template and make its thumbnail and upload :D
-      }
-    }
+    // if (htmlS3Link || _isHtml) {
+    //   if (thumbnailUrl) {
+    //     const keys = getKeysFromS3Url(thumbnailUrl);
+    //     await copyS3Object(
+    //       keys.fileKey,
+    //       thumbKey,
+    //       "public-read",
+    //       true,
+    //       keys.bucketName,
+    //       keys.region
+    //     );
+    //     template.thumbnailUrl = thumbKey;
+    //   } else if (_isHtml) {
+    //     const thumbBuffer = await generateThumbnailFromHtml(templateContent);
+    //     const thumbnail = await uploadContentToS3(
+    //       thumbKey,
+    //       thumbBuffer,
+    //       "public-read"
+    //     );
+    //     template.thumbnailUrl = thumbnail.fileUrl;
+    //   } else {
+    //     // @TODO
+    //     // Download big template and make its thumbnail and upload :D
+    //   }
+    // }
     const emailTemplateEntry: IEmailTemplate =
       await EmailTemplatesModel.query().insert(template);
 

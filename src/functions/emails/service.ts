@@ -52,15 +52,20 @@ import { formatErrorResponse } from "@libs/api-gateway";
 
 import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
-import { mergeEmailAndName, mergeEmailAndNameList } from "@utils/emails";
+import {
+  mergeEmailAndName,
+  mergeEmailAndNameList,
+  splitEmailAndName,
+} from "@utils/emails";
 import EmployeeModel from "@models/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { RecipientModel } from "./models/Recipient";
-import {
-  I_BULK_EMAIL_JOB,
-} from "./models/interfaces/bulkEmail";
+import { I_BULK_EMAIL_JOB } from "./models/interfaces/bulkEmail";
 import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
 import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
+import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
+import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -70,10 +75,13 @@ export interface IEmailService {}
 
 @injectable()
 export class EmailService implements IEmailService {
+  sqsClient: SQSClient = null;
   constructor(
     @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
     @inject(DatabaseService) private readonly docClient: DatabaseService
-  ) {}
+  ) {
+    this.sqsClient = new SQSClient({ region: process.env.REGION });
+  }
 
   async getAllEmails(body: any): Promise<any> {}
 
@@ -563,133 +571,217 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async receiveEmailHelper(Records: SQSRecord[]) {
+  async emailQueueInvokeHandler(Records: SQSRecord[]) {
     console.log("[receiveEmailHelper] records", Records);
     for (const record of Records) {
-      const deleteEvent = [];
       const payload = JSON.parse(record.body);
-      console.log("payload", payload);
-
-      const messagePayload = JSON.parse(payload?.Message);
-      console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
-      let mailStream: fs.ReadStream;
-      if (process.env.STAGE === "local") {
-        mailStream = fs.createReadStream(payload.filePath);
+      if (payload?.notificationType === "Received") {
+        await this.receiveEmailHelper(record);
+      } else if (payload.eventType) {
+        await this.processMetricsEvent(payload);
       } else {
-        mailStream = await this.downloadStreamFromUSEastBucket(
-          `incoming-emails/${messagePayload.mail.messageId}`
-        );
+        const key = `emails/unprocessed-events/${randomUUID()}`;
+        await uploadContentToS3(key, record);
       }
+      await this.deleteMessageFromSQS(record.receiptHandle);
+    }
+  }
 
-      const mailObject = await simpleParser(mailStream, {
-        // keepCidLinks: false,
-        // allowHalfOpen: true,
-        decodeStrings: true,
-        skipImageLinks: true,
-      });
+  async processMetricsEvent(payload) {
+    const eventType: string = payload.eventType;
+    const sender = splitEmailAndName(payload?.mail?.source);
+    const details = payload;
+    delete details?.mail?.headers;
+    delete details?.mail?.commonHeaders;
 
-      const attachmentsS3Promises = mailObject.attachments.map((x) => {
-        return uploadContentToS3(
-          `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
-            x.contentType.split("/")[1]
-          }`,
-          x.content
-        );
-      });
-      const attachmentsS3 = await Promise.all(attachmentsS3Promises);
+    let recipientPayload: any[] =
+      payload?.mail?.recipients || payload?.mail.destination;
+    let recipientEntities: IEmailAddresses[] = [];
+    if (recipientPayload.length > 0) {
+      recipientPayload = recipientPayload.map(
+        (x) => splitEmailAndName(x).email
+      );
+      recipientEntities = await EmailAddressesModel.query().whereIn(
+        "email",
+        recipientPayload
+      );
+    }
+    let error = null;
+    await EmailMetricsModel.transaction(async (trx) => {
+      try {
+        await EmailMetricsModel.query(trx).insert({
+          id: payload?.mail?.messageId,
+          eventType,
+          senderEmail: sender.email,
+          senderName: sender.name,
+          details,
+          timestamp: payload?.[eventType.toLowerCase()]?.timestamp,
+        });
 
-      return;
-      console.log("attachmentsS3", attachmentsS3);
-
-      let body = mailObject.html ? mailObject.html : mailObject.text;
-
-      let isBodyUploaded = false;
-      const MAX_DB_SIZE = 4000;
-      if (body.length > MAX_DB_SIZE) {
-        // Upload it to s3
-        const resp = await uploadContentToS3(
-          `media/body/${messagePayload.mail.messageId}/${randomUUID()}`,
-          body
-        );
-        isBodyUploaded = true;
-        body = resp.fileUrl;
-      }
-      // else {
-      //   body = compressedBody;
-      // }
-      const email: IEmail = {
-        body,
-        sentAt: mailObject.date.toISOString(),
-        status: "RECEIVED",
-        subject: mailObject?.subject,
-        sesMessageId: messagePayload.mail.messageId,
-        attachments: attachmentsS3.map((x) => {
-          return {
-            ...x,
-            updatedAt: moment().utc().format(),
-            filename: x.fileKey.split("/").at(-1),
-          };
-        }),
-        direction: "RECEIVED",
-        isBodyUploaded,
-      };
-
-      let error = null;
-      await this.docClient.getKnexClient().transaction(async (trx) => {
-        try {
-          const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
-          const recipients: IRecipient[] = [
-            {
-              recipientEmail: mailObject?.from?.value[0]?.address,
-              recipientName: mailObject?.from?.value[0]?.name,
-              recipientType: "FROM",
-              emailId: emailEntity.id,
-            },
-          ];
-          mailObject.to?.value.map((x: EmailAddress) => {
-            return recipients.push({
-              emailId: emailEntity.id,
-              recipientType: "TO_LIST",
-              recipientName: x.name,
-              recipientEmail: x.address,
-            });
-          });
-          mailObject.cc?.value.map((x: EmailAddress) => {
-            return recipients.push({
-              emailId: emailEntity.id,
-              recipientType: "CC_LIST",
-              recipientName: x.name,
-              recipientEmail: x.address,
-            });
-          });
-          mailObject.bcc?.value.map((x: EmailAddress) => {
-            return recipients.push({
-              emailId: emailEntity.id,
-              recipientType: "BCC_LIST",
-              recipientName: x.name,
-              recipientEmail: x.address,
-            });
-          });
-
-          const recipientsEntriesPromises = recipients.map((x: any) =>
-            EmailModel.relatedQuery("recipients", trx)
-              .for(emailEntity.id)
-              .insert(x)
+        if (recipientPayload?.length) {
+          const recipients: IEmailMetricsRecipients[] = recipientPayload.map(
+            (x: string) => {
+              return {
+                metricsId: payload?.mail?.messageId,
+                recipientEmail: x,
+                eventType,
+                emailId: recipientEntities.find((r) => r.email === x)?.id,
+              } as IEmailMetricsRecipients;
+            }
           );
 
-          emailEntity.recipients = await Promise.all(recipientsEntriesPromises);
+          await Promise.all(
+            recipients.map((x) =>
+              EmailMetricsModel.relatedQuery("recipients", trx)
+                .for(payload?.mail?.messageId)
+                .insert(x)
+            )
+          );
           await trx.commit();
-        } catch (e) {
-          error = e;
-          await trx.rollback();
         }
-      });
-
-      if (error) {
-        // push it to DLQ
-        console.log(error);
-      } else {
+      } catch (e) {
+        error = e;
+        await trx.rollback();
       }
+    });
+    if (error) {
+      throw new CustomError(error.message, 500);
+    }
+  }
+
+  // Delete a message from a SQS queue
+  async deleteMessageFromSQS(receiptHandle: string) {
+    try {
+      const command = new DeleteMessageCommand({
+        QueueUrl: process.env.MAIL_QUEUE,
+        ReceiptHandle: receiptHandle,
+      });
+      await this.sqsClient.send(command);
+      console.log(
+        `Message with receipt handle ${receiptHandle} deleted from queue.`
+      );
+    } catch (error) {
+      console.error(`Error deleting message from queue: ${error}`);
+    }
+  }
+
+  async receiveEmailHelper(record: SQSRecord) {
+    const payload = JSON.parse(record.body);
+    console.log("payload", payload);
+
+    const messagePayload = JSON.parse(payload?.Message);
+    console.log("[receiveEmailHelper]", "messagePayload", messagePayload);
+    let mailStream: fs.ReadStream;
+    if (process.env.STAGE === "local") {
+      mailStream = fs.createReadStream(payload.filePath);
+    } else {
+      mailStream = await this.downloadStreamFromUSEastBucket(
+        `incoming-emails/${messagePayload.mail.messageId}`
+      );
+    }
+
+    const mailObject = await simpleParser(mailStream, {
+      // keepCidLinks: false,
+      // allowHalfOpen: true,
+      decodeStrings: true,
+      skipImageLinks: true,
+    });
+
+    const attachmentsS3Promises = mailObject.attachments.map((x) => {
+      return uploadContentToS3(
+        `media/attachments/${messagePayload.mail.messageId}/${x.filename}.${
+          x.contentType.split("/")[1]
+        }`,
+        x.content
+      );
+    });
+    const attachmentsS3 = await Promise.all(attachmentsS3Promises);
+
+    let body = mailObject.html ? mailObject.html : mailObject.text;
+
+    let isBodyUploaded = false;
+    const MAX_DB_SIZE = 4000;
+    if (body.length > MAX_DB_SIZE) {
+      // Upload it to s3
+      const resp = await uploadContentToS3(
+        `media/body/${messagePayload.mail.messageId}/${randomUUID()}`,
+        body
+      );
+      isBodyUploaded = true;
+      body = resp.fileUrl;
+    }
+    // else {
+    //   body = compressedBody;
+    // }
+    const email: IEmail = {
+      body,
+      sentAt: mailObject.date.toISOString(),
+      status: "RECEIVED",
+      subject: mailObject?.subject,
+      sesMessageId: messagePayload.mail.messageId,
+      attachments: attachmentsS3.map((x) => {
+        return {
+          ...x,
+          updatedAt: moment().utc().format(),
+          filename: x.fileKey.split("/").at(-1),
+        };
+      }),
+      direction: "RECEIVED",
+      isBodyUploaded,
+    };
+
+    let error = null;
+    await this.docClient.getKnexClient().transaction(async (trx) => {
+      try {
+        const emailEntity: IEmail = await EmailModel.query(trx).insert(email);
+        const recipients: IRecipient[] = [
+          {
+            recipientEmail: mailObject?.from?.value[0]?.address,
+            recipientName: mailObject?.from?.value[0]?.name,
+            recipientType: "FROM",
+            emailId: emailEntity.id,
+          },
+        ];
+        mailObject.to?.value.map((x: EmailAddress) => {
+          return recipients.push({
+            emailId: emailEntity.id,
+            recipientType: "TO_LIST",
+            recipientName: x.name,
+            recipientEmail: x.address,
+          });
+        });
+        mailObject.cc?.value.map((x: EmailAddress) => {
+          return recipients.push({
+            emailId: emailEntity.id,
+            recipientType: "CC_LIST",
+            recipientName: x.name,
+            recipientEmail: x.address,
+          });
+        });
+        mailObject.bcc?.value.map((x: EmailAddress) => {
+          return recipients.push({
+            emailId: emailEntity.id,
+            recipientType: "BCC_LIST",
+            recipientName: x.name,
+            recipientEmail: x.address,
+          });
+        });
+
+        const recipientsEntriesPromises = recipients.map((x: any) =>
+          EmailModel.relatedQuery("recipients", trx)
+            .for(emailEntity.id)
+            .insert(x)
+        );
+
+        emailEntity.recipients = await Promise.all(recipientsEntriesPromises);
+        await trx.commit();
+      } catch (e) {
+        error = e;
+        await trx.rollback();
+      }
+    });
+    if (error) {
+      throw new CustomError(error, 500);
     }
   }
 

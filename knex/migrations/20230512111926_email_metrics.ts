@@ -16,7 +16,6 @@ export async function up(knex: Knex): Promise<void> {
         .onDelete("SET NULL")
         .notNullable();
       table.string("event_type").notNullable();
-      table.string("event_value", 1000).notNullable();
       table.timestamp("timestamp");
 
       table

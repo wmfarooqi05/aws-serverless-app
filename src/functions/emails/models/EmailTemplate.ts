@@ -36,6 +36,7 @@ export class EmailTemplatesModel extends Model {
         awsRegion: { type: "string" },
         version: { type: "string", default: "version1" },
         contentUrl: { type: "string" },
+        subject: { type: "string" },
         thumbnailUrl: { type: "string" },
         sesResponse: { type: "string" },
         updatedBy: { type: "string" },

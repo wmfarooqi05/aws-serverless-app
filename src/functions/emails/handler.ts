@@ -128,7 +128,7 @@ const sendBulkEmailsHandler = async (event) => {
   }
 };
 
-export const receiveEmailHandler = async (event: SQSEvent) => {
+export const emailQueueInvokeHandler = async (event: SQSEvent) => {
   try {
     // This is for dev testing
     if (process.env.STAGE === "local") {
@@ -143,7 +143,7 @@ export const receiveEmailHandler = async (event: SQSEvent) => {
     ///////////////////////
     const resp = await container
       .resolve(EmailService)
-      .receiveEmailHelper(event.Records);
+      .emailQueueInvokeHandler(event.Records);
     return formatJSONResponse(resp, 200);
   } catch (error) {
     return formatErrorResponse({
