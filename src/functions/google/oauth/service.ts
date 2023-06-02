@@ -7,6 +7,8 @@ import { CustomError } from "@helpers/custom-error";
 import Joi from "joi";
 import AuthTokenModel, { IAuthToken } from "@models/AuthToken";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { IEmployee } from "@models/interfaces/Employees";
+import EmployeeModel from "@models/Employees";
 
 const SCOPE_FOR_AUTH = [
   "https://www.googleapis.com/auth/userinfo.email",
@@ -118,11 +120,25 @@ export class GoogleOAuthService {
       employeeId,
       tokenType: token.token_type,
     };
+    const tokenInfo = await this.getTokenInfo(token.access_token);
+    const employee: IEmployee = await EmployeeModel.query().findById(employeeId);
+    if (employee.email !== tokenInfo.email) {
+      throw new CustomError(
+        "The selected email does not match the logged-in employee's email.",
+        400
+      );
+    }
+    // @TODO: Add check here
+    // Get Employee Object, and compare if scope has same email as employee object
     const newToken: IAuthToken = await AuthTokenModel.query()
       .insert(tokenObj)
       .onConflict("employeeId")
       .merge();
     return newToken;
+  }
+
+  async getProfile(token: Auth.Credentials) {
+    this.client.setCredentials(token);
   }
 
   async getAccessTokenByCode(code: string) {
@@ -200,6 +216,10 @@ export class GoogleOAuthService {
       state: JSON.stringify(payload),
       scope: SCOPE_FOR_AUTH,
     });
+  }
+
+  async getTokenInfo(access_token: Auth.Credentials["access_token"]) {
+    return this.client.getTokenInfo(access_token);
   }
 
   /*** DEV ENDPOINTS */
