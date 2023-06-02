@@ -137,6 +137,8 @@ export class EmailTemplateService {
       version,
       subject: subjectPart,
       status: !!saveAsDraft ? "DRAFT" : "PROCESSING",
+      htmlPartUrl: htmlS3Link,
+      textPartUrl: textS3Link,
     };
 
     let emailTemplateEntry: IEmailTemplate = null;
@@ -144,18 +146,18 @@ export class EmailTemplateService {
       emailTemplateEntry = await EmailTemplatesModel.query().insert(template);
 
       if (!saveAsDraft) {
-        const sesResponse = sesClient.send(
-          new CreateTemplateCommand({
-            Template: {
-              TemplateName: templateSesName,
-              SubjectPart: subjectPart,
-              HtmlPart: htmlS3Link,
-              TextPart: textS3Link,
-            },
-          })
-        );
+        // const sesResponse = sesClient.send(
+        //   new CreateTemplateCommand({
+        //     Template: {
+        //       TemplateName: templateSesName,
+        //       SubjectPart: subjectPart,
+        //       HtmlPart: htmlS3Link,
+        //       TextPart: textS3Link,
+        //     },
+        //   })
+        // );
 
-        emailTemplateEntry.details = { sesResponse };
+        // emailTemplateEntry.details = { sesResponse };
 
         const jobItem = new JobsModel({
           jobId: randomUUID(),
@@ -170,7 +172,7 @@ export class EmailTemplateService {
           .findById(emailTemplateEntry.id)
           .patch({
             details: {
-              sesResponse,
+              // sesResponse,
               jobId: jobResp.jobId,
             },
           });

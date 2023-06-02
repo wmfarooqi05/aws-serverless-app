@@ -123,8 +123,6 @@ const emailHandler = {
     "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
     "arn:aws:lambda:ca-central-1:524073432557:layer:chromium-layer:1",
   ],
-  timeout: 30,
-  memorySize: 1000,
 };
 
 const receiveEmailHandler = {

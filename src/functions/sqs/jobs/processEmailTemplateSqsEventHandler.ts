@@ -1,4 +1,5 @@
 import {
+  CreateTemplateCommand,
   GetTemplateCommand,
   SESClient,
   UpdateTemplateCommand,
@@ -9,7 +10,7 @@ import {
   EmailTemplatesModel,
   IEmailTemplate,
 } from "@functions/emails/models/EmailTemplate";
-import { uploadContentToS3 } from "@functions/jobs/upload";
+import { getS3BufferFromUrl, uploadContentToS3 } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IJobData } from "@models/dynamoose/Jobs";
@@ -39,76 +40,81 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
     );
   }
   try {
-    const { templateName, version, templateSesName } = emailTemplate;
-    const sesTemplate = await sesClient.send(
-      new GetTemplateCommand({
-        TemplateName: templateSesName || templateName, // in case templateSesName is missing in older data,
-      })
-    );
-    if (!sesTemplate) {
-      throw new CustomError(
-        `Template ${templateSesName || templateName} not found on SES`,
-        400
-      );
+    const {
+      templateName,
+      version,
+      templateSesName,
+      htmlPartUrl,
+      textPartUrl,
+      subject,
+    } = emailTemplate;
+
+    const htmlPartBuffer = await getS3BufferFromUrl(htmlPartUrl);
+    const htmlPartContent = htmlPartBuffer.toString();
+
+    if (!isHtml(htmlPartContent)) {
+      throw new CustomError("Not valid html template", 400);
     }
-    const { HtmlPart, SubjectPart, TextPart } = sesTemplate.Template;
+
+    // HtmlPart
+    const replacements = await replaceImageUrls(
+      htmlPartContent,
+      `media/email-templates/${templateName}/${version}`,
+      `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
+    );
+
+    const rootKey = `media/email-templates/${templateName}/${version}`;
+    const htmlPart = await uploadContentToS3(
+      `${rootKey}/HtmlPart.html`,
+      replacements.html,
+      "public-read"
+    );
+
+    const updateDbItem: Partial<IEmailTemplate> = {
+      htmlPartUrl: htmlPart.fileUrl,
+      status: "OK",
+    };
 
     // Thumbnail
-    const rootKey = `media/email-templates/${templateName}/${version}`;
     const thumbKey = `${rootKey}/thumbnail.png`;
     const { thumbnailBuffer, bodyText } = await generateThumbnailFromHtml(
-      HtmlPart
+      replacements.html
     );
     const thumbnail = await uploadContentToS3(
       thumbKey,
       thumbnailBuffer,
       "public-read"
     );
-    // Placeholders
-    const placeholders = [
-      ...getPlaceholders(SubjectPart),
-      ...getPlaceholders(TextPart),
-      ...getPlaceholders(bodyText),
-    ];
-    const updateDbItem: Partial<IEmailTemplate> = {
-      status: "OK",
-      placeholders,
-    };
-
     updateDbItem.thumbnailUrl = thumbnail.fileUrl;
 
-    // HtmlPart
-    if (!isHtml(HtmlPart)) {
-      throw new CustomError("Not valid html template", 400);
-    }
-    const replacements = await replaceImageUrls(
-      HtmlPart,
-      `media/email-templates/${templateName}/${version}`,
-      `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
-    );
+    let textPartContent = null;
+    if (textPartUrl) {
+      const textPartBuffer = await getS3BufferFromUrl(textPartUrl);
+      textPartContent = textPartBuffer.toString();
 
-    const htmlPart = await uploadContentToS3(
-      `${rootKey}/HtmlPart.html`,
-      HtmlPart,
-      "public-read"
-    );
-    updateDbItem.htmlPartUrl = htmlPart.fileUrl;
-    if (TextPart) {
       const textPart = await uploadContentToS3(
-        `${rootKey}/HtmlPart.html`,
-        HtmlPart,
+        `${rootKey}/TextPart.txt`,
+        textPartContent,
         "public-read"
       );
       updateDbItem.textPartUrl = textPart.fileUrl;
     }
 
+    // Placeholders
+    const placeholders = [
+      ...getPlaceholders(subject),
+      ...getPlaceholders(textPartContent),
+      ...getPlaceholders(bodyText),
+    ];
+    updateDbItem.placeholders = placeholders;
+
     await sesClient.send(
-      new UpdateTemplateCommand({
+      new CreateTemplateCommand({
         Template: {
           TemplateName: templateSesName,
           HtmlPart: replacements.html,
-          SubjectPart: SubjectPart,
-          TextPart: TextPart,
+          SubjectPart: subject,
+          TextPart: textPartContent,
         },
       })
     );
@@ -124,9 +130,14 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
       .patch({
         status: "ERROR",
         details: EmailTemplatesModel.raw(
-          `jsonb_set(details, '{errors}', '${JSON.stringify(error)}', true)`
+          `jsonb_set(details, '{errors}', '${JSON.stringify({
+            _message: error.message,
+            statusCode: error.statusCode,
+            _stack: error.stack,
+          })}', true)`
         ),
       } as Partial<IEmailTemplate>);
+    throw new CustomError(error.message, error.statusCode);
   }
 };
 

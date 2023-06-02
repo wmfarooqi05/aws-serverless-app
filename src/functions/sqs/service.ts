@@ -71,12 +71,15 @@ export class SQSService {
         });
 
         try {
-          // if (jobItem.jobStatus === "SUCCESSFUL") {
-          //   console.log(
-          //     `Message ${record.messageId} has already been processed. Skipping...`
-          //   );
-          //   continue;
-          // }
+          if (
+            process.env.STAGE !== "local" &&
+            jobItem.jobStatus === "SUCCESSFUL"
+          ) {
+            console.log(
+              `Message ${record.messageId} has already been processed. Skipping...`
+            );
+            continue;
+          }
 
           if (!this.emailDbClient) {
             this.emailDbClient = this.docClient;
@@ -110,7 +113,11 @@ export class SQSService {
           // await this.deleteMessage(record.receiptHandle);
         } catch (error) {
           console.error(error);
-          await this.markMessageAsFailed(payload.MessageBody.jobId, error);
+          await this.markMessageAsFailed(payload.MessageBody.jobId, {
+            message: error.message,
+            statusCode: error.statusCode,
+            stack: error.stack,
+          });
           return formatErrorResponse(error);
           // Push to DLQ or set job
         }
@@ -260,6 +267,7 @@ export class SQSService {
   }
 
   async markMessageProcessed(jobId: string): Promise<void> {
+    console.log("mark job as successful");
     await JobsModel.update(
       { jobId },
       {
@@ -272,7 +280,7 @@ export class SQSService {
     const job: IJobData = await JobsModel.get(jobId);
     let result = {};
     try {
-      result = job.result && JSON.parse(job.result);
+      result = (job.result && JSON.parse(job.result)) || {};
     } catch (e) {}
     const errorObj = {
       error: (resp && JSON.stringify(resp)) || "An error occurred",

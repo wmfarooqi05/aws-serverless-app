@@ -42,7 +42,7 @@ import {
   IPendingApprovals,
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { PendingApprovalService } from "@functions/pending_approvals/service";
 import {
   getOrderByItems,
@@ -72,6 +72,7 @@ import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import UpdateHistoryModel from "@models/UpdateHistory";
 import { IWithPagination } from "knex-paginate";
 import ContactModel from "@models/Contacts";
+import EmployeeModel from "@models/Employees";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -516,16 +517,26 @@ export class CompanyService implements ICompanyService {
   // Notes
   async getNotes(employee: IEmployeeJwt, companyId: any) {
     await validateGetNotes(employee.sub, companyId);
+    const employeeRecord: IEmployee = await EmployeeModel.query().findById(
+      employee.sub
+    );
     const interactionItem: IEmployeeCompanyInteraction = await this.docClient
       .getKnexClient()(EmployeeCompanyInteractionsModel.tableName)
       .select(["notes"])
       .where({ companyId, employeeId: employee.sub })
       .first();
     return (
-      interactionItem?.notes.sort(
-        (a: INotes, b: INotes) =>
-          Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
-      ) ?? []
+      interactionItem?.notes
+        .sort(
+          (a: INotes, b: INotes) =>
+            Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+        )
+        .map((x) => {
+          return {
+            ...x,
+            ownerName: employeeRecord.name,
+          };
+        }) ?? []
     );
   }
 
