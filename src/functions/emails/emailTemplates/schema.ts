@@ -1,13 +1,16 @@
 import Joi from "joi";
 
-export const validateCreateEmailTemplate = (obj) => {
-  return Joi.object({
+export const validateCreateEmailTemplate = async (obj) => {
+  await Joi.object({
+    /** @deprecated */
     templateContent: Joi.string(),
     htmlS3Link: Joi.string(),
+    /** @deprecated */
     placeholders: Joi.array().items(Joi.string()),
     subjectPart: Joi.string().required(),
     templateName: Joi.string().required(),
     version: Joi.string().required(),
+    /** @deprecated */
     thumbnailUrl: Joi.string(),
     // Joi.when("htmlS3Link", {
     //   is: Joi.exist(),
@@ -20,4 +23,11 @@ export const validateCreateEmailTemplate = (obj) => {
       allowUnknown: true,
       abortEarly: false,
     });
+};
+
+export const validateDeleteTemplate = async (obj) => {
+  await Joi.object({
+    templateId: Joi.string().guid(),
+    templateName: Joi.string(),
+  }).xor("templateName", "templateId").validateAsync(obj);
 };

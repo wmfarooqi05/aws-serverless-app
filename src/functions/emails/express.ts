@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createEmailTemplate,
+  deleteEmailTemplate,
   getAllTemplates,
   getTemplateById,
 } from "./emailTemplates/handler";
@@ -54,10 +55,17 @@ app.get("/emails/template/:templateId/content", async (req, res) => {
   const resp = await getEmailTemplateContentById(req, {} as any);
   resHelper(res, resp);
 });
+
 app.post("/emails/template", async (req, res) => {
   const resp = await createEmailTemplate(req, {} as any);
   resHelper(res, resp);
 });
+
+app.delete("/emails/template", async (req, res) => {
+  const resp = await deleteEmailTemplate(req, {} as any);
+  resHelper(res, resp);
+});
+
 app.post("/emails/send-bulk", async (req, res) => {
   const resp = await sendBulkEmails(req, {} as any);
   resHelper(res, resp);

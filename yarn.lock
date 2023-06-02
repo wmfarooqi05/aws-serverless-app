@@ -2706,6 +2706,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sparticuz/chromium@npm:^113.0.1":
+  version: 113.0.1
+  resolution: "@sparticuz/chromium@npm:113.0.1"
+  dependencies:
+    follow-redirects: ^1.15.2
+    tar-fs: ^2.1.1
+  checksum: d43f7f8de083de5e521d23ae8ff34cd9d08756abd689d65a2a8f16a4cba79d69625fa05e5a89e0ce31a4945a816e991935a0c0945aca9cdfff1bf2c62198bf93
+  languageName: node
+  linkType: hard
+
 "@szmarczak/http-timer@npm:^4.0.5":
   version: 4.0.6
   resolution: "@szmarczak/http-timer@npm:4.0.6"
@@ -3437,9 +3447,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aws-sdk@npm:^2.1234.0, aws-sdk@npm:^2.1379.0":
-  version: 2.1386.0
-  resolution: "aws-sdk@npm:2.1386.0"
+"aws-sdk@npm:^2.1234.0, aws-sdk@npm:^2.1388.0":
+  version: 2.1389.0
+  resolution: "aws-sdk@npm:2.1389.0"
   dependencies:
     buffer: 4.9.2
     events: 1.1.1
@@ -3451,7 +3461,7 @@ __metadata:
     util: ^0.12.4
     uuid: 8.0.0
     xml2js: 0.5.0
-  checksum: 426224ede6a39230dd8542ec8b25e4105db9e34424620cf11a9d61e1e52c18fd9ba248f6943633fdfb255a0bcd5d52844863b93306b16ae2c2a214c3bb17cca6
+  checksum: e9674372a692021a716842f5ad1fb80459998e78286c0aa1131af113c1fcff1aff095a4c1d83c0edcfbb480529c23364e00ee7d50ee9033bb5c31639d123d3e9
   languageName: node
   linkType: hard
 
@@ -4730,10 +4740,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.0.1, dotenv@npm:^16.0.3":
-  version: 16.0.3
-  resolution: "dotenv@npm:16.0.3"
-  checksum: afcf03f373d7a6d62c7e9afea6328e62851d627a4e73f2e12d0a8deae1cd375892004f3021883f8aec85932cd2834b091f568ced92b4774625b321db83b827f8
+"dotenv@npm:^16.0.1, dotenv@npm:^16.0.3, dotenv@npm:^16.1.3":
+  version: 16.1.3
+  resolution: "dotenv@npm:16.1.3"
+  checksum: 8f73bae720161cf365b679de162fe79a05f5b7a21d0d2b8bf9fb0601a2ed30f7e9dc49fa8b752d93206e4b7d427eccea2f383a1622cd5da4a1824f43bf8f780b
   languageName: node
   linkType: hard
 
@@ -5551,7 +5561,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.15.0":
+"follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.15.0, follow-redirects@npm:^1.15.2":
   version: 1.15.2
   resolution: "follow-redirects@npm:1.15.2"
   peerDependenciesMeta:
@@ -5827,6 +5837,7 @@ __metadata:
     "@middy/core": ^4.2.3
     "@middy/http-json-body-parser": ^4.2.3
     "@serverless/typescript": ^3.27.0
+    "@sparticuz/chromium": ^113.0.1
     "@types/aws-lambda": ^8.10.110
     "@types/aws-serverless-express": ^3.3.5
     "@types/axios": ^0.14.0
@@ -8163,9 +8174,9 @@ __metadata:
   linkType: hard
 
 "nwsapi@npm:^2.2.4":
-  version: 2.2.4
-  resolution: "nwsapi@npm:2.2.4"
-  checksum: a5eb9467158bdf255d27e9c4555e9ca02e4ba84ddce9b683856ed49de23eb1bb28ae3b8e791b7a93d156ad62b324a56f4d44cad827c2ca288c107ed6bdaff8a8
+  version: 2.2.5
+  resolution: "nwsapi@npm:2.2.5"
+  checksum: 3acfe387214e2a9a03960662ad600ecb41fc24385c9de91262a881608407f02d14686e5df3e6e87af0cf7b173ed2a6a202a569ab7bef376ec1841cd9b6cbf0a6
   languageName: node
   linkType: hard
 
@@ -9560,8 +9571,8 @@ __metadata:
   linkType: hard
 
 "serverless@npm:^3.27.0":
-  version: 3.31.0
-  resolution: "serverless@npm:3.31.0"
+  version: 3.32.1
+  resolution: "serverless@npm:3.32.1"
   dependencies:
     "@serverless/dashboard-plugin": ^6.2.3
     "@serverless/platform-client": ^4.3.2
@@ -9569,7 +9580,7 @@ __metadata:
     ajv: ^8.12.0
     ajv-formats: ^2.1.1
     archiver: ^5.3.1
-    aws-sdk: ^2.1379.0
+    aws-sdk: ^2.1388.0
     bluebird: ^3.7.2
     cachedir: ^2.3.0
     chalk: ^4.1.2
@@ -9579,7 +9590,7 @@ __metadata:
     d: ^1.0.1
     dayjs: ^1.11.7
     decompress: ^4.2.1
-    dotenv: ^16.0.3
+    dotenv: ^16.1.3
     dotenv-expand: ^10.0.0
     essentials: ^1.2.0
     ext: ^1.7.0
@@ -9622,7 +9633,7 @@ __metadata:
   bin:
     serverless: bin/serverless.js
     sls: bin/serverless.js
-  checksum: 75ce2eb344b2b9725b48d14d947e21a903c7d723d187bad7de40faa9f25ae5724ed96c550c7b70a43d1bddacdb93e991c729d571b0fd151fbc2b3f873a63fdf1
+  checksum: f96b3c6db2c54ff1c927ce9349773d82a07c670558555cecb5b8061102da69c44ad5c2078bffeacac9595295f5e3403dfed66fa69e0ab329808815cfdfba0fda
   languageName: node
   linkType: hard
 
@@ -10007,11 +10018,11 @@ __metadata:
   linkType: hard
 
 "strip-ansi@npm:^7.0.1":
-  version: 7.0.1
-  resolution: "strip-ansi@npm:7.0.1"
+  version: 7.1.0
+  resolution: "strip-ansi@npm:7.1.0"
   dependencies:
     ansi-regex: ^6.0.1
-  checksum: 257f78fa433520e7f9897722731d78599cb3fce29ff26a20a5e12ba4957463b50a01136f37c43707f4951817a75e90820174853d6ccc240997adc5df8f966039
+  checksum: 859c73fcf27869c22a4e4d8c6acfe690064659e84bef9458aa6d13719d09ca88dcfd40cbf31fd0be63518ea1a643fe070b4827d353e09533a5b0b9fd4553d64d
   languageName: node
   linkType: hard
 
@@ -10448,9 +10459,9 @@ __metadata:
   linkType: hard
 
 "type-fest@npm:^3.0.0":
-  version: 3.11.0
-  resolution: "type-fest@npm:3.11.0"
-  checksum: ebd7968301674d8022cd180aa34a685bda5962ad3c98da7280456f97468c1b12984f6a79d4eb4652f10e1f0ab42f7016121fd762068fd6255d4d0ccc069c2566
+  version: 3.11.1
+  resolution: "type-fest@npm:3.11.1"
+  checksum: 33be49e3b671c2ff3b5e320ef8c160c488205b08ab7631369116909a1baf2aebfcf45234c045e6902b8aa35730ac2bfd0655ea9e0fe3f8d26af9d99a16b07abd
   languageName: node
   linkType: hard
 

@@ -9,6 +9,7 @@ import {
   CopyObjectCommandOutput,
   GetObjectCommandInput,
   DeleteObjectCommandOutput,
+  ListObjectsCommand,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -19,7 +20,7 @@ import { Readable } from "stream";
 
 // @TODO rename this to s3-utils
 
-const s3 = new S3Client({
+const s3Client = new S3Client({
   region: process.env.REGION,
 });
 
@@ -39,8 +40,8 @@ export const uploadToS3 = async (path, body) => {
 
   try {
     const command = new PutObjectCommand(uploadParams);
-    await s3.send(command);
-    return `${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${Key}`;
+    await s3Client.send(command);
+    return `${process.env.DEPLOYMENT_BUCKET}.s3Client.${process.env.REGION}.amazonaws.com/${Key}`;
   } catch (e) {
     console.error("Error uploading file:", e);
   }
@@ -64,7 +65,7 @@ export const uploadFileToS3 = async (
 export const uploadContentToS3 = async (
   Key: string,
   fileContent: any,
-  ACL: string = 'private'
+  ACL: string = "private"
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const uploadParams: PutObjectCommandInput = {
     Bucket: process.env.DEPLOYMENT_BUCKET,
@@ -77,9 +78,9 @@ export const uploadContentToS3 = async (
 
   try {
     const command = new PutObjectCommand(uploadParams);
-    await s3.send(command);
+    await s3Client.send(command);
     return {
-      fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${Key}`,
+      fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3Client.${process.env.REGION}.amazonaws.com/${Key}`,
       fileKey: Key,
     };
   } catch (e) {
@@ -140,14 +141,10 @@ export const copyS3Object = async (
   }
 
   try {
-    let sourceClient = s3;
-    let destinationClient = s3;
-    if (sourceRegion !== process.env.REGION) {
-      sourceClient = new S3Client({ region: sourceRegion });
-    }
-    if (destinationRegion !== process.env.REGION) {
-      destinationClient = new S3Client({ region: destinationRegion });
-    }
+    const { sourceClient, destinationClient } = getS3ClientsForRegions(
+      sourceRegion,
+      destinationRegion
+    );
 
     const newLoc = await destinationClient.send(
       new CopyObjectCommand(copyParams)
@@ -159,12 +156,64 @@ export const copyS3Object = async (
         Bucket: sourceBucket,
         Key: sourceKey,
       };
-      await s3.send(new DeleteObjectCommand(deleteParams));
+      await sourceClient.send(new DeleteObjectCommand(deleteParams));
     }
     return newLoc;
   } catch (e) {}
 };
 
+/**
+ *
+ * @param sourceFolder
+ * @param destinationFolder
+ * @param ACL
+ * @param deleteOriginal
+ * @param sourceBucket
+ * @param sourceRegion
+ * @param destinationBucket
+ * @param destinationRegion
+ */
+export const copyS3FolderContent = async (
+  sourceFolder: string,
+  destinationFolder: string,
+  ACL: string = "private",
+  deleteOriginal: boolean = false,
+  sourceBucket: string = process.env.DEPLOYMENT_BUCKET,
+  sourceRegion: string = process.env.REGION,
+  destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
+  destinationRegion: string = process.env.REGION
+): Promise<void> => {
+  const { sourceClient, destinationClient } = getS3ClientsForRegions(
+    sourceRegion,
+    destinationRegion
+  );
+  const listObjectsCommand = new ListObjectsCommand({
+    Bucket: sourceBucket,
+    Prefix: sourceFolder,
+  });
+
+  const listObjectsResponse = await sourceClient.send(listObjectsCommand);
+  const objects = listObjectsResponse.Contents;
+  for (const object of objects) {
+    const copyObjectCommand = {
+      CopySource: `${sourceBucket}/${object.Key}`,
+      Bucket: destinationBucket,
+      Key: `${destinationFolder}/${object.Key.substring(
+        sourceFolder.length + 1
+      )}`,
+      ACL,
+    };
+    await destinationClient.send(new CopyObjectCommand(copyObjectCommand));
+
+    if (deleteOriginal) {
+      const deleteObjectCommand = {
+        Bucket: sourceBucket,
+        Key: object.Key,
+      };
+      await sourceClient.send(new DeleteObjectCommand(deleteObjectCommand));
+    }
+  }
+};
 export const deleteObjectFromS3Url = (
   url: string
 ): Promise<DeleteObjectCommandOutput> => {
@@ -180,7 +229,7 @@ export const deleteObjectFromS3Key = async (
     Bucket: bucket,
     Key: key,
   };
-  return s3.send(new DeleteObjectCommand(deleteParams));
+  return s3Client.send(new DeleteObjectCommand(deleteParams));
 };
 
 // make a download function and write file to some folder
@@ -214,7 +263,7 @@ export const getS3BufferFromKey = async (
   };
   console.log("[getS3BufferFromKey] params", params);
   const getObjectCommand = new GetObjectCommand(params);
-  const objectData = await s3.send(getObjectCommand);
+  const objectData = await s3Client.send(getObjectCommand);
 
   // Pipe the response to a writable stream and collect it as a Buffer
   const bufferStream = new stream.PassThrough();
@@ -249,9 +298,24 @@ export const getS3ReadableFromKey = async (
   };
   console.log("[getS3BufferFromKey] params", params);
   const getObjectCommand = new GetObjectCommand(params);
-  const objectData = await s3.send(getObjectCommand);
+  const objectData = await s3Client.send(getObjectCommand);
 
   return objectData.Body as Readable;
+};
+
+export const getS3ClientsForRegions = (
+  sourceRegion: string,
+  destinationRegion: string
+): { sourceClient: S3Client; destinationClient: S3Client } => {
+  let sourceClient = s3Client;
+  let destinationClient = s3Client;
+  if (sourceRegion !== process.env.REGION) {
+    sourceClient = new S3Client({ region: sourceRegion });
+  }
+  if (destinationRegion !== process.env.REGION) {
+    destinationClient = new S3Client({ region: destinationRegion });
+  }
+  return { sourceClient, destinationClient };
 };
 
 // const dir = path.resolve(path.join(__dirname, "errors"));

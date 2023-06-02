@@ -42,6 +42,13 @@ const emailHandler = {
     },
     {
       http: {
+        method: "delete",
+        path: "emails/template",
+        cors: true,
+      },
+    },
+    {
+      http: {
         method: "post",
         path: "send-email",
         cors: true,
@@ -112,19 +119,27 @@ const emailHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:chromium-layer:1",
+  ],
+  timeout: 30,
+  memorySize: 1000,
 };
 
 const receiveEmailHandler = {
   handler: `${handlerPath(__dirname)}/handler.emailQueueInvokeHandler`,
   events: [
-      {
-        sqs: {
-          arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
-        },
+    {
+      sqs: {
+        arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
       },
+    },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:4"],
+  layers: [
+    "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:chromium-layer:1",
+  ],
 };
 
 if (process.env.NODE_ENV === "local") {

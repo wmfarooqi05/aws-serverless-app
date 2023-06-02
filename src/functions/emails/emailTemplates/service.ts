@@ -8,19 +8,18 @@ import {
 } from "@aws-sdk/client-ses";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { isHtml } from "@utils/emails";
+import { getPlaceholders, isHtml } from "@utils/emails";
 import { inject, injectable } from "tsyringe";
 import { EmailTemplatesModel, IEmailTemplate } from "../models/EmailTemplate";
 import {
+  copyS3FolderContent,
   copyS3Object,
   getKeysFromS3Url,
   uploadContentToS3,
 } from "@functions/jobs/upload";
-import { validateCreateEmailTemplate } from "./schema";
+import { validateCreateEmailTemplate, validateDeleteTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
-import {
-  generateThumbnailFromHtml,
-} from "@utils/thumbnails";
+import { generateThumbnailFromHtml } from "@utils/thumbnails";
 import {
   DeleteItemCommand,
   DeleteItemCommandInput,
@@ -28,7 +27,9 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { getS3BufferFromUrl } from "@functions/jobs/upload";
 import { replaceImageUrls } from "@utils/image";
-import { checkTemplateExists } from "./helpers";
+import { checkTemplateExistsOnSES } from "./helpers";
+import fs from "fs";
+import { randomUUID } from "crypto";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -49,15 +50,7 @@ export class EmailTemplateService {
   async createEmailTemplate(employee: IEmployeeJwt, body: any): Promise<any> {
     const payload = JSON.parse(body);
     await validateCreateEmailTemplate(payload);
-    const {
-      templateContent: templatePart,
-      placeholders,
-      templateName,
-      subjectPart,
-      version,
-      htmlS3Link,
-      thumbnailUrl,
-    } = payload;
+    const { templateName, subjectPart, version, htmlS3Link } = payload;
 
     // const replacements = await replaceImageUrls(
     //   templatePart,
@@ -66,7 +59,7 @@ export class EmailTemplateService {
     // );
 
     // return replacements;
-    const templateExistsOnSes = await checkTemplateExists(
+    const templateExistsOnSes = await checkTemplateExistsOnSES(
       templateName,
       sesClient
     );
@@ -91,12 +84,9 @@ export class EmailTemplateService {
       throw new CustomError("template exists on SES, not on DB", 400);
     }
 
-    let templateContent = templatePart;
-    if (htmlS3Link) {
-      // download it into templateContent
-      const templateS3Buffer = await getS3BufferFromUrl(htmlS3Link);
-      templateContent = templateS3Buffer.toString();
-    }
+    // download it into templateContent
+    const templateS3Buffer = await getS3BufferFromUrl(htmlS3Link);
+    let templateContent = templateS3Buffer.toString();
 
     const commandInput: CreateTemplateCommandInput = {
       Template: {
@@ -104,19 +94,19 @@ export class EmailTemplateService {
         SubjectPart: subjectPart,
       },
     };
-    const _isHtml = htmlS3Link || isHtml(templateContent);
-    if (htmlS3Link || _isHtml) {
-      const replacements = await replaceImageUrls(
-        templateContent,
-        `media/email-templates/${templateName}/${version}`,
-        `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
-      );
-
-      templateContent = replacements.html;
-      commandInput.Template.HtmlPart = templateContent;
-    } else {
-      commandInput.Template.TextPart = templateContent;
+    if (!isHtml(templateContent)) {
+      throw new CustomError("Not valid html template", 400);
     }
+    const replacements = await replaceImageUrls(
+      templateContent,
+      `media/email-templates/${templateName}/${version}`,
+      `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
+    );
+
+    templateContent = replacements.html;
+    commandInput.Template.HtmlPart = templateContent;
+
+    const placeholders = getPlaceholders(templateContent);
 
     const command = new CreateTemplateCommand(commandInput);
     const template: IEmailTemplate = {
@@ -130,54 +120,28 @@ export class EmailTemplateService {
     const rootKey = `media/email-templates/${templateName}/${version}`;
 
     // content handling part
-    if (htmlS3Link) {
-      const newKey = `${rootKey}/template-content`;
-      await copyS3Object(
-        getKeysFromS3Url(htmlS3Link).fileKey,
-        newKey,
-        "public-read",
-        false
-      );
+    const newKey = `${rootKey}/template-content`;
+    await copyS3Object(
+      getKeysFromS3Url(htmlS3Link).fileKey,
+      newKey,
+      "public-read",
+      false
+    );
 
-      template.contentUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`;
-      template.contentUrl = htmlS3Link;
-    } else {
-      const templateContentUrl = await uploadContentToS3(
-        `${rootKey}/template-content`,
-        templateContent,
-        "public-read"
-      );
-      template.contentUrl = templateContentUrl.fileUrl;
-    }
+    template.contentUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`;
+    template.contentUrl = htmlS3Link;
 
     const thumbKey = `${rootKey}/thumbnail.png`;
 
     // thumbnail part
-    // if (htmlS3Link || _isHtml) {
-    //   if (thumbnailUrl) {
-    //     const keys = getKeysFromS3Url(thumbnailUrl);
-    //     await copyS3Object(
-    //       keys.fileKey,
-    //       thumbKey,
-    //       "public-read",
-    //       true,
-    //       keys.bucketName,
-    //       keys.region
-    //     );
-    //     template.thumbnailUrl = thumbKey;
-    //   } else if (_isHtml) {
-    //     const thumbBuffer = await generateThumbnailFromHtml(templateContent);
-    //     const thumbnail = await uploadContentToS3(
-    //       thumbKey,
-    //       thumbBuffer,
-    //       "public-read"
-    //     );
-    //     template.thumbnailUrl = thumbnail.fileUrl;
-    //   } else {
-    //     // @TODO
-    //     // Download big template and make its thumbnail and upload :D
-    //   }
-    // }
+    const thumbBuffer = await generateThumbnailFromHtml(templateContent);
+    const thumbnail = await uploadContentToS3(
+      thumbKey,
+      thumbBuffer,
+      "public-read"
+    );
+    template.thumbnailUrl = thumbnail.fileUrl;
+
     const emailTemplateEntry: IEmailTemplate =
       await EmailTemplatesModel.query().insert(template);
 
@@ -201,6 +165,72 @@ export class EmailTemplateService {
     return emailTemplateEntry;
   }
 
+  async deleteEmailTemplate(employee: IEmployeeJwt, body) {
+    // Only tested by running without deletion and moving part
+    const payload = JSON.parse(body);
+    await validateDeleteTemplate(payload);
+    let isDeletedFromSES = false;
+    let templateEntity: IEmailTemplate = null;
+    let {
+      templateId,
+      templateName,
+    }: { templateId?: string; templateName?: string } = payload;
+    let error = null;
+    try {
+      const query = EmailTemplatesModel.query();
+      if (templateId) {
+        query.where({ id: templateId });
+      } else {
+        query.where({ templateName });
+      }
+
+      templateEntity = await query.first();
+
+      if (!templateName) {
+        templateName = templateEntity.templateName;
+      }
+
+      const templateExistsOnSes = await checkTemplateExistsOnSES(
+        templateName,
+        sesClient
+      );
+      if (!templateEntity && !templateExistsOnSes) {
+        throw new CustomError("Template doesn't exists on DB and SES", 400);
+      }
+      const rootKey = `media/email-templates/${templateName}/${templateEntity.version}`;
+
+      const command = new DeleteTemplateCommand({
+        TemplateName: templateName,
+      });
+      await sesClient.send(command);
+      console.log("deleted from SES");
+      await copyS3FolderContent(
+        rootKey,
+        `tmp/${templateName}/${templateEntity.version}`,
+        "public-read"
+      );
+      console.log(
+        `content moved to tmp folder: ${templateName}/${templateEntity.version}`
+      );
+      isDeletedFromSES = true;
+      await EmailTemplatesModel.query().findById(templateEntity.id).del();
+      console.log("deleted from DB");
+    } catch (e) {
+      // put back
+      console.log("error", e);
+      error = e;
+      if (isDeletedFromSES) {
+        // recover using links in DB;
+        // we have to check if moved to tmp or not
+        // if yes, then replace `media/email-templates/` paths with `tmp` and recover
+        // otherwise just re-create
+      }
+    }
+
+    if (error) {
+      throw new CustomError(error.message, error.statusCode);
+    }
+  }
   // Function to retrieve a template record from the database
   async getAllTemplates(): Promise<any> {
     return EmailTemplatesModel.query();
@@ -244,21 +274,5 @@ export class EmailTemplateService {
       })
       .promise();
     return Attributes as TemplateRecord;
-  }
-
-  // Function to delete a template and its record from the database
-  async deleteTemplate(templateName: string): Promise<void> {
-    // Delete SES template
-    const command = new DeleteTemplateCommand({ TemplateName: templateName });
-    await sesClient.send(command);
-
-    const params: DeleteItemCommandInput = {
-      TableName: "TemplatesTable",
-      Key: {
-        partitionKey: { S: templateName }, // Specify the partition key value
-      },
-    };
-
-    await dynamoClient.send(new DeleteItemCommand(params));
   }
 }

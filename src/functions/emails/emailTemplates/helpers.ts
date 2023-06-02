@@ -1,6 +1,6 @@
 import { GetTemplateCommand, SESClient } from "@aws-sdk/client-ses";
 
-export const checkTemplateExists = async (
+export const checkTemplateExistsOnSES = async (
   templateName: string,
   sesClient: SESClient
 ): Promise<boolean> => {

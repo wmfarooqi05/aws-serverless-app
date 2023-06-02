@@ -25,6 +25,17 @@ const createEmailTemplateHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+const deleteEmailTemplateHandler = async (event) => {
+  try {
+    const newEmailTemplate = await container
+      .resolve(EmailTemplateService)
+      .deleteEmailTemplate(event.employee, event.body);
+    return formatJSONResponse(newEmailTemplate, 201);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 const getAllTemplatesHandler = async (event) => {
   try {
     const newEmailTemplate = await container
@@ -57,5 +68,10 @@ export const createEmailTemplate = checkRolePermission(
 );
 export const getTemplateById = checkRolePermission(
   getTemplateByIdHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const deleteEmailTemplate = checkRolePermission(
+  deleteEmailTemplateHandler,
   "COMPANY_READ_ALL"
 );

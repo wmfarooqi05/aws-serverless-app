@@ -70,3 +70,12 @@ export const splitEmailAndName = (
     name,
   };
 };
+
+export const getPlaceholders = (templateContent: string) => {
+  const pattern = /\{(.+?)\}/g; // Matches anything inside curly braces {}
+  const placeholders = templateContent.match(pattern);
+  const extractedPlaceholders = placeholders.map((placeholder) => {
+    return placeholder.substring(1, placeholder.length - 1);
+  });
+  return extractedPlaceholders;
+};
