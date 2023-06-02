@@ -65,9 +65,19 @@ export const bulkEmailPrepareSqsEventHandler = async (
       templateName: details.templateName,
     })
     .first();
-  const templateKey = getKeysFromS3Url(templateEntity.contentUrl);
-  const newTemplateKey = `media/bulk_emails/${randomUUID()}`;
+
+  // COPY HTML PART
+  const templateKey = getKeysFromS3Url(templateEntity.htmlPartUrl);
+  const newTemplateKey = `media/bulk_emails/${randomUUID()}/HtmlPart.html`;
   await copyS3Object(templateKey.fileKey, newTemplateKey);
+
+  if (templateEntity.textPartUrl) {
+    // COPY TEXT PART
+    const textTemplateKey = getKeysFromS3Url(templateEntity.textPartUrl);
+    const newTextTemplateKey = `media/bulk_emails/${randomUUID()}/TextPart.txt`;
+    await copyS3Object(textTemplateKey.fileKey, newTextTemplateKey);
+  }
+
   const templateUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newTemplateKey}`;
   for (let currentPage = 1; currentPage <= maxPages; currentPage++) {
     const emails: IWithPagination<EmailTemplatePayload> = await emailKnex(

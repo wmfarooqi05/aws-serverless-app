@@ -9,13 +9,16 @@ export async function up(knex: Knex): Promise<void> {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
       table.string("template_name").notNullable();
+      table.string("template_ses_name").notNullable();
       table.jsonb("placeholders");
       table.string("aws_region").notNullable();
-      table.string("version").notNullable().defaultTo("version1");
+      table.string("version").notNullable().defaultTo("1");
       table.string("subject");
-      table.string("content_url");
+      table.string("html_part_url");
+      table.string("text_part_url");
       table.string("thumbnail_url");
-      table.jsonb("ses_response");
+      table.jsonb("details");
+      table.string("status");
       table.string("updated_by");
       table
         .timestamp("created_at", { useTz: true })

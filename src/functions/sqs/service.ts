@@ -26,6 +26,7 @@ import { formatErrorResponse } from "@libs/api-gateway";
 import { bulkEmailPrepareSqsEventHandler } from "./jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "./jobs/bulkEmailSqsEventHandler";
 import moment from "moment-timezone";
+import processEmailTemplateSqsEventHandler from "./jobs/processEmailTemplateSqsEventHandler";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -61,8 +62,6 @@ export class SQSService {
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
     for (const record of Records) {
       try {
-        console.log("[sqsJobQueueInvokeHandler] records", Records);
-        const promises = [];
         console.log("[sqsJobQueueInvokeHandler] record", record);
         const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
         console.log("payload", payload);
@@ -72,12 +71,12 @@ export class SQSService {
         });
 
         try {
-          if (jobItem.jobStatus === "SUCCESSFUL") {
-            console.log(
-              `Message ${record.messageId} has already been processed. Skipping...`
-            );
-            continue;
-          }
+          // if (jobItem.jobStatus === "SUCCESSFUL") {
+          //   console.log(
+          //     `Message ${record.messageId} has already been processed. Skipping...`
+          //   );
+          //   continue;
+          // }
 
           if (!this.emailDbClient) {
             this.emailDbClient = this.docClient;
@@ -101,6 +100,8 @@ export class SQSService {
               this.sqsClient,
               jobItem
             );
+          } else if (payload?.MessageBody.eventType === "PROCESS_TEMPLATE") {
+            resp = await processEmailTemplateSqsEventHandler(jobItem);
           }
 
           // For Email jobs, we will be using different lambda due to layers

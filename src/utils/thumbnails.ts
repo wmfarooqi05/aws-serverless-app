@@ -14,7 +14,7 @@ export const generateThumbnailFromHtml = async (
   html: string,
   width: number = 1280,
   height: number = 2000
-): Promise<Buffer> => {
+): Promise<{ thumbnailBuffer: Buffer; bodyText: string }> => {
   try {
     console.log(process.env.STAGE);
     const execPath =
@@ -42,6 +42,10 @@ export const generateThumbnailFromHtml = async (
     // Navigate to the HTML content
     await page.setContent(html, { waitUntil: "networkidle0" });
 
+    const bodyText = await page.evaluate(() => {
+      return document.querySelector('body').innerText;
+    });
+
     // Take a screenshot of the page and return it as a Buffer
     const screenshotBuffer = await page.screenshot({
       type: "png",
@@ -57,7 +61,7 @@ export const generateThumbnailFromHtml = async (
     console.log("closing browser");
     await browser.close();
     console.log("browser closed");
-    return screenshotBuffer;
+    return { thumbnailBuffer: screenshotBuffer, bodyText };
   } catch (e) {
     console.log("error", e);
   }

@@ -4,14 +4,15 @@ export const validateCreateEmailTemplate = async (obj) => {
   await Joi.object({
     /** @deprecated */
     templateContent: Joi.string(),
-    htmlS3Link: Joi.string(),
+    htmlS3Link: Joi.string().required(),
+    textS3Link: Joi.string(),
     /** @deprecated */
     placeholders: Joi.array().items(Joi.string()),
     subjectPart: Joi.string().required(),
     templateName: Joi.string().required(),
-    version: Joi.string().required(),
     /** @deprecated */
     thumbnailUrl: Joi.string(),
+    saveAsDraft: Joi.boolean(),
     // Joi.when("htmlS3Link", {
     //   is: Joi.exist(),
     //   then: Joi.string().required(),

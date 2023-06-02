@@ -71,11 +71,12 @@ export const splitEmailAndName = (
   };
 };
 
-export const getPlaceholders = (templateContent: string) => {
+export const getPlaceholders = (templateContent: string | null): string[] => {
+  if (!templateContent) return [];
   const pattern = /\{(.+?)\}/g; // Matches anything inside curly braces {}
   const placeholders = templateContent.match(pattern);
-  const extractedPlaceholders = placeholders.map((placeholder) => {
+  const extractedPlaceholders = placeholders?.map((placeholder) => {
     return placeholder.substring(1, placeholder.length - 1);
-  });
+  }) || [];
   return extractedPlaceholders;
 };

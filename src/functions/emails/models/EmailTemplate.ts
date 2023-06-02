@@ -6,16 +6,19 @@ import { singleton } from "tsyringe";
 export interface IEmailTemplate {
   id?: string;
   templateName: string;
+  templateSesName: string;
   placeholders: string[];
   awsRegion: string;
   version: string;
   subject: string;
-  contentUrl: string;
+  htmlPartUrl: string;
+  textPartUrl: string;
   thumbnailUrl?: string;
-  sesResponse?: string;
   updatedBy: string;
   createdAt?: string;
   updatedAt?: string;
+  status: "DRAFT" | "PROCESSING" | "OK" | "ERROR";
+  details: any;
 }
 
 @singleton()
@@ -32,13 +35,16 @@ export class EmailTemplatesModel extends Model {
       properties: {
         id: { type: "string" },
         templateName: { type: "string" },
+        templateSesName: { type: "string" },
         placeholders: { type: "array", default: [] },
         awsRegion: { type: "string" },
         version: { type: "string", default: "version1" },
-        contentUrl: { type: "string" },
+        htmlPartUrl: { type: "string" },
+        textPartUrl: { type: "string" },
         subject: { type: "string" },
         thumbnailUrl: { type: "string" },
-        sesResponse: { type: "string" },
+        details: { type: "object", default: {} },
+        status: { type: "string" },
         updatedBy: { type: "string" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
@@ -47,7 +53,7 @@ export class EmailTemplatesModel extends Model {
   }
 
   static get jsonAttributes() {
-    return ["placeholders", "sesResponse"];
+    return ["placeholders", "details"];
   }
 }
 

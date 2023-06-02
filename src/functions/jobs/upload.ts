@@ -80,7 +80,7 @@ export const uploadContentToS3 = async (
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
     return {
-      fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3Client.${process.env.REGION}.amazonaws.com/${Key}`,
+      fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${Key}`,
       fileKey: Key,
     };
   } catch (e) {

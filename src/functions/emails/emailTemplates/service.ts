@@ -30,6 +30,7 @@ import { replaceImageUrls } from "@utils/image";
 import { checkTemplateExistsOnSES } from "./helpers";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -50,8 +51,10 @@ export class EmailTemplateService {
   async createEmailTemplate(employee: IEmployeeJwt, body: any): Promise<any> {
     const payload = JSON.parse(body);
     await validateCreateEmailTemplate(payload);
-    const { templateName, subjectPart, version, htmlS3Link } = payload;
-
+    const { templateName, subjectPart, htmlS3Link, textS3Link, saveAsDraft } =
+      payload;
+    const version = "1";
+    const templateSesName = `${templateName}-${version}`;
     // const replacements = await replaceImageUrls(
     //   templatePart,
     //   `media/email-templates/${templateName}/${version}`,
@@ -85,79 +88,97 @@ export class EmailTemplateService {
     }
 
     // download it into templateContent
-    const templateS3Buffer = await getS3BufferFromUrl(htmlS3Link);
-    let templateContent = templateS3Buffer.toString();
+    // const templateS3Buffer = await getS3BufferFromUrl(htmlS3Link);
+    // let templateContent = templateS3Buffer.toString();
 
-    const commandInput: CreateTemplateCommandInput = {
-      Template: {
-        TemplateName: templateName,
-        SubjectPart: subjectPart,
-      },
-    };
-    if (!isHtml(templateContent)) {
-      throw new CustomError("Not valid html template", 400);
-    }
-    const replacements = await replaceImageUrls(
-      templateContent,
-      `media/email-templates/${templateName}/${version}`,
-      `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
-    );
+    // if (!isHtml(templateContent)) {
+    //   throw new CustomError("Not valid html template", 400);
+    // }
+    // const replacements = await replaceImageUrls(
+    //   templateContent,
+    //   `media/email-templates/${templateName}/${version}`,
+    //   `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
+    // );
 
-    templateContent = replacements.html;
-    commandInput.Template.HtmlPart = templateContent;
+    // templateContent = replacements.html;
+    // commandInput.Template.HtmlPart = templateContent;
 
-    const placeholders = getPlaceholders(templateContent);
+    // const placeholders = getPlaceholders(templateContent);
+    // const rootKey = `media/email-templates/${templateName}/${version}`;
 
-    const command = new CreateTemplateCommand(commandInput);
+    // // content handling part
+    // const newKey = `${rootKey}/template-content`;
+    // await copyS3Object(
+    //   getKeysFromS3Url(htmlS3Link).fileKey,
+    //   newKey,
+    //   "public-read",
+    //   false
+    // );
+
+    // template.contentUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`;
+    // template.contentUrl = htmlS3Link;
+
+    // const thumbKey = `${rootKey}/thumbnail.png`;
+
+    // // thumbnail part
+    // const thumbBuffer = await generateThumbnailFromHtml(templateContent);
+    // const thumbnail = await uploadContentToS3(
+    //   thumbKey,
+    //   thumbBuffer,
+    //   "public-read"
+    // );
+    // template.thumbnailUrl = thumbnail.fileUrl;
     const template: IEmailTemplate = {
       templateName,
-      placeholders,
+      templateSesName,
+      // placeholders,
       awsRegion: process.env.REGION,
       updatedBy: employee.sub,
       version,
       subject: subjectPart,
+      status: !!saveAsDraft ? "DRAFT" : "PROCESSING",
     };
-    const rootKey = `media/email-templates/${templateName}/${version}`;
 
-    // content handling part
-    const newKey = `${rootKey}/template-content`;
-    await copyS3Object(
-      getKeysFromS3Url(htmlS3Link).fileKey,
-      newKey,
-      "public-read",
-      false
-    );
-
-    template.contentUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newKey}`;
-    template.contentUrl = htmlS3Link;
-
-    const thumbKey = `${rootKey}/thumbnail.png`;
-
-    // thumbnail part
-    const thumbBuffer = await generateThumbnailFromHtml(templateContent);
-    const thumbnail = await uploadContentToS3(
-      thumbKey,
-      thumbBuffer,
-      "public-read"
-    );
-    template.thumbnailUrl = thumbnail.fileUrl;
-
-    const emailTemplateEntry: IEmailTemplate =
-      await EmailTemplatesModel.query().insert(template);
-
+    let emailTemplateEntry: IEmailTemplate = null;
     try {
-      const resp = await sesClient.send(command);
-      const sesResponse = JSON.stringify(resp);
+      emailTemplateEntry = await EmailTemplatesModel.query().insert(template);
 
-      await EmailTemplatesModel.query().patchAndFetchById(
-        emailTemplateEntry.id,
-        { sesResponse }
-      );
-      emailTemplateEntry.sesResponse = sesResponse;
+      if (!saveAsDraft) {
+        const sesResponse = sesClient.send(
+          new CreateTemplateCommand({
+            Template: {
+              TemplateName: templateSesName,
+              SubjectPart: subjectPart,
+              HtmlPart: htmlS3Link,
+              TextPart: textS3Link,
+            },
+          })
+        );
+
+        emailTemplateEntry.details = { sesResponse };
+
+        const jobItem = new JobsModel({
+          jobId: randomUUID(),
+          uploadedBy: employee.sub,
+          jobType: "PROCESS_TEMPLATE",
+          details: { emailTemplateId: emailTemplateEntry.id },
+          jobStatus: "PENDING",
+        });
+        const jobResp: IJobData = await jobItem.save();
+
+        await EmailTemplatesModel.query()
+          .findById(emailTemplateEntry.id)
+          .patch({
+            details: {
+              sesResponse,
+              jobId: jobResp.jobId,
+            },
+          });
+      }
     } catch (e) {
       if (e.name === "AlreadyExistsException") {
         console.log("AlreadyExistsException, we are linking with DB row");
-      } else {
+      } else if (emailTemplateEntry?.id) {
         EmailTemplatesModel.query().deleteById(emailTemplateEntry.id);
         throw new CustomError(e.message, e.statusCode);
       }
