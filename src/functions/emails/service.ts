@@ -72,7 +72,11 @@ import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
 import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
-import { generateThumbnailFromBuffer } from "@utils/thumbnails";
+import {
+  generateThumbnailFromBuffer,
+  generateThumbnailFromImageBuffers,
+  generateThumbnails,
+} from "@utils/thumbnails";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -822,14 +826,12 @@ export class EmailService implements IEmailService {
         emailRecord.id,
         mailObject
       );
-
       console.log("uploaded attachments and content to s3");
 
-      s3CleanupFiles.push(...attachmentsS3.map((x) => x.fileUrl));
-
-      // Add thumbnails flow here
-      generateThumbnailFromBuffer;
-      // s3CleanupFiles.push(...thumbnails.map((x) => x.fileUrl));
+      attachmentsS3.forEach((x) => {
+        s3CleanupFiles.push(x.fileUrl);
+        s3CleanupFiles.push(x.thumbnailUrl);
+      });
 
       const emailUpdatedContent: Partial<IEmailRecord> = {
         contentUrl,
@@ -883,6 +885,7 @@ export class EmailService implements IEmailService {
       originalName: string;
       s3FileName: string;
       cid?: string;
+      thumbnailUrl: string;
     }[];
   }> {
     const { text, html, headers } = mailObject;
@@ -893,41 +896,65 @@ export class EmailService implements IEmailService {
       s3FileName: string;
       content: any;
       cid?: string;
+      contentType: string;
     }[] = mailObject.attachments.map((x) => {
       const fileType = x.contentType ? `.${x.contentType.split("/")[1]}` : "";
       return {
         originalName: `${x.filename}${fileType}`,
-        s3FileName: `attachment_${randomUUID()}${fileType}`,
+        s3FileName: `${randomUUID()}${fileType}`,
         content: x.content,
         cid: x.cid,
+        contentType: x.contentType,
       };
     });
 
+    const thumbnailBuffers = await generateThumbnailFromImageBuffers(
+      fileMap
+        .filter((x) => x.contentType.split("/")[0] === "image")
+        .map((x) => {
+          return { name: x.s3FileName, buffer: x.content };
+        })
+    );
+
     // Creating promises array for uploading to S3
-    const s3Promises = fileMap.map((x) => {
-      return uploadContentToS3(
-        `emails/${folderId}/${x.s3FileName}`,
+    const attachmentPromises = fileMap.map((x) =>
+      uploadContentToS3(
+        `emails/${folderId}/attachments/${x.s3FileName}`,
         x.content,
         "public-read"
-      );
-    });
+      )
+    );
 
-    const s3UploadedContent = await Promise.all(s3Promises);
+    const thumbnailPromises = thumbnailBuffers.map((x) =>
+      uploadContentToS3(
+        `emails/${folderId}/attachments/thumb_${x.name}`,
+        x.thumbnailBuffer,
+        "public-read"
+      )
+    );
+
+    const s3UploadedContent = await Promise.all(attachmentPromises);
+    const thumbnailUrls = await Promise.all(thumbnailPromises);
     const attachmentsS3: {
       fileUrl: string;
       fileKey: string;
       originalName: string;
       s3FileName: string;
       cid?: string;
+      thumbnailUrl: string;
     }[] = s3UploadedContent.map((x) => {
       const { originalName, s3FileName, cid } = fileMap.find((f) =>
-        x.fileKey.includes(f.s3FileName)
+        x.fileKey.includes(`attachments/${f.s3FileName}`)
+      );
+      const thumbnail = thumbnailUrls.find((x) =>
+        x.fileKey.includes(s3FileName.split(".")[0])
       );
       return {
         ...x,
         originalName,
         s3FileName,
         cid,
+        thumbnailUrl: thumbnail ? thumbnail.fileUrl : null,
       };
     });
 
@@ -951,16 +978,16 @@ export class EmailService implements IEmailService {
       `emails/${folderId}/content.json`,
       JSON.stringify({
         text,
-        html,
+        html: replacedHtml,
         headers: headerObject,
       })
     );
     return {
       contentUrl: contentS3.fileUrl,
-      attachmentsS3: [],
+      attachmentsS3,
     };
   }
-
+  
   async getEmailTemplateContentById(employee, body) {
     const commandInput: GetTemplateCommandInput = {
       TemplateName: body.templateId,
