@@ -18,8 +18,9 @@ export type EMAIL_STATUS =
   | "BOUNCED"
   | "BLOCKED"
   | "OPT_OUT"
-  | "RECEIVED"
-  | "FAILED";
+  | "FAILED"
+  | "RECEIVED_AND_PROCESSING"
+  | "RECEIVED_AND_PROCESSED";
 export const emailStatuses: EMAIL_STATUS[] = [
   "PENDING",
   "QUEUED",
@@ -32,16 +33,19 @@ export const emailStatuses: EMAIL_STATUS[] = [
   "BOUNCED",
   "BLOCKED",
   "OPT_OUT",
-  "RECEIVED",
   "FAILED",
+  "RECEIVED_AND_PROCESSING",
+  "RECEIVED_AND_PROCESSED",
 ];
 
 export interface IATTACHMENT {
-  thumbnailUrl?: string;
   fileUrl: string;
-  updatedAt: string;
   fileKey: string;
-  filename: string;
+  originalName: string;
+  s3FileName: string;
+  cid?: string;
+  thumbnailUrl?: string;
+  updatedAt: string;
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
@@ -62,6 +66,11 @@ export interface IEmailRecord {
   emailType: "SIMPLE_EMAIL" | "BULK";
   details: any;
   result: any;
+  inReplyTo: string;
+  references: string;
+  priority: string;
+  contentUrl: string;
+  containsHtml: boolean;
 }
 
 export interface IEmailRecordWithRecipients extends IEmailRecord {
@@ -98,6 +107,10 @@ export class EmailRecordModel extends Model {
           default: "PENDING",
           enum: emailStatuses,
         },
+        inReplyTo: { type: ["string", "null"], default: null },
+        references: { type: ["string", "null"], default: null },
+        contentUrl: { type: "string" },
+        containsHtml: { type: "boolean" },
       },
     };
   }

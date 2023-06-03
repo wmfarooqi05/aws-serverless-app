@@ -27,6 +27,8 @@ import { bulkEmailPrepareSqsEventHandler } from "./jobs/bulkEmailPrepareSqsEvent
 import { bulkEmailSqsEventHandler } from "./jobs/bulkEmailSqsEventHandler";
 import moment from "moment-timezone";
 import processEmailTemplateSqsEventHandler from "./jobs/processEmailTemplateSqsEventHandler";
+import { randomUUID } from "crypto";
+import { uploadContentToS3 } from "@functions/jobs/upload";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -110,7 +112,7 @@ export class SQSService {
           // For Email jobs, we will be using different lambda due to layers
 
           await this.markMessageProcessed(payload.MessageBody.jobId);
-          // await this.deleteMessage(record.receiptHandle);
+          await this.deleteMessageFromSQS(record.receiptHandle);
         } catch (error) {
           console.error(error);
           await this.markMessageAsFailed(payload.MessageBody.jobId, {
@@ -118,7 +120,13 @@ export class SQSService {
             statusCode: error.statusCode,
             stack: error.stack,
           });
-          return formatErrorResponse(error);
+          if (process.env.STAGE === "local") {
+            continue;
+          }
+
+          const key = `jobs/unprocessed-events/catch/${randomUUID()}`;
+          const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+          console.log("uploaded to s3", s3Resp);
           // Push to DLQ or set job
         }
       } catch (error) {
@@ -221,7 +229,7 @@ export class SQSService {
             `Message ID: ${message.MessageId}, Body: ${message.Body}`
           );
           // Delete the message from the queue
-          this.deleteMessage(message.ReceiptHandle);
+          this.deleteMessageFromSQS(message.ReceiptHandle);
         });
       } else {
         console.log("No messages received from queue.");
@@ -232,7 +240,7 @@ export class SQSService {
   }
 
   // Delete a message from a SQS queue
-  async deleteMessage(receiptHandle: string) {
+  async deleteMessageFromSQS(receiptHandle: string) {
     try {
       const command = new DeleteMessageCommand({
         QueueUrl: queueUrl,

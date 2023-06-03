@@ -29,6 +29,6 @@ export const validateCreateEmailTemplate = async (obj) => {
 export const validateDeleteTemplate = async (obj) => {
   await Joi.object({
     templateId: Joi.string().guid(),
-    templateName: Joi.string(),
-  }).xor("templateName", "templateId").validateAsync(obj);
+    templateSesName: Joi.string(),
+  }).xor("templateSesName", "templateId").validateAsync(obj);
 };

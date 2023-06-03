@@ -17,6 +17,7 @@ import * as fs from "fs";
 import * as XLSX from "xlsx";
 import { snakeCase } from "lodash";
 import { Readable } from "stream";
+import { CustomError } from "@helpers/custom-error";
 
 // @TODO rename this to s3-utils
 
@@ -340,5 +341,20 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
     }
     // If the error code is something else, rethrow the error
     throw error;
+  }
+};
+
+export const validateS3BucketUrl = (url: string) => {
+  const keys = getKeysFromS3Url(url);
+  if (
+    !(
+      keys.bucketName === process.env.DEPLOYMENT_BUCKET &&
+      keys.region === process.env.REGION
+    )
+  ) {
+    throw new CustomError(
+      `This url is not valid S3 url of our bucket, ${url}`,
+      400
+    );
   }
 };

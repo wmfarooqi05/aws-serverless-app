@@ -40,6 +40,8 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
         ),
       })
     ),
+    inReplyTo: Joi.string().allow(null),
+    references: Joi.string().allow(null),
   }).validateAsync(obj, {
     allowUnknown: true,
   });

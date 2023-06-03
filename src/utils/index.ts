@@ -6,3 +6,11 @@ export const isValidUrl = (url: string): boolean => {
     return false;
   }
 };
+
+export const xnorGate = (a, b) => {
+  if ((a && b) || (!a && !b)) {
+    return true;
+  } else {
+    return false;
+  }
+};

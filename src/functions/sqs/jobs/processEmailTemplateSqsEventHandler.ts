@@ -88,7 +88,7 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
     updateDbItem.thumbnailUrl = thumbnail.fileUrl;
 
     let textPartContent = null;
-    if (textPartUrl) {
+    if (textPartUrl?.trim()?.length > 0) {
       const textPartBuffer = await getS3BufferFromUrl(textPartUrl);
       textPartContent = textPartBuffer.toString();
 

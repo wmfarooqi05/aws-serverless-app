@@ -1,3 +1,6 @@
+import { CustomError } from "@helpers/custom-error";
+import { xnorGate } from ".";
+
 export const formatRFC2822Message = (
   from: string,
   to: string,
@@ -73,10 +76,43 @@ export const splitEmailAndName = (
 
 export const getPlaceholders = (templateContent: string | null): string[] => {
   if (!templateContent) return [];
-  const pattern = /\{(.+?)\}/g; // Matches anything inside curly braces {}
+  const pattern = /\{\{(.+?)\}\}/g; // Matches anything inside double curly braces {{}}
   const placeholders = templateContent.match(pattern);
-  const extractedPlaceholders = placeholders?.map((placeholder) => {
-    return placeholder.substring(1, placeholder.length - 1);
-  }) || [];
+  const extractedPlaceholders =
+    placeholders?.map((placeholder) => {
+      return placeholder.substring(2, placeholder.length - 2);
+    }) || [];
   return extractedPlaceholders;
+};
+
+export const validateEmailReferences = (inReplyTo, references) => {
+  // Regular expression to match message ID format
+  // passing format <message1@domain.com>
+  const messageIdRegex = /<([^\s]+)@([^>]+)>/;
+
+  // Check if both values are present and non-empty
+  if (!inReplyTo || !references) {
+    return;
+  }
+
+  // Validate inReplyTo
+  if (!messageIdRegex.test(inReplyTo)) {
+    throw new CustomError("inReplyTo is not properly formatted", 400);
+  }
+
+  // Validate references
+  const referencesList = references.split(/\s+/);
+  for (const reference of referencesList) {
+    if (!messageIdRegex.test(reference)) {
+      throw new CustomError("references is not properly formatted", 400);
+    }
+  }
+
+  // Optionally, check if inReplyTo matches any reference
+  if (!referencesList.includes(inReplyTo)) {
+    throw new CustomError("inReply is missing in references", 400);
+  }
+
+  // All checks passed, the values are valid
+  return true;
 };
