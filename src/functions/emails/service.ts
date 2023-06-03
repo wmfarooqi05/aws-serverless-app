@@ -738,12 +738,17 @@ export class EmailService implements IEmailService {
 
       const {
         inReplyTo: _inReplyTo,
-        references,
+        references: _references,
         priority,
         messageId: _messageId,
       } = mailObject;
       const inReplyTo = _inReplyTo?.replace(/[<>]/g, "");
       const messageId = _messageId?.replace(/[<>]/g, "");
+      const references: string = _references
+        ? Array.isArray(_references)
+          ? _references.join(" ")
+          : _references
+        : null;
 
       let emailRecord: IEmailRecord = await EmailRecordModel.query()
         .where({
@@ -757,6 +762,7 @@ export class EmailService implements IEmailService {
       }
       const { text: bodyText, html } = mailObject;
 
+      // move this whole transaction to another function
       if (!emailRecord) {
         await this.docClient.getKnexClient().transaction(async (trx) => {
           try {
@@ -942,6 +948,7 @@ export class EmailService implements IEmailService {
       s3FileName: string;
       cid?: string;
       thumbnailUrl: string;
+      isEmbedded: boolean;
     }[] = s3UploadedContent.map((x) => {
       const { originalName, s3FileName, cid } = fileMap.find((f) =>
         x.fileKey.includes(`attachments/${f.s3FileName}`)
@@ -955,6 +962,7 @@ export class EmailService implements IEmailService {
         s3FileName,
         cid,
         thumbnailUrl: thumbnail ? thumbnail.fileUrl : null,
+        isEmbedded: false,
       };
     });
 
@@ -965,8 +973,12 @@ export class EmailService implements IEmailService {
       let match;
       while ((match = cidRegex.exec(replacedHtml)) !== null) {
         const cid = match[1];
-        const s3Obj = attachmentsS3.find((x) => x.cid === cid);
-        replacedHtml = replacedHtml.replace(`cid:${cid}`, s3Obj.fileUrl);
+        const index = attachmentsS3.findIndex((x) => x.cid === cid);
+        attachmentsS3[index].isEmbedded = true;
+        replacedHtml = replacedHtml.replace(
+          `cid:${cid}`,
+          attachmentsS3[index].fileUrl
+        );
       }
     }
 
@@ -987,7 +999,7 @@ export class EmailService implements IEmailService {
       attachmentsS3,
     };
   }
-  
+
   async getEmailTemplateContentById(employee, body) {
     const commandInput: GetTemplateCommandInput = {
       TemplateName: body.templateId,

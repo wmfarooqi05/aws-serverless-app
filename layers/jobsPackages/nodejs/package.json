@@ -7,7 +7,6 @@
     "axios": "^1.4.0",
     "nodemailer": "^6.9.2",
     "mailparser": "^3.6.4",
-    "sharp": "^0.32.1",
     "xlsx": "^0.18.5"
   },
   "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",

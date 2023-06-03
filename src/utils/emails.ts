@@ -1,5 +1,4 @@
 import { CustomError } from "@helpers/custom-error";
-import { xnorGate } from ".";
 
 export const formatRFC2822Message = (
   from: string,
@@ -115,4 +114,10 @@ export const validateEmailReferences = (inReplyTo, references) => {
 
   // All checks passed, the values are valid
   return true;
+};
+
+export const extractTextFromHTML = (htmlContent) => {
+  const tempElement = document.createElement('div');
+  tempElement.innerHTML = htmlContent;
+  return tempElement.innerText;
 };

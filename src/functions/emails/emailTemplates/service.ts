@@ -1,35 +1,23 @@
 import {
   SESClient,
   ListTemplatesCommand,
-  CreateTemplateCommand,
   UpdateTemplateCommand,
   DeleteTemplateCommand,
-  CreateTemplateCommandInput,
 } from "@aws-sdk/client-ses";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { getPlaceholders, isHtml } from "@utils/emails";
 import { inject, injectable } from "tsyringe";
 import { EmailTemplatesModel, IEmailTemplate } from "../models/EmailTemplate";
 import {
   copyS3FolderContent,
-  copyS3Object,
-  getKeysFromS3Url,
-  uploadContentToS3,
   validateS3BucketUrl,
 } from "@functions/jobs/upload";
 import { validateCreateEmailTemplate, validateDeleteTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
-import { generateThumbnailFromHtml } from "@utils/thumbnails";
 import {
-  DeleteItemCommand,
-  DeleteItemCommandInput,
   DynamoDBClient,
 } from "@aws-sdk/client-dynamodb";
-import { getS3BufferFromUrl } from "@functions/jobs/upload";
-import { replaceImageUrls } from "@utils/image";
 import { checkTemplateExistsOnSES } from "./helpers";
-import fs from "fs";
 import { randomUUID } from "crypto";
 import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 

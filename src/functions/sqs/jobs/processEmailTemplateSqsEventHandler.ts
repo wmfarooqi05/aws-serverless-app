@@ -45,7 +45,6 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
       version,
       templateSesName,
       htmlPartUrl,
-      textPartUrl,
       subject,
     } = emailTemplate;
 
@@ -56,6 +55,10 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
       throw new CustomError("Not valid html template", 400);
     }
 
+    const { thumbnailBuffer, bodyText } = await generateThumbnailFromHtml(
+      htmlPartContent
+    );
+    
     // HtmlPart
     const replacements = await replaceImageUrls(
       htmlPartContent,
@@ -77,9 +80,6 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
 
     // Thumbnail
     const thumbKey = `${rootKey}/thumbnail.png`;
-    const { thumbnailBuffer, bodyText } = await generateThumbnailFromHtml(
-      replacements.html
-    );
     const thumbnail = await uploadContentToS3(
       thumbKey,
       thumbnailBuffer,
@@ -87,14 +87,10 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
     );
     updateDbItem.thumbnailUrl = thumbnail.fileUrl;
 
-    let textPartContent = null;
-    if (textPartUrl?.trim()?.length > 0) {
-      const textPartBuffer = await getS3BufferFromUrl(textPartUrl);
-      textPartContent = textPartBuffer.toString();
-
+    if (bodyText?.trim()?.length > 0) {
       const textPart = await uploadContentToS3(
         `${rootKey}/TextPart.txt`,
-        textPartContent,
+        bodyText,
         "public-read"
       );
       updateDbItem.textPartUrl = textPart.fileUrl;
@@ -103,7 +99,7 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
     // Placeholders
     const placeholders = [
       ...getPlaceholders(subject),
-      ...getPlaceholders(textPartContent),
+      ...getPlaceholders(bodyText),
       ...getPlaceholders(bodyText),
     ];
     updateDbItem.placeholders = placeholders;
@@ -114,7 +110,7 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
           TemplateName: templateSesName,
           HtmlPart: replacements.html,
           SubjectPart: subject,
-          TextPart: textPartContent,
+          TextPart: bodyText,
         },
       })
     );

@@ -121,7 +121,7 @@ const emailHandler = {
   ],
   layers: [
     "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
-    "arn:aws:lambda:ca-central-1:524073432557:layer:chromium-layer:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:image-layer-v1:2",
   ],
 };
 
@@ -136,7 +136,7 @@ const receiveEmailHandler = {
   ],
   layers: [
     "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
-    "arn:aws:lambda:ca-central-1:524073432557:layer:chromium-layer:1",
+    "arn:aws:lambda:ca-central-1:524073432557:layer:image-layer-v1:2",
   ],
 };
 
