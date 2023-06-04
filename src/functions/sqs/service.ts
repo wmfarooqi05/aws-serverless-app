@@ -22,13 +22,13 @@ import { EmailService } from "@functions/emails/service";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import JobsModel, { IJobData, JOB_STATUS } from "@models/dynamoose/Jobs";
-import { formatErrorResponse } from "@libs/api-gateway";
-import { bulkEmailPrepareSqsEventHandler } from "./jobs/bulkEmailPrepareSqsEventHandler";
-import { bulkEmailSqsEventHandler } from "./jobs/bulkEmailSqsEventHandler";
 import moment from "moment-timezone";
-import processEmailTemplateSqsEventHandler from "./jobs/processEmailTemplateSqsEventHandler";
 import { randomUUID } from "crypto";
 import { uploadContentToS3 } from "@functions/jobs/upload";
+import { deleteObjectFromS3Url } from "@functions/jobs/upload";
+import { AnyItem } from "dynamoose/dist/Item";
+import { deleteMessageFromSQS } from "@utils/sqs";
+import { deleteS3Files } from "./jobs/deleteS3Files";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -69,7 +69,7 @@ export class SQSService {
         console.log("payload", payload);
 
         const jobItem: IJobData = await JobsModel.get({
-          jobId: payload.MessageBody.jobId,
+          jobId: payload.jobId,
         });
 
         try {
@@ -88,34 +88,31 @@ export class SQSService {
           }
 
           let resp = null;
-          if (payload.Type === "Notification" && payload.MessageId) {
-            resp = await container
-              .resolve(EmailService)
-              .receiveEmailHelper(record);
-          } else if (payload?.MessageBody.eventType === "BULK_SIGNUP") {
+          // if (payload.Type === "Notification" && payload.MessageId) {
+          //   resp = await container
+          //     .resolve(EmailService)
+          //     .receiveEmailHelper(record);
+          if (payload?.eventType === "BULK_SIGNUP") {
             resp = await bulkImportUsersProcessHandler(jobItem);
-          } else if (payload?.MessageBody.eventType === "BULK_EMAIL_PREPARE") {
-            resp = await bulkEmailPrepareSqsEventHandler(
-              this.emailDbClient,
-              jobItem
-            );
-          } else if (payload?.MessageBody.eventType === "BULK_EMAIL") {
-            resp = await bulkEmailSqsEventHandler(
-              this.emailDbClient,
-              this.sqsClient,
-              jobItem
-            );
-          } else if (payload?.MessageBody.eventType === "PROCESS_TEMPLATE") {
-            resp = await processEmailTemplateSqsEventHandler(jobItem);
+          } else if (payload.eventType === "DELETE_S3_FILES") {
+            resp = await deleteS3Files(jobItem);
+          } else if (payload.eventType === "ADD_GOOGLE_MEETING") {
+            /** @TODO */
+          } else if (payload.eventType === "DELETE_GOOGLE_MEETING") {
+            /** @TODO */
+          } else if (payload.eventType === "CREATE_EB_SCHEDULER") {
+            /** @TODO */
+          } else if (payload.eventType === "DELETE_EB_SCHEDULER") {
+            /** @TODO */
           }
 
           // For Email jobs, we will be using different lambda due to layers
 
-          await this.markMessageProcessed(payload.MessageBody.jobId);
-          await this.deleteMessageFromSQS(record.receiptHandle);
+          await this.markMessageProcessed(payload.jobId);
+          await deleteMessageFromSQS(this.sqsClient, record.receiptHandle);
         } catch (error) {
           console.error(error);
-          await this.markMessageAsFailed(payload.MessageBody.jobId, {
+          await this.markMessageAsFailed(payload.jobId, {
             message: error.message,
             statusCode: error.statusCode,
             stack: error.stack,
@@ -143,34 +140,20 @@ export class SQSService {
     // })
   }
 
-  async emailSqsEventHandler(record: IEmailSqsEventInput) {
-    console.log("[emailSqsEventHandler]", record);
-    return container.resolve(EmailService).sqsEmailHandler(record);
-  }
-
-  async reminderSqsEventHandler(input: IEBSchedulerEventInput) {
-    return container.resolve(ReminderService).handleEBSchedulerInvoke(input);
-  }
-
-  async jobSqsEventHandler(input: IJobSqsEventInput) {
-    if (!input.jobId) {
-      throw new CustomError("job id not found", 400);
-      return;
-    }
-    // const job: IJobs = await JobsModel.query().findById(
-    //   input.jobId
-    // );
-    // if (job.jobType === "UPLOAD_COMPANIES_FROM_EXCEL") {
-    //   await bulkImportUsersProcess(job);
-    // }
-  }
-
-  async addJobToQueue(
-    jobId: string,
-    eventType: SQSEventType,
-    queueUrl: string = "https://sqs.ca-central-1.amazonaws.com/524073432557/job_queue_dev"
-  ) {
+  async addJobToQueue(jobId: string, eventType: SQSEventType) {
     try {
+      let queueUrl =
+        "https://sqs.ca-central-1.amazonaws.com/524073432557/job_queue_dev";
+
+      if (
+        eventType === "PROCESS_TEMPLATE" ||
+        eventType === "BULK_EMAIL" ||
+        eventType === "BULK_EMAIL_PREPARE"
+      ) {
+        queueUrl =
+          "https://sqs.ca-central-1.amazonaws.com/524073432557/EmailQueue";
+      }
+
       const params = {
         MessageBody: { jobId, eventType },
         QueueUrl: queueUrl,
@@ -212,6 +195,10 @@ export class SQSService {
     }
   }
 
+  /**
+   * @deprecated many issues in this function
+   * @param maxNumberOfMessages
+   */
   // Receive messages from a SQS queue
   async receiveMessages(maxNumberOfMessages: number) {
     try {
@@ -229,29 +216,13 @@ export class SQSService {
             `Message ID: ${message.MessageId}, Body: ${message.Body}`
           );
           // Delete the message from the queue
-          this.deleteMessageFromSQS(message.ReceiptHandle);
+          deleteMessageFromSQS(this.sqsClient, message.ReceiptHandle);
         });
       } else {
         console.log("No messages received from queue.");
       }
     } catch (error) {
       console.error(`Error receiving messages from queue: ${error}`);
-    }
-  }
-
-  // Delete a message from a SQS queue
-  async deleteMessageFromSQS(receiptHandle: string) {
-    try {
-      const command = new DeleteMessageCommand({
-        QueueUrl: queueUrl,
-        ReceiptHandle: receiptHandle,
-      });
-      await this.sqsClient.send(command);
-      console.log(
-        `Message with receipt handle ${receiptHandle} deleted from queue.`
-      );
-    } catch (error) {
-      console.error(`Error deleting message from queue: ${error}`);
     }
   }
 

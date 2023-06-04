@@ -9,9 +9,7 @@ import {
 } from "@functions/emails/models/commons";
 import {
   EMAIL_TEMPLATE_DATA,
-  IEmailAddress,
   I_BULK_EMAIL_JOB,
-  I_BULK_EMAIL_JOB_DETAILS,
   I_BULK_EMAIL_JOB_PREPARE,
 } from "@functions/emails/models/interfaces/bulkEmail";
 import { copyS3Object, getKeysFromS3Url } from "@functions/jobs/upload";
@@ -21,7 +19,6 @@ import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 import { mergeEmailAndName } from "@utils/emails";
 import { randomUUID } from "crypto";
 import { IWithPagination } from "knex-paginate";
-import { chunk } from "lodash";
 
 export const bulkEmailPrepareSqsEventHandler = async (
   emailDbClient: DatabaseService,

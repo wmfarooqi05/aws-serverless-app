@@ -5,7 +5,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailRecordsModel, { JobsModel } from "@models/dynamoose/Jobs";
+import EmailRecordsModel, { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import {
@@ -77,6 +77,10 @@ import {
   generateThumbnailFromImageBuffers,
   generateThumbnails,
 } from "@utils/thumbnails";
+import processEmailTemplateSqsEventHandler from "@functions/sqs/jobs/processEmailTemplateSqsEventHandler";
+import { bulkEmailPrepareSqsEventHandler } from "@functions/sqs/jobs/bulkEmailPrepareSqsEventHandler";
+import { bulkEmailSqsEventHandler } from "@functions/sqs/jobs/bulkEmailSqsEventHandler";
+import { deleteMessageFromSQS } from "@utils/sqs";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -87,6 +91,7 @@ export interface IEmailService {}
 @injectable()
 export class EmailService implements IEmailService {
   sqsClient: SQSClient = null;
+  emailDbClient: DatabaseService = null;
   constructor(
     @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
     @inject(DatabaseService) private readonly docClient: DatabaseService
@@ -588,10 +593,49 @@ export class EmailService implements IEmailService {
       try {
         const payload = JSON.parse(record.body);
         console.log("payload", payload?.notificationType, payload.eventType);
-        if (payload?.notificationType === "Received") {
-          await this.receiveEmailHelper(record);
-        } else if (payload.eventType) {
-          await this.processMetricsEvent(record);
+        if (payload.Type === "Notification") {
+          if (payload?.notificationType === "Received") {
+            await this.receiveEmailHelper(record);
+          } else if (payload.eventType) {
+            await this.processMetricsEvent(record);
+          }
+        } else if (payload.jobId) {
+          const jobItem: IJobData = await JobsModel.get({
+            jobId: payload.jobId,
+          });
+
+          if (
+            process.env.STAGE !== "local" &&
+            jobItem.jobStatus === "SUCCESSFUL"
+          ) {
+            console.log(
+              `Message ${record.messageId} has already been processed. Skipping...`
+            );
+            continue;
+          }
+
+          if (!this.emailDbClient) {
+            this.emailDbClient = this.docClient;
+          }
+
+          let resp = null;
+          if (payload?.eventType === "PROCESS_TEMPLATE") {
+            // Move this to email sqs handler
+            resp = await processEmailTemplateSqsEventHandler(jobItem);
+          } else if (payload?.eventType === "BULK_EMAIL_PREPARE") {
+            // Move this to email sqs handler
+            resp = await bulkEmailPrepareSqsEventHandler(
+              this.emailDbClient,
+              jobItem
+            );
+          } else if (payload?.eventType === "BULK_EMAIL") {
+            // Move this to email sqs handler
+            resp = await bulkEmailSqsEventHandler(
+              this.emailDbClient,
+              this.sqsClient,
+              jobItem
+            );
+          }
         } else {
           if (process.env.STAGE === "local") {
             console.log("no event found");
@@ -601,19 +645,18 @@ export class EmailService implements IEmailService {
           const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
           console.log("uploaded to s3", s3Resp);
         }
-        if (process.env.STAGE === "local") {
-          continue;
-        }
-        await this.deleteMessageFromSQS(record.receiptHandle);
+        await deleteMessageFromSQS(
+          this.sqsClient,
+          record.receiptHandle,
+          process.env.MAIL_QUEUE_NAME
+        );
       } catch (e) {
-        if (process.env.STAGE === "local") {
+        if (process.env.STAGE !== "local") {
           console.log("error", e);
-          continue;
+          const key = `emails/unprocessed-events/catch/${randomUUID()}`;
+          const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+          console.log("uploaded to s3", s3Resp);
         }
-
-        const key = `emails/unprocessed-events/catch/${randomUUID()}`;
-        const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
-        console.log("uploaded to s3", s3Resp);
       }
     }
   }
@@ -696,22 +739,6 @@ export class EmailService implements IEmailService {
     });
     if (error) {
       throw new CustomError(error.message, 500);
-    }
-  }
-
-  // Delete a message from a SQS queue
-  async deleteMessageFromSQS(receiptHandle: string) {
-    try {
-      const command = new DeleteMessageCommand({
-        QueueUrl: process.env.MAIL_QUEUE,
-        ReceiptHandle: receiptHandle,
-      });
-      await this.sqsClient.send(command);
-      console.log(
-        `Message with receipt handle ${receiptHandle} deleted from queue.`
-      );
-    } catch (error) {
-      console.error(`Error deleting message from queue: ${error}`);
     }
   }
 
@@ -857,7 +884,7 @@ export class EmailService implements IEmailService {
       console.log("Job processed");
     } catch (e) {
       error.push(e);
-      if (s3CleanupFiles) {
+      if (s3CleanupFiles.length) {
         const jobItem = new JobsModel({
           jobId: randomUUID(),
           uploadedBy: "RECEIVE_EMAIL_SERVICE_JOB",

@@ -1,10 +1,11 @@
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { randomUUID } from "crypto";
 import { Schema, model, type } from "dynamoose";
+import { AnyItem } from "dynamoose/dist/Item";
 import moment from "moment-timezone";
 
 export type JOB_STATUS = "SUCCESSFUL" | "QUEUED" | "FAILED" | "PENDING";
-export interface IJobData {
+export interface IJobData extends AnyItem {
   jobId: string;
   uploadedBy: string;
   jobType: SQSEventType;
