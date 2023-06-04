@@ -58,9 +58,6 @@ const validateDetailPayload = async (
     case ACTIVITY_TYPE.CALL:
       await validateCallDetails(details as ICALL_DETAILS);
       break;
-    case ACTIVITY_TYPE.EMAIL:
-      await validateEmailDetails(details as IEMAIL_DETAILS);
-      break;
     case ACTIVITY_TYPE.MEETING:
       await validateMeetingDetails(details as IMEETING_DETAILS);
       break;

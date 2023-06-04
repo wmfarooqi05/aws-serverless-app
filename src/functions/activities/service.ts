@@ -34,7 +34,11 @@ import { unionAllResults } from "./queries";
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
 import { GoogleGmailService } from "@functions/google/gmail/service";
-import { IEmployee, IEmployeeJwt, IEmployeeWithTeam } from "@models/interfaces/Employees";
+import {
+  IEmployee,
+  IEmployeeJwt,
+  IEmployeeWithTeam,
+} from "@models/interfaces/Employees";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import {
@@ -209,11 +213,7 @@ export class ActivityService implements IActivityService {
     if (!company) {
       throw new CustomError("Company not found", 400);
     }
-    const details = createDetailsPayload(
-      employee,
-      payload.activityType,
-      payload.details
-    );
+    const details = createDetailsPayload(payload.activityType, payload.details);
 
     let errorMessage = "";
     // @TODO add validations for detail object
@@ -238,37 +238,32 @@ export class ActivityService implements IActivityService {
     let activity: IActivity = null;
     let sideJobResponse = null;
     await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        const finalQueries = await createKnexTransactionQueries(
-          PendingApprovalType.CREATE,
-          null,
-          createdBy.sub,
-          ActivityModel.tableName,
-          this.docClient.getKnexClient(),
-          activityObj
-        );
-        const resp = await trx.raw(finalQueries[0].toString());
-        activity = snakeToCamel(resp.rows[0]);
-        await trx.raw(finalQueries[1].toString());
-        sideJobResponse = await this.runSideJobs(createdBy.sub, activity);
-        await ActivityModel.query(trx).patchAndFetchById(activity.id, {
-          details: sideJobResponse,
-        });
-        activity = {
-          ...activity,
-          details: sideJobResponse,
-        };
-
-        await trx.commit();
-      } catch (e) {
-        if (activity) {
-          return activity;
-        }
-
-        errorMessage = e.message;
-        await trx.rollback();
-      }
+      const finalQueries = await createKnexTransactionQueries(
+        PendingApprovalType.CREATE,
+        null,
+        createdBy.sub,
+        ActivityModel.tableName,
+        this.docClient.getKnexClient(),
+        activityObj
+      );
+      const resp = await trx.raw(finalQueries[0].toString());
+      activity = snakeToCamel(resp.rows[0]);
+      await trx.raw(finalQueries[1].toString());
+      await trx.commit();
     });
+
+    if (!activity) {
+      // most probably it will not reach here
+      throw new CustomError("Activity not created", 400);
+    }
+    sideJobResponse = await this.runSideJobs(createdBy.sub, activity);
+    await ActivityModel.query().patchAndFetchById(activity.id, {
+      details: sideJobResponse,
+    });
+    activity = {
+      ...activity,
+      details: sideJobResponse,
+    };
 
     if (errorMessage) {
       throw new CustomError(errorMessage, 500);
@@ -279,6 +274,7 @@ export class ActivityService implements IActivityService {
   /**
    * We do not need this endpoint
    * We will handle its params in their own endpoints
+   * UPDATE: This contains working code for updating side jobs
    */
   async updateActivity(employee: IEmployeeJwt, activityId: string, body: any) {
     const payload = JSON.parse(body);
@@ -297,9 +293,10 @@ export class ActivityService implements IActivityService {
     };
     let errorMessage = false;
     let jobData = [];
+    let oldJobData = oldActivity.details?.jobData;
+    jobData = await this.runUpdateSideJobs(oldActivity, payload, employee);
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
-        let oldJobData = oldActivity.details?.jobData;
         const finalQueries = await createKnexTransactionQueries(
           PendingApprovalType.UPDATE,
           activityId,
@@ -311,7 +308,6 @@ export class ActivityService implements IActivityService {
         finalQueries.map(
           async (finalQuery) => await trx.raw(finalQuery.toString())
         );
-        jobData = await this.runUpdateSideJobs(oldActivity, payload, employee);
         if (jobData?.length > 0) {
           oldJobData = jobData;
         }
@@ -425,17 +421,17 @@ export class ActivityService implements IActivityService {
   /**
    * the requirements have changed a lot, maybe we dont need that much permissions
    * @deprecated
-   * @param manager 
-   * @param body 
-   * @returns 
+   * @param manager
+   * @param body
+   * @returns
    */
   async getEmployeeStaleActivityByStatus(manager: IEmployeeJwt, body: any) {
     await validateGetEmployeeStaleActivities(body);
     const createdByIds = body?.createdByIds?.split(",");
     if (createdByIds) {
-      const employees: IEmployeeWithTeam[] = await EmployeeModel.query().findByIds(
-        createdByIds
-      ).withGraphFetched('teams');
+      const employees: IEmployeeWithTeam[] = await EmployeeModel.query()
+        .findByIds(createdByIds)
+        .withGraphFetched("teams");
 
       // @TODO add validation for manager permissions
       employees.map((employee) => checkManagerPermissions(manager, employee));
@@ -459,10 +455,7 @@ export class ActivityService implements IActivityService {
     createdBy: string,
     activity: IActivity
   ): Promise<IACTIVITY_DETAILS> {
-    if (
-      activity.activityType === ACTIVITY_TYPE.EMAIL ||
-      activity.activityType === ACTIVITY_TYPE.MEETING
-    ) {
+    if (activity.activityType === ACTIVITY_TYPE.MEETING) {
       activity.details = await this.runSideGoogleJob(activity);
     } else if (
       (activity.activityType === ACTIVITY_TYPE.TASK ||
@@ -486,16 +479,9 @@ export class ActivityService implements IActivityService {
   ): Promise<IActivity["details"]> {
     try {
       let response: GaxiosResponse<any> = null;
-      if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
-        response =
-          await this.emailService.createAndSendEmailFromActivityPayload(
-            activity
-          );
-      } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
-        response = await this.calendarService.createGoogleMeetingFromActivity(
-          activity
-        );
-      }
+      response = await this.calendarService.createGoogleMeetingFromActivity(
+        activity
+      );
 
       activity.details.jobData = [
         {
@@ -557,10 +543,7 @@ export class ActivityService implements IActivityService {
   ): Promise<any> {
     // We only have to worry about dueDate, isScheduled and reminders
     const { activityType } = oldActivity;
-    if (
-      activityType === ACTIVITY_TYPE.EMAIL ||
-      activityType === ACTIVITY_TYPE.MEETING
-    ) {
+    if (activityType === ACTIVITY_TYPE.MEETING) {
       // activity.details = await this.runSideGoogleJob(activity);
     } else if (
       activityType === ACTIVITY_TYPE.TASK ||
@@ -580,17 +563,8 @@ export class ActivityService implements IActivityService {
     activity: IActivity
   ): Promise<IActivity["details"]> {
     try {
-      let response: GaxiosResponse<any> = null;
-      if (activity.activityType === ACTIVITY_TYPE.EMAIL) {
-        response =
-          await this.emailService.createAndSendEmailFromActivityPayload(
-            activity
-          );
-      } else if (activity.activityType === ACTIVITY_TYPE.MEETING) {
-        response = await this.calendarService.createGoogleMeetingFromActivity(
-          activity
-        );
-      }
+      let response: GaxiosResponse<any> =
+        await this.calendarService.createGoogleMeetingFromActivity(activity);
 
       activity.details.jobData = {
         status: response?.status || 424,

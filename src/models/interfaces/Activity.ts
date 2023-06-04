@@ -4,7 +4,6 @@ import { IEmployee } from "./Employees";
 export enum ACTIVITY_TYPE {
   TASK = "TASK",
   CALL = "CALL",
-  EMAIL = "EMAIL",
   MEETING = "MEETING",
 }
 

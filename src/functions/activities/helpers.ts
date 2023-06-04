@@ -1,8 +1,5 @@
 import { throwUnAuthorizedError } from "@common/errors";
-import {
-  getOrderByItems,
-  sanitizeColumnNames,
-} from "@common/query";
+import { getOrderByItems, sanitizeColumnNames } from "@common/query";
 import ActivityModel from "@models/Activity";
 import {
   ACTIVITY_TYPE,
@@ -21,13 +18,10 @@ import { Knex } from "knex";
 import moment from "moment-timezone";
 
 export const createDetailsPayload = (
-  employee: IEmployee,
   activityType: ACTIVITY_TYPE,
   details: IACTIVITY_DETAILS
 ) => {
   switch (activityType) {
-    case ACTIVITY_TYPE.EMAIL:
-      return createEmailPayload(employee, details);
     case ACTIVITY_TYPE.CALL:
       return createCallPayload(details);
     case ACTIVITY_TYPE.MEETING:
