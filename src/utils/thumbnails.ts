@@ -1,6 +1,6 @@
 import { launch, executablePath, Browser } from "puppeteer";
 import * as chromium from "@sparticuz/chromium";
-import sharp from "sharp";
+// import sharp from "sharp";
 
 let browser: Browser = null;
 
@@ -82,20 +82,26 @@ export const generateThumbnailFromImageBuffers = async (
     thumbnailBuffer: Buffer;
   }[]
 > => {
-  const thumbnails = await Promise.all(
-    images.map((x) =>
-      sharp(x.buffer)
-        .resize(width, height, {
-          fit: "contain",
-        })
-        .png()
-        .toBuffer()
-    )
-  );
-  return thumbnails.map((x, index) => {
+  return images.map((x) => {
     return {
-      name: images[index].name?.split(".")[0] + ".png",
-      thumbnailBuffer: x,
+      name: x.name,
+      thumbnailBuffer: x.buffer,
     };
   });
+  // const thumbnails = await Promise.all(
+  //   images.map((x) =>
+  //     sharp(x.buffer)
+  //       .resize(width, height, {
+  //         fit: "contain",
+  //       })
+  //       .png()
+  //       .toBuffer()
+  //   )
+  // );
+  // return thumbnails.map((x, index) => {
+  //   return {
+  //     name: images[index].name?.split(".")[0] + ".png",
+  //     thumbnailBuffer: x,
+  //   };
+  // });
 };

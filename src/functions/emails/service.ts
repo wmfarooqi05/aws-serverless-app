@@ -11,10 +11,11 @@ import { CustomError } from "@helpers/custom-error";
 import {
   validateBulkEmails,
   validateEmailsByContact,
+  validateMoveToFolder,
   validateSendEmail,
 } from "./schema";
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
-import { SQSEvent, SQSRecord } from "aws-lambda";
+import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
 import { simpleParser, Attachment, EmailAddress, ParsedMail } from "mailparser";
 import {
@@ -50,13 +51,11 @@ import {
   SESClient,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
-  SendTemplatedEmailCommand,
-  SendTemplatedEmailCommandInput,
 } from "@aws-sdk/client-ses";
 import { formatErrorResponse } from "@libs/api-gateway";
 
 import MailComposer from "nodemailer/lib/mail-composer";
-import { isValidUrl, xnorGate } from "@utils/index";
+import { isValidUrl } from "@utils/index";
 import {
   mergeEmailAndName,
   mergeEmailAndNameList,
@@ -70,16 +69,12 @@ import { I_BULK_EMAIL_JOB } from "./models/interfaces/bulkEmail";
 import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
 import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
-import { DeleteMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
+import { SQSClient } from "@aws-sdk/client-sqs";
 import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
-import {
-  generateThumbnailFromBuffer,
-  generateThumbnailFromImageBuffers,
-  generateThumbnails,
-} from "@utils/thumbnails";
-import processEmailTemplateSqsEventHandler from "@functions/sqs/jobs/processEmailTemplateSqsEventHandler";
-import { bulkEmailPrepareSqsEventHandler } from "@functions/sqs/jobs/bulkEmailPrepareSqsEventHandler";
-import { bulkEmailSqsEventHandler } from "@functions/sqs/jobs/bulkEmailSqsEventHandler";
+import { generateThumbnailFromImageBuffers } from "@utils/thumbnails";
+import processEmailTemplateSqsEventHandler from "@functions/emails/jobs/processEmailTemplateSqsEventHandler";
+import { bulkEmailPrepareSqsEventHandler } from "@functions/emails/jobs/bulkEmailPrepareSqsEventHandler";
+import { bulkEmailSqsEventHandler } from "@functions/emails/jobs/bulkEmailSqsEventHandler";
 import { deleteMessageFromSQS } from "@utils/sqs";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
@@ -101,7 +96,9 @@ export class EmailService implements IEmailService {
 
   async getAllEmails(body: any): Promise<any> {}
 
-  async getEmail(id: string): Promise<any> {}
+  async getEmail(id: string): Promise<any> {
+    return EmailRecordModel.query().findById(id);
+  }
 
   /**
    * @param employee
@@ -121,23 +118,50 @@ export class EmailService implements IEmailService {
       toList,
       ccList,
       bccList,
-      subject,
+      subject: _subject,
       body,
       isBodyUploaded,
       attachments,
-      inReplyTo: _inReplyTo,
+      inReplyTo,
       references: _references,
     } = payload;
 
-    let inReplyTo = null;
     let references = null;
-    if (_inReplyTo) {
-      inReplyTo = `<${_inReplyTo}>`;
-      references = `${inReplyTo}`;
+    let threadId = null;
+    let subject = _subject;
+
+    if (inReplyTo) {
+      references = `<${inReplyTo}>`;
       if (_references) {
         references += ` ${_references}`;
       }
-      validateEmailReferences(inReplyTo, references);
+      validateEmailReferences(`<${inReplyTo}>`, references);
+
+      // It means it is belonging to a thread, or starting a new thread
+      // fetch email with messageId = inReplyTo
+      const previousEmail: IEmailRecord =
+        await EmailRecordModel.query().findOne({
+          messageId: inReplyTo,
+        });
+
+      if (previousEmail?.subject) {
+        subject = previousEmail?.subject;
+      }
+      // in case 1 i.e. threadId !== null, attach to email
+      if (previousEmail?.threadId) {
+        threadId = previousEmail?.threadId;
+      } else {
+        // in case2, create a threadId, append and also update to replied email
+        threadId = randomUUID();
+        await EmailRecordModel.query().findById(previousEmail.id).patch({
+          threadId,
+        });
+        await RecipientModel.query()
+          .patch({ threadId })
+          .where({
+            emailId: previousEmail.id,
+          } as Partial<IRecipient>);
+      }
     }
 
     let employee: IEmployee = await EmployeeModel.query().findById(
@@ -162,6 +186,8 @@ export class EmailService implements IEmailService {
       subject,
       inReplyTo: inReplyTo || undefined,
       references: references || undefined,
+      threadId,
+      emailFolder: "SENT_ITEMS",
     };
     let emailEntity = await this.createEmailObject(
       email,
@@ -169,7 +195,8 @@ export class EmailService implements IEmailService {
       senderEmail,
       toList,
       ccList,
-      bccList
+      bccList,
+      threadId
     );
 
     try {
@@ -235,7 +262,8 @@ export class EmailService implements IEmailService {
     senderEmail: string,
     toList: any[],
     ccList: any[],
-    bccList: any[]
+    bccList: any[],
+    threadId: string
   ) {
     let emailEntity: IEmailRecord = null;
     let error: any = null;
@@ -249,6 +277,7 @@ export class EmailService implements IEmailService {
             recipientEmail: senderEmail,
             recipientType: "FROM",
             emailId: emailEntity.id,
+            threadId,
           },
         ];
         toList?.map((x) => {
@@ -257,6 +286,7 @@ export class EmailService implements IEmailService {
             recipientType: "TO_LIST",
             recipientName: x.name,
             recipientEmail: x.email,
+            threadId,
           });
         });
         ccList?.map((x) => {
@@ -265,6 +295,7 @@ export class EmailService implements IEmailService {
             recipientType: "CC_LIST",
             recipientName: x.name,
             recipientEmail: x.email,
+            threadId,
           });
         });
         bccList?.map((x) => {
@@ -273,6 +304,7 @@ export class EmailService implements IEmailService {
             recipientType: "BCC_LIST",
             recipientName: x.name,
             recipientEmail: x.email,
+            threadId,
           });
         });
 
@@ -349,7 +381,7 @@ export class EmailService implements IEmailService {
       subject,
       replyTo,
       html: emailBody,
-      inReplyTo,
+      inReplyTo: `<${inReplyTo}>`,
       references,
     });
 
@@ -396,6 +428,7 @@ export class EmailService implements IEmailService {
     }
     return { mailComposer, copyS3Promises, fileMap };
   }
+
   /**
    * Push the emails in chunk of 50 in each sqs item
    * @param employee
@@ -593,12 +626,10 @@ export class EmailService implements IEmailService {
       try {
         const payload = JSON.parse(record.body);
         console.log("payload", payload?.notificationType, payload.eventType);
-        if (payload.Type === "Notification") {
-          if (payload?.notificationType === "Received") {
-            await this.receiveEmailHelper(record);
-          } else if (payload.eventType) {
-            await this.processMetricsEvent(record);
-          }
+        if (payload?.notificationType === "Received") {
+          await this.receiveEmailHelper(record);
+        } else if (payload.eventType && !payload.jobId) {
+          await this.processMetricsEvent(record);
         } else if (payload.jobId) {
           const jobItem: IJobData = await JobsModel.get({
             jobId: payload.jobId,
@@ -776,7 +807,32 @@ export class EmailService implements IEmailService {
           ? _references.join(" ")
           : _references
         : null;
-
+      let threadId = null;
+      if (inReplyTo) {
+        // It means it is belonging to a thread, or starting a new thread
+        // fetch email with messageId = inReplyTo
+        const previousEmail: IEmailRecord =
+          await EmailRecordModel.query().findOne({
+            messageId: inReplyTo,
+          });
+        if (previousEmail) {
+          // in case 1 i.e. threadId !== null, attach to email
+          if (previousEmail?.threadId) {
+            threadId = previousEmail?.threadId;
+          } else {
+            // in case2, create a threadId, append and also update to replied email
+            threadId = randomUUID();
+            await EmailRecordModel.query().findById(previousEmail.id).patch({
+              threadId,
+            });
+            await RecipientModel.query()
+              .patch({ threadId })
+              .where({
+                emailId: previousEmail.id,
+              } as Partial<IRecipient>);
+          }
+        }
+      }
       let emailRecord: IEmailRecord = await EmailRecordModel.query()
         .where({
           messageId,
@@ -806,6 +862,8 @@ export class EmailService implements IEmailService {
               messageId,
               containsHtml: !!html,
               status: "RECEIVED_AND_PROCESSING",
+              threadId,
+              emailFolder: "INBOX", // @TODO process mail for spam
             } as IEmailRecord);
             const recipients: IRecipient[] = [
               {
@@ -813,6 +871,7 @@ export class EmailService implements IEmailService {
                 recipientName: mailObject?.from?.value[0]?.name,
                 recipientType: "FROM",
                 emailId: emailRecord.id,
+                threadId,
               },
             ];
             mailObject.to?.value.map((x: EmailAddress) => {
@@ -821,6 +880,7 @@ export class EmailService implements IEmailService {
                 recipientType: "TO_LIST",
                 recipientName: x.name,
                 recipientEmail: x.address,
+                threadId,
               });
             });
             mailObject.cc?.value.map((x: EmailAddress) => {
@@ -829,6 +889,7 @@ export class EmailService implements IEmailService {
                 recipientType: "CC_LIST",
                 recipientName: x.name,
                 recipientEmail: x.address,
+                threadId,
               });
             });
             mailObject.bcc?.value.map((x: EmailAddress) => {
@@ -837,6 +898,7 @@ export class EmailService implements IEmailService {
                 recipientType: "BCC_LIST",
                 recipientName: x.name,
                 recipientEmail: x.address,
+                threadId,
               });
             });
 
@@ -1191,5 +1253,183 @@ export class EmailService implements IEmailService {
     };
 
     return emailIds;
+  }
+
+  async getInboxEmails(employee: IEmployeeJwt, body) {
+    const { page = 1, pageSize = 10, filter } = body;
+    const offset = (page - 1) * pageSize;
+
+    try {
+      const raw = RecipientModel.raw;
+      // Fetch the latest reply for each email thread
+      const recipientTypeArr = ["TO_LIST", "CC_LIST", "BCC_LIST"];
+      const latestReplies: { emailId: string; max: string }[] =
+        await RecipientModel.query()
+          .select("emailId", raw("MAX(created_at) AS max"))
+          .where("recipientEmail", "wmfarooqi05@gmail.com")
+          .whereIn("recipientType", recipientTypeArr)
+          .groupBy("emailId");
+
+      console.log("latestReplies", latestReplies);
+
+      const latestEmails = await EmailRecordModel.query()
+        .alias("e1")
+        .select("e1.*")
+        .leftJoin("email_records AS e2", "e1.message_id", "e2.in_reply_to")
+        .whereNull("e2.message_id")
+        .whereIn(
+          "e1.id",
+          latestReplies.map((x) => x.emailId)
+        )
+        .orderBy("e1.sentAt", "desc");
+
+      return latestEmails;
+    } catch (error) {
+      console.error(error);
+      throw new CustomError("An error occurred while fetching the inbox.", 500);
+    }
+  }
+
+  async _getInboxEmails(employee: IEmployeeJwt, body) {
+    const { page = 1, pageSize = 10, filter } = body;
+    const offset = (page - 1) * pageSize;
+
+    try {
+      const raw = RecipientModel.raw;
+      // Fetch the latest reply for each email thread
+      const recipientTypeArr = ["FROM", "TO_LIST", "CC_LIST", "BCC_LIST"];
+      const latestReplies: IRecipient[] = await RecipientModel.query()
+        .where("recipientEmail", "wmfarooqi05@gmail.com") //employee.email)
+        .whereIn("recipientType", recipientTypeArr)
+        .groupBy("emailId")
+        .select("emailId")
+        .max("createdAt");
+
+      console.log("latestReplies", latestReplies);
+
+      const emailRecordsQuery = EmailRecordModel.query()
+        .joinRelated("recipients")
+        .whereIn(
+          "recipients.emailId",
+          latestReplies.map((reply) => reply.emailId)
+        );
+      // .whereIn("recipients.recipientType", recipientTypeArr)
+      // .andWhere((builder) => {
+      //   builder.from("recipients").whereIn(
+      //     raw("(email_id, recipients.created_at)"),
+      //     latestReplies.map((reply) => [reply.emailId, reply.max])
+      //   );
+      // });
+
+      // Apply filters based on the provided filter parameter
+      if (false) {
+        //(filter) {
+        // Split the filter parameter into filterBy and filterValue
+        const [filterBy, filterValue] = filter.split(":");
+
+        // Apply the appropriate filter based on the filterBy value
+        switch (filterBy) {
+          case "from":
+            emailRecordsQuery.where("senderId", "like", `%${filterValue}%`);
+            break;
+          case "to":
+            emailRecordsQuery.whereExists(
+              RecipientModel.query()
+                .whereRaw(
+                  `${RecipientModel.tableName}.emailId = ${EmailRecordModel.tableName}.id`
+                )
+                .andWhere("recipientEmail", "like", `%${filterValue}%`)
+                .andWhere("recipientType", "TO_LIST")
+            );
+            break;
+          case "subject":
+            emailRecordsQuery.where("subject", "like", `%${filterValue}%`);
+            break;
+          case "hasTheWords":
+            emailRecordsQuery.where(function () {
+              this.where("subject", "like", `%${filterValue}%`).orWhere(
+                "body",
+                "like",
+                `%${filterValue}%`
+              );
+            });
+            break;
+          case "doesntHave":
+            emailRecordsQuery.whereNot(function () {
+              this.where("subject", "like", `%${filterValue}%`).orWhere(
+                "body",
+                "like",
+                `%${filterValue}%`
+              );
+            });
+            break;
+          case "size":
+            const [sizeOperator, sizeValue] = filterValue.split(":");
+            emailRecordsQuery.where("size", sizeOperator, sizeValue);
+            break;
+          case "dateWithin":
+            const [dateOperator, dateValue] = filterValue.split(":");
+            const currentDate = new Date();
+            const dateToCompare = new Date(
+              currentDate.setDate(currentDate.getDate() - parseInt(dateValue))
+            );
+            emailRecordsQuery.where(
+              "sentAt",
+              dateOperator,
+              dateToCompare.toISOString()
+            );
+            break;
+          case "search":
+            emailRecordsQuery.where(function () {
+              this.where("senderId", "like", `%${filterValue}%`)
+                .orWhere("subject", "like", `%${filterValue}%`)
+                .orWhere("body", "like", `%${filterValue}%`);
+            });
+            break;
+          case "hasAttachment":
+            emailRecordsQuery.where("attachments", "!=", "[]");
+            break;
+          case "dontIncludeChats":
+            emailRecordsQuery.whereNot(function () {
+              this.where("emailType", "CHAT");
+            });
+            break;
+          default:
+            // Invalid filter parameter
+            throw new CustomError("Invalid filter parameter.", 400);
+        }
+      }
+
+      /** @todo @important these are valid filters, don't remove this code */
+      // Apply additional use case filters
+      // emailRecordsQuery
+      //   .where("status", "PENDING")
+      //   .whereNull("inReplyTo")
+      //   .orderBy("sentAt", "desc")
+      //   .limit(pageSize)
+      //   .offset(offset);
+
+      // Execute the query
+      const emailRecords = await emailRecordsQuery;
+
+      return emailRecords;
+    } catch (error) {
+      console.error(error);
+      throw new CustomError("An error occurred while fetching the inbox.", 500);
+    }
+  }
+
+  async moveToFolder(employee: IEmployeeJwt, body) {
+    const payload = JSON.parse(body);
+    await validateMoveToFolder(payload);
+    const emailRecord: IEmailRecord = await EmailRecordModel.query().findById(
+      emailId
+    );
+    if (!emailRecord) {
+      throw new CustomError(`Email record with id: ${emailId} not found`, 404);
+    }
+    if (emailRecord.emailFolder === "TRASH") {
+      throw new CustomError("Email record already in trahs", 400);
+    }
   }
 }

@@ -190,6 +190,7 @@ export class EmailTemplateService {
     return EmailTemplatesModel.query().findById(body.templateId);
   }
 
+  /** @deprecated need to update code */
   // Function to update a template and its record in the database
   async updateTemplate(
     templateName: string,

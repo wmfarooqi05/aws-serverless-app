@@ -118,6 +118,28 @@ const emailHandler = {
         cors: true,
       },
     },
+    // Email Apis
+    {
+      http: {
+        method: "get",
+        path: "get-inbox-emails",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "email/{emailId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "delete",
+        path: "email/{emailId}",
+        cors: true,
+      },
+    },
   ],
   layers: [
     "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",

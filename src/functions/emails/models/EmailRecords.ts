@@ -49,6 +49,7 @@ export interface IATTACHMENT {
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
+
 export interface IEmailRecord {
   id: string;
   subject: string;
@@ -64,6 +65,10 @@ export interface IEmailRecord {
   direction: EMAIL_DIRECTION;
   messageId: string;
   emailType: "SIMPLE_EMAIL" | "BULK";
+  /**
+   * details:
+   * in case of inbox, category for funnel
+   */
   details: any;
   result: any;
   inReplyTo: string;
@@ -71,6 +76,10 @@ export interface IEmailRecord {
   priority: string;
   contentUrl: string;
   containsHtml: boolean;
+  threadId: string;
+  isRead: boolean;
+  labels: string;
+  emailFolder: string;
 }
 
 export interface IEmailRecordWithRecipients extends IEmailRecord {
@@ -86,22 +95,21 @@ export class EmailRecordModel extends Model {
   static get jsonSchema() {
     return {
       type: "object",
-      required: ["subject", "body"],
+      required: ["subject", "body", "emailFolder"],
 
       properties: {
         id: { type: "string" },
         subject: { type: "string" },
         body: { type: "string" },
-        senderId: { type: "string" },
         direction: { type: "string" },
-        sentAt: { type: "string" },
+        sentAt: { type: ["string", "null"], default: null },
         messageId: { type: "string" },
         attachments: {
           type: "array",
           default: [],
         },
         emailType: { type: "string" },
-        result: { type: "string" },
+        result: { type: ["string", "null"], default: null },
         status: {
           type: "string",
           default: "PENDING",
@@ -109,14 +117,19 @@ export class EmailRecordModel extends Model {
         },
         inReplyTo: { type: ["string", "null"], default: null },
         references: { type: ["string", "null"], default: null },
-        contentUrl: { type: "string" },
+        contentUrl: { type: ["string", "null"], default: null },
         containsHtml: { type: "boolean" },
+        threadId: { type: ["string", "null"], default: null },
+        isRead: { type: "boolean" },
+        labels: { type: ["string", "null"], default: null },
+        emailFolder: { type: "string", default: "INBOX" },
+        details: { type: "string", default: {} },
       },
     };
   }
 
   static get jsonAttributes() {
-    return ["attachments"];
+    return ["attachments", "details"];
   }
   static get relationMappings() {
     return {

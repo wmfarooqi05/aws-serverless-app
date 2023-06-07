@@ -6,8 +6,11 @@ import {
   getTemplateById,
 } from "./emailTemplates/handler";
 import {
+  deleteEmailById,
   emailsByContact,
+  getEmailById,
   getEmailTemplateContentById,
+  getInboxEmails,
   sendBulkEmails,
   sendEmail,
 } from "./handler";
@@ -120,6 +123,22 @@ app.post("/sync-emails", async (req, res) => {
 
 app.post("/bulk-email", async (req, res) => {
   const resp = await sendBulkEmails(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/get-inbox-emails", async (req, res) => {
+  const resp = await getInboxEmails(req, {} as any);
+  resHelper(res, resp);
+});
+
+
+app.get("/email/:emailId", async (req, res) => {
+  const resp = await getEmailById(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.delete("/email/:emailId", async (req, res) => {
+  const resp = await deleteEmailById(req, {} as any);
   resHelper(res, resp);
 });
 

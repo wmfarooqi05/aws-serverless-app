@@ -110,7 +110,7 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
           TemplateName: templateSesName,
           HtmlPart: replacements.html,
           SubjectPart: subject,
-          TextPart: bodyText,
+          TextPart: bodyText,          
         },
       })
     );

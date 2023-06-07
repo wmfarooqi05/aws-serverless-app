@@ -16,6 +16,7 @@ export interface IRecipient {
   recipientType: RECIPIENT_TYPE;
   recipientName?: string;
   recipientEmail: string;
+  threadId: string;
 }
 
 @singleton()
@@ -35,6 +36,7 @@ export class RecipientModel extends Model {
         recipientType: { type: "string" },
         recipientName: { type: "string" },
         recipientEmail: { type: "string" },
+        threadId: { type: ["string", "null"], default: null },
       },
     };
   }

@@ -18,6 +18,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("recipient_type").notNullable();
       table.string("recipient_email").notNullable();
       table.string("recipient_name");
+      table.string("thread_id");
 
       table
         .timestamp("created_at", { useTz: true })

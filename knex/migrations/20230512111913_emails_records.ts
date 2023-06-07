@@ -18,8 +18,10 @@ export async function up(knex: Knex): Promise<void> {
       table.string("status").notNullable();
       table.jsonb("attachments");
       table.boolean("is_body_uploaded").defaultTo(false);
-      table.string('message_id').unique();
-      table.enum("email_type", ["SIMPLE_MAIL", "BULK"]).defaultTo("SIMPLE_MAIL");
+      table.string("message_id").unique();
+      table
+        .enum("email_type", ["SIMPLE_MAIL", "BULK"])
+        .defaultTo("SIMPLE_MAIL");
       table.jsonb("details");
       table.jsonb("result");
       table.string("in_reply_to");
@@ -28,6 +30,11 @@ export async function up(knex: Knex): Promise<void> {
       table.string("priority");
       table.string("content_url");
       table.boolean("contains_html");
+      table.boolean("thread_id");
+      table.boolean("is_read").defaultTo(false);
+      table.string("labels");
+      table.string("email_folder");
+
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

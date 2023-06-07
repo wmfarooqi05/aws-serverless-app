@@ -11,7 +11,6 @@ import {
   getAllWebSocketConnections,
 } from "@functions/websocket";
 import { notificationHandler } from "@functions/notifications";
-
 import {
   googleOauthCallbackHandler,
   googleOauthHandler,
@@ -48,8 +47,9 @@ import { teamHandler } from "@functions/teams";
 import { cognitoOAuthHandler } from "./auth";
 
 import { utilsHandler } from "@functions/utils";
+import { scrapeGmail } from "./google/gmail";
 
-export default {
+const exportHandlers = {
   companyHandler,
   activitiesHandler,
   teamHandler,
@@ -111,3 +111,9 @@ export default {
   // deleteScheduleReminder,
   // deleteAllReminders,
 };
+
+if (process.env.NODE_ENV === "local") {
+  exportHandlers["scrapeGmail"] = scrapeGmail;
+}
+
+export default exportHandlers;

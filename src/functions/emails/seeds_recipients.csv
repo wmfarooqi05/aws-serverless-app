@@ -1,0 +1,22 @@
+id,email_id,recipient_type,recipient_name,recipient_email
+e1d73a2a-d5df-4be1-bc70-248289a8b74a,1c5f703b-4422-4f70-8f1f-6ff4c74d7f1f,TO_LIST,John Doe,john@example.com
+986e5d84-89f9-4ed9-9545-2c86a6953b72,1c5f703b-4422-4f70-8f1f-6ff4c74d7f1f,CC_LIST,Alice Smith,alice@example.com
+6f44db06-2a6a-4a7c-b7a2-90ac13a361c3,1c5f703b-4422-4f70-8f1f-6ff4c74d7f1f,BCC_LIST,Bob Johnson,bob@example.com
+e6ce7100-ec0f-412f-a28f-ae752141f2ae,d398589e-d0dd-43c9-a12d-2c6a9b23166c,TO_LIST,Emily Brown,emily@example.com
+1e44e873-8fa5-4d01-8f99-b7d63f26e07e,d398589e-d0dd-43c9-a12d-2c6a9b23166c,CC_LIST,David Wilson,david@example.com
+2fe9a03e-dffc-4345-9484-8a66e7a9d67a,d398589e-d0dd-43c9-a12d-2c6a9b23166c,BCC_LIST,Sarah Davis,sarah@example.com
+d4a91f47-8d7d-4fc9-9ebd-7057b88e2f59,d398589e-d0dd-43c9-a12d-2c6a9b23166c,TO_LIST,Michael Lee,michael@example.com
+1bfb30a0-2d9e-4aee-9c17-942fd25d47bc,d398589e-d0dd-43c9-a12d-2c6a9b23166c,CC_LIST,Olivia Clark,olivia@example.com
+27e8ac33-1fde-4844-a68b-93ef73c64f92,e0c52511-69e2-4e10-b14c-2d33b95a5f5a,TO_LIST,Samantha Turner,samantha@example.com
+83ac2d91-4af1-4e60-bf46-70580a73c0c4,e0c52511-69e2-4e10-b14c-2d33b95a5f5a,CC_LIST,Andrew Taylor,andrew@example.com
+9a8671f3-5030-42f4-8fe4-d6eb4e9a42ad,5560eef1-25b3-4df0-a889-7c51fd7081a3,TO_LIST,Emma Anderson,emma@example.com
+99b342df-5a8f-4de3-99e9-380a0e2d1b60,5560eef1-25b3-4df0-a889-7c51fd7081a3,TO_LIST,Matthew Martinez,matthew@example.com
+f1e28a8c-1366-48a4-b4ff-7ab45e38b437,5560eef1-25b3-4df0-a889-7c51fd7081a3,CC_LIST,Sophia Lopez,sophia@example.com
+7f4c3f3b-7916-4b82-b727-0c5036941177,5560eef1-25b3-4df0-a889-7c51fd7081a3,BCC_LIST,James Moore,james@example.com
+b2d1053e-33b6-47fc-9d1d-b7b024d0325b,0a5a94f8-1765-4bb4-a5f6-2a6b826f5a44,TO_LIST,Oliver Hill,oliver@example.com
+fcdad8a0-d2c9-4811-9fa3-9488e0e0a7fc,0a5a94f8-1765-4bb4-a5f6-2a6b826f5a44,CC_LIST,Ava Lewis,ava@example.com
+e13b875f-5b0c-4b8f-907f-83e5e2b8688d,0a5a94f8-1765-4bb4-a5f6-2a6b826f5a44,BCC_LIST,Logan Wright,logan@example.com
+29e8f9e3-8895-4c07-a1fe-8e08d6ffeb1a,0a5a94f8-1765-4bb4-a5f6-2a6b826f5a44,CC_LIST,Natalie Garcia,natalie@example.com
+6a4f77fe-74d6-4a16-8eab-b42a5e4c8822,5e1e4a6f-81c6-43b5-a9e9-0c1587537dd3,TO_LIST,Ethan Adams,ethan@example.com
+d8823b84-d7bc-4591-8c6f-d15d964409f6,5e1e4a6f-81c6-43b5-a9e9-0c1587537dd3,CC_LIST,Chloe Allen,chloe@example.com
+28d176da-aa79-4e4d-b66e-5e16c6bda823,5e1e4a6f-81c6-43b5-a9e9-0c1587537dd3,BCC_LIST,Liam Turner,liam@example.com

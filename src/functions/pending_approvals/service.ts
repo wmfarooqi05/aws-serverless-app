@@ -14,7 +14,6 @@ import {
 } from "./helper";
 import {
   validateGetPendingApprovalById,
-  validateGetPendingApprovals,
   validatePendingApprovalBeforeJob,
 } from "./schema";
 // import { WebSocketService } from "@functions/websocket/service";
@@ -30,11 +29,8 @@ import {
 } from "@models/interfaces/Employees";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import Joi from "joi";
-import { convertPayloadToArray, transformJSONKeys } from "@common/json_helpers";
+import { convertPayloadToArray } from "@common/json_helpers";
 import { throwUnAuthorizedError } from "@common/errors";
-import { SQSService } from "@functions/sqs/service";
-import { NOTIFICATIONS_TABLE_NAME } from "@models/commons";
-import EmployeeModel from "@models/Employees";
 
 export interface IPendingApprovalService {}
 

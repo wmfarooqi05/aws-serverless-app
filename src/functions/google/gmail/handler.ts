@@ -1,6 +1,5 @@
 import "reflect-metadata";
 
-
 import {
   formatErrorResponse,
   formatGoogleErrorResponse,
@@ -12,7 +11,9 @@ import { GoogleGmailService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper, {
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 
 // @TODO All the handler functions must be DEV only
 // We will control them from Activity Service -> GoogleService
@@ -24,8 +25,8 @@ export const createAndSendEmailHandler = async (event) => {
     const response = await container
       .resolve(GoogleGmailService)
       .createAndSendEmail(event.employee?.sub, event.body);
-      return formatGoogleJSONResponse(response, 201);
-    } catch (e) {
+    return formatGoogleJSONResponse(response, 201);
+  } catch (e) {
     return formatErrorResponse(e);
   }
 };
@@ -85,4 +86,20 @@ export const deleteMeetingById = async (event, _context) => {
 export const createMeeting = jwtMiddlewareWrapper(createMeetingHandler);
 export const createAndSendEmail = jwtMiddlewareWrapper(
   createAndSendEmailHandler
+);
+
+export const scrapeGmailHandler = async (event) => {
+  try {
+    const result = await container
+      .resolve(GoogleGmailService)
+      .scrapeGmail(event.employee);
+    return formatGoogleJSONResponse(result, 201);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const scrapeGmail = checkRolePermission(
+  scrapeGmailHandler,
+  "COMPANY_READ_ALL"
 );

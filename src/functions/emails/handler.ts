@@ -44,16 +44,13 @@ const getEmailsHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   }
 };
 
-// @TODO FIX_TEAM_ID
-// what is this?????
-// this is not getting used
-export const getEmailById: ValidatedEventAPIGatewayProxyEvent<any> = async (
+const getEmailByIdHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
-  const { teamId } = event.params;
+  const { emailId } = event.params;
   try {
-    const teams = await container.resolve(EmailService).getEmail(teamId);
-    return formatJSONResponse(teams, 200);
+    const email = await container.resolve(EmailService).getEmail(emailId);
+    return formatJSONResponse(email, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -173,6 +170,27 @@ export const emailsByContactHandler = async (event) => {
   }
 };
 
+const getInboxEmailsHandler = async (event) => {
+  try {
+    const emails = await container
+      .resolve(EmailService)
+      .getInboxEmails(event.employee, event.params);
+    return formatJSONResponse(emails, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const deleteEmailByIdHandler = async (event) => {
+  try {
+    await container
+      .resolve(EmailService)
+      .deleteEmailById(event.employee, event.params);
+    return formatJSONResponse(emails, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }};
+
 export const getEmailTemplateContentById = checkRolePermission(
   getEmailTemplateContentByIdHandler,
   "COMPANY_READ_ALL"
@@ -195,5 +213,20 @@ export const sendBulkEmails = checkRolePermission(
 
 export const emailsByContact = checkRolePermission(
   emailsByContactHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const getInboxEmails = checkRolePermission(
+  getInboxEmailsHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const getEmailById = checkRolePermission(
+  getEmailByIdHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const deleteEmailById = checkRolePermission(
+  deleteEmailByIdHandler,
   "COMPANY_READ_ALL"
 );
