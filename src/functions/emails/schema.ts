@@ -69,9 +69,16 @@ export const validateBulkEmails = (obj) => {
   });
 };
 
-export const validateEmailsByContact = (employeeEmail, contactEmail) => {
-  return Joi.object({
+export const validateEmailsByContact = async (employeeEmail, contactEmail) => {
+  await Joi.object({
     employeeEmail: Joi.string().email().required(),
     contactEmail: Joi.string().email().required(),
   }).validateAsync({ employeeEmail, contactEmail });
+};
+
+export const validateMoveToFolder = (body) => {
+  await Joi.object({
+    emailIds: Joi.array().items(Joi.string().guid()).min(1),
+    
+  })
 };

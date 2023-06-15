@@ -1,25 +1,22 @@
 import { Knex } from "knex";
-import { tableName as Tables } from "../email_tables";
+import { tableName as EmailTables } from "../email_tables";
+import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.emailRecipients;
+const tableName = EmailTables.employeeEmailLabels;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table
-        .uuid("email_id")
+        .uuid("employee_id")
         .index()
         .references("id")
-        .inTable(Tables.emailRecords)
-        .onDelete("CASCADE")
+        .inTable(Tables.employees)
         .notNullable();
-      table.string("recipient_type").notNullable();
-      table.string("recipient_email").notNullable();
-      table.string("recipient_name");
-      table.string("thread_id");
-      table.string("recipient_category").notNullable();
+      table.string("label").notNullable();
+      table.string("color");
 
       table
         .timestamp("created_at", { useTz: true })
@@ -29,6 +26,8 @@ export async function up(knex: Knex): Promise<void> {
         .timestamp("updated_at", { useTz: true })
         .notNullable()
         .defaultTo(knex.fn.now());
+
+      table.unique(["label", "employee_id"])
     })
     .then(() => knex.raw(onUpdateTrigger(tableName)));
 }

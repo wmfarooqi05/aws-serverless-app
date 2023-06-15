@@ -13,8 +13,8 @@ export async function up(knex: Knex): Promise<void> {
       table.timestamp("sent_at").defaultTo(knex.fn.now());
 
       table.string("direction");
-      table.uuid("company_id");
-      table.uuid("contact_id");
+      // table.uuid("company_id");
+      // table.uuid("contact_id");
       table.string("status").notNullable();
       table.jsonb("attachments");
       table.boolean("is_body_uploaded").defaultTo(false);
@@ -31,9 +31,6 @@ export async function up(knex: Knex): Promise<void> {
       table.string("content_url");
       table.boolean("contains_html");
       table.boolean("thread_id");
-      table.boolean("is_read").defaultTo(false);
-      table.string("labels");
-      table.string("email_folder");
 
       table
         .timestamp("created_at", { useTz: true })

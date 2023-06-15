@@ -9,6 +9,12 @@ import {
 import { EmailRecordModel } from "./EmailRecords";
 
 export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";
+export type RECIPIENT_CATEGORY = "EMPLOYEE" | "COMPANY_CONTACT" | "OTHERS";
+export const recipientCategoryTypes: RECIPIENT_CATEGORY[] = [
+  "COMPANY_CONTACT",
+  "EMPLOYEE",
+  "OTHERS",
+];
 
 export interface IRecipient {
   id?: string;
@@ -17,6 +23,7 @@ export interface IRecipient {
   recipientName?: string;
   recipientEmail: string;
   threadId: string;
+  recipientCategory?: RECIPIENT_CATEGORY;
 }
 
 @singleton()
@@ -37,6 +44,11 @@ export class RecipientModel extends Model {
         recipientName: { type: "string" },
         recipientEmail: { type: "string" },
         threadId: { type: ["string", "null"], default: null },
+        recipientCategory: {
+          type: "string",
+          default: "OTHERS" as RECIPIENT_CATEGORY,
+          enum: recipientCategoryTypes,
+        },
       },
     };
   }
