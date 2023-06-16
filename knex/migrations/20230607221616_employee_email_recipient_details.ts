@@ -2,7 +2,7 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../email_tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.employeeEmailRecipientDetails;
+const tableName = Tables.recipientEmployeeDetails;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
@@ -14,7 +14,7 @@ export async function up(knex: Knex): Promise<void> {
         .references("id")
         .inTable(Tables.emailRecipients)
         .notNullable();
-      table.string("folder_name").notNullable().defaultTo("INBOX");
+      table.string("folder_name").notNullable().defaultTo("inbox");
       table.string("labels");
       table.boolean("is_read").defaultTo(false);
       table.string("category");

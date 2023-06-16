@@ -76,9 +76,9 @@ export const validateEmailsByContact = async (employeeEmail, contactEmail) => {
   }).validateAsync({ employeeEmail, contactEmail });
 };
 
-export const validateMoveToFolder = (body) => {
+export const validateMoveToFolder = async (body) => {
   await Joi.object({
     emailIds: Joi.array().items(Joi.string().guid()).min(1),
-    
-  })
+    folderName: Joi.string().required(),
+  }).validateAsync(body);
 };

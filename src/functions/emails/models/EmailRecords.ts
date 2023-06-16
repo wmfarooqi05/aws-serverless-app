@@ -77,9 +77,6 @@ export interface IEmailRecord {
   contentUrl: string;
   containsHtml: boolean;
   threadId: string;
-  isRead: boolean;
-  labels: string;
-  emailFolder: string;
 }
 
 export interface IEmailRecordWithRecipients extends IEmailRecord {
@@ -95,7 +92,7 @@ export class EmailRecordModel extends Model {
   static get jsonSchema() {
     return {
       type: "object",
-      required: ["subject", "body", "emailFolder"],
+      required: ["subject", "body"],
 
       properties: {
         id: { type: "string" },
@@ -120,10 +117,7 @@ export class EmailRecordModel extends Model {
         contentUrl: { type: ["string", "null"], default: null },
         containsHtml: { type: "boolean" },
         threadId: { type: ["string", "null"], default: null },
-        isRead: { type: "boolean" },
-        labels: { type: ["string", "null"], default: null },
-        emailFolder: { type: "string", default: "INBOX" },
-        details: { type: "string", default: {} },
+        details: { type: ["string", "null"], default: {} },
       },
     };
   }

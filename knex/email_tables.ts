@@ -12,12 +12,10 @@ export const tableName = {
     process.env.EMAIL_ADDRESS_TO_EMAIL_LIST || "email_address_to_email_list",
   emailMetricsRecipients:
     process.env.EMAIL_METRICS_RECIPIENTS_TABLE || "email_metrics_recipients",
-  employeeEmailRecipientDetails:
-    process.env.EMPLOYEE_EMAIL_RECIPIENT_DETAILS ||
-    "employee_email_recipient_details",
-  companyEmailRecipientDetails:
-    process.env.COMPANY_EMAIL_RECIPIENT_DETAILS ||
-    "company_email_recipient_details",
+  recipientEmployeeDetails:
+    process.env.RECIPIENT_EMPLOYEE_DETAILS || "recipient_employee_details",
+  recipientCompanyDetails:
+    process.env.RECIPIENT_COMPANY_DETAILS || "recipient_company_details",
   employeeEmailSettings:
     process.env.EMPLOYEE_EMAIL_SETTINGS || "employee_email_settings",
   employeeEmailLabels:

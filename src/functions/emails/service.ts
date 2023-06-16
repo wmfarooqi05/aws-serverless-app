@@ -17,7 +17,13 @@ import {
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
-import { simpleParser, Attachment, EmailAddress, ParsedMail } from "mailparser";
+import {
+  simpleParser,
+  Attachment,
+  EmailAddress,
+  ParsedMail,
+  AddressObject,
+} from "mailparser";
 import {
   copyS3Object,
   getKeysFromS3Url,
@@ -32,7 +38,7 @@ import {
 } from "./models/EmailRecords";
 import * as stream from "stream";
 
-import { IRecipient } from "./models/Recipient";
+import { IRecipient, RECIPIENT_TYPE } from "./models/Recipient";
 import {
   CopyObjectCommand,
   CopyObjectCommandInput,
@@ -76,6 +82,10 @@ import processEmailTemplateSqsEventHandler from "@functions/emails/jobs/processE
 import { bulkEmailPrepareSqsEventHandler } from "@functions/emails/jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "@functions/emails/jobs/bulkEmailSqsEventHandler";
 import { deleteMessageFromSQS } from "@utils/sqs";
+import ContactModel from "@models/Contacts";
+import { IContact } from "@models/Contacts";
+import { IRecipientEmployeeDetails } from "./models/RecipientEmployeeDetails";
+import e from "express";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -776,6 +786,8 @@ export class EmailService implements IEmailService {
   async receiveEmailHelper(record: SQSRecord) {
     const messagePayload = JSON.parse(record.body);
     console.log("[receiveEmailHelper], messagePayload", messagePayload);
+
+    /** Array containing S3 URLs of files to be cleanup in case error in job */
     const s3CleanupFiles: string[] = [];
 
     let error = [];
@@ -794,14 +806,27 @@ export class EmailService implements IEmailService {
         skipImageLinks: true,
       });
 
+      const messageId = mailObject.messageId?.replace(/[<>]/g, "");
+
+      let emailRecord: IEmailRecord = await EmailRecordModel.query()
+        .where({
+          messageId,
+        })
+        .first();
+
+      // move the upper code here, because it is mutating record on L:831
+      if (emailRecord?.status === "RECEIVED_AND_PROCESSED") {
+        console.log("Email already processed");
+        return;
+      }
+
+      /** THREAD AND REPLIES HANDLING */
       const {
         inReplyTo: _inReplyTo,
         references: _references,
         priority,
-        messageId: _messageId,
       } = mailObject;
       const inReplyTo = _inReplyTo?.replace(/[<>]/g, "");
-      const messageId = _messageId?.replace(/[<>]/g, "");
       const references: string = _references
         ? Array.isArray(_references)
           ? _references.join(" ")
@@ -825,6 +850,13 @@ export class EmailService implements IEmailService {
             await EmailRecordModel.query().findById(previousEmail.id).patch({
               threadId,
             });
+
+            /** @NOTES
+             * There is an issue, that if this code will crash further on,
+             * the assignment of threadId to previousEmail will not revert
+             * But this will not create any issue as on next cycle of job,
+             * this threadId will be used on `if` part of this `else` block
+             */
             await RecipientModel.query()
               .patch({ threadId })
               .where({
@@ -833,23 +865,48 @@ export class EmailService implements IEmailService {
           }
         }
       }
-      let emailRecord: IEmailRecord = await EmailRecordModel.query()
-        .where({
-          messageId,
-        })
-        .first();
+      /** END THREAD AND REPLIES HANDLING */
 
-      if (emailRecord?.status === "RECEIVED_AND_PROCESSED") {
-        console.log("Email already processed");
-        return;
-      }
       const { text: bodyText, html } = mailObject;
 
+      let contactRecord: IContact = null;
+      const fromRecipient: IRecipient = {
+        recipientEmail: mailObject?.from?.value[0]?.address,
+        recipientName: mailObject?.from?.value[0]?.name,
+        recipientType: "FROM",
+        threadId,
+        recipientCompanyDetails: null,
+        recipientEmployeeDetails: null,
+      };
+
+      if (mailObject?.from?.value[0]?.address) {
+        contactRecord = await ContactModel.query()
+          .where(
+            "emails",
+            "@>",
+            JSON.stringify([mailObject?.from?.value[0]?.address])
+          )
+          .first();
+        if (contactRecord) {
+          fromRecipient.recipientCompanyDetails = {
+            companyId: contactRecord.companyId,
+            contactId: contactRecord.id,
+          };
+          fromRecipient.recipientCategory = "COMPANY_CONTACT";
+        }
+      }
+      const recipients: IRecipient[] = await this.addRecipients(
+        mailObject,
+        threadId
+      );
+      recipients.push(fromRecipient);
+
       // move this whole transaction to another function
-      if (!emailRecord) {
-        await this.docClient.getKnexClient().transaction(async (trx) => {
-          try {
-            emailRecord = await EmailRecordModel.query().insert({
+      let trxError = null;
+      await this.docClient.getKnexClient().transaction(async (trx) => {
+        try {
+          if (!emailRecord) {
+            emailRecord = await EmailRecordModel.query(trx).insert({
               body:
                 bodyText.length > 1000 ? bodyText.substring(0, 1000) : bodyText,
               sentAt: mailObject.date.toISOString(),
@@ -863,60 +920,32 @@ export class EmailService implements IEmailService {
               containsHtml: !!html,
               status: "RECEIVED_AND_PROCESSING",
               threadId,
-              emailFolder: "INBOX", // @TODO process mail for spam
-            } as IEmailRecord);
-            const recipients: IRecipient[] = [
-              {
-                recipientEmail: mailObject?.from?.value[0]?.address,
-                recipientName: mailObject?.from?.value[0]?.name,
-                recipientType: "FROM",
-                emailId: emailRecord.id,
-                threadId,
-              },
-            ];
-            mailObject.to?.value.map((x: EmailAddress) => {
-              return recipients.push({
-                emailId: emailRecord.id,
-                recipientType: "TO_LIST",
-                recipientName: x.name,
-                recipientEmail: x.address,
-                threadId,
-              });
+              details: "{}",
             });
-            mailObject.cc?.value.map((x: EmailAddress) => {
-              return recipients.push({
-                emailId: emailRecord.id,
-                recipientType: "CC_LIST",
-                recipientName: x.name,
-                recipientEmail: x.address,
-                threadId,
-              });
-            });
-            mailObject.bcc?.value.map((x: EmailAddress) => {
-              return recipients.push({
-                emailId: emailRecord.id,
-                recipientType: "BCC_LIST",
-                recipientName: x.name,
-                recipientEmail: x.address,
-                threadId,
-              });
-            });
-
-            const recipientsEntriesPromises = recipients.map((x: any) =>
-              EmailRecordModel.relatedQuery("recipients", trx)
-                .for(emailRecord.id)
-                .insert(x)
-            );
-
-            console.log("saving recipients");
-            await Promise.all(recipientsEntriesPromises);
-            await trx.commit();
-          } catch (e) {
-            error.push(e);
-            await trx.rollback();
           }
-        });
+
+          recipients.forEach((x) => {
+            x.emailId = emailRecord.id;
+          });
+          const updatedObject = await RecipientModel.query(trx).insertGraph(
+            recipients
+          );
+          console.log("saving recipients");
+          await trx.commit();
+        } catch (e) {
+          trxError = e;
+          await trx.rollback();
+        }
+      });
+
+      if (trxError) {
+        throw new CustomError(
+          trxError.message || trxError,
+          trxError.statusCode || 500
+        );
       }
+      console.info("Entry has been added in DB, now upload attachments to S3");
+
       const { contentUrl, attachmentsS3 } = await this.handleMailContents(
         emailRecord.id,
         mailObject
@@ -947,6 +976,7 @@ export class EmailService implements IEmailService {
     } catch (e) {
       error.push(e);
       if (s3CleanupFiles.length) {
+        console.info("Uploading s3CleanupFiles Job", s3CleanupFiles);
         const jobItem = new JobsModel({
           jobId: randomUUID(),
           uploadedBy: "RECEIVE_EMAIL_SERVICE_JOB",
@@ -961,6 +991,73 @@ export class EmailService implements IEmailService {
       console.log("errors", error);
       throw new CustomError(error.map((x) => x.message).join(", \n"), 500);
     }
+  }
+
+  async addRecipients(mailObject: ParsedMail, threadId: string | null) {
+    const emailsToFind = mailObject.to?.value
+      .map((x) => x.address)
+      .concat(
+        mailObject.bcc?.value.map((x) => x.address) || [],
+        mailObject.cc?.value.map((x) => x.address) || []
+      );
+
+    const employees: IEmployee[] = await EmployeeModel.query().whereIn(
+      "email",
+      emailsToFind
+    );
+
+    const recipients = this.getRecipientsFromAddressList(
+      mailObject.to?.value || [],
+      "TO_LIST",
+      employees,
+      threadId
+    ).concat(
+      this.getRecipientsFromAddressList(
+        mailObject.cc?.value || [],
+        "CC_LIST",
+        employees,
+        threadId
+      ),
+      this.getRecipientsFromAddressList(
+        mailObject.bcc?.value || [],
+        "BCC_LIST",
+        employees,
+        threadId
+      )
+    );
+
+    return recipients;
+  }
+
+  getRecipientsFromAddressList(
+    addresses: EmailAddress[],
+    recipientType: RECIPIENT_TYPE,
+    employees: IEmployee[],
+    threadId: string | null
+  ) {
+    const recipients: IRecipient[] = [];
+    addresses.forEach((x: EmailAddress) => {
+      const recipient: IRecipient = {
+        recipientType,
+        recipientName: x.name,
+        recipientEmail: x.address,
+        threadId,
+        // recipientCompanyDetails: null,
+        // recipientEmployeeDetails: null,
+      };
+      if (employees.find((e) => e.email === x.address)) {
+        recipient.recipientEmployeeDetails = {
+          category: "EMPLOYEE", // @TODO maybe remove this
+          folderName: "inbox",
+          isRead: false,
+          labels: "",
+        };
+        recipient.recipientCategory = "EMPLOYEE";
+      }
+      recipients.push(recipient);
+    });
+
+    return recipients;
   }
 
   /**
@@ -1081,7 +1178,8 @@ export class EmailService implements IEmailService {
         text,
         html: replacedHtml,
         headers: headerObject,
-      })
+      }),
+      "public"
     );
     return {
       contentUrl: contentS3.fileUrl,

@@ -3,12 +3,18 @@ import { tableName as EmailTables } from "../email_tables";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = EmailTables.companyEmailRecipientDetails;
+const tableName = EmailTables.recipientCompanyDetails;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
+      table
+        .uuid("recipient_id")
+        .index()
+        .references("id")
+        .inTable(EmailTables.emailRecipients)
+        .notNullable();
       table
         .uuid("company_id")
         .index()
