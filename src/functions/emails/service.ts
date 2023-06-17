@@ -17,13 +17,7 @@ import {
 import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
-import {
-  simpleParser,
-  Attachment,
-  EmailAddress,
-  ParsedMail,
-  AddressObject,
-} from "mailparser";
+import { simpleParser, Attachment, EmailAddress, ParsedMail } from "mailparser";
 import {
   copyS3Object,
   getKeysFromS3Url,
@@ -84,9 +78,11 @@ import { bulkEmailSqsEventHandler } from "@functions/emails/jobs/bulkEmailSqsEve
 import { deleteMessageFromSQS } from "@utils/sqs";
 import ContactModel from "@models/Contacts";
 import { IContact } from "@models/Contacts";
-import { IRecipientEmployeeDetails } from "./models/RecipientEmployeeDetails";
-import e from "express";
-import { IRecipientCompanyDetails } from "./models/RecipientCompanyDetails";
+import {
+  convertToEmailAddress,
+  getEmailsFromParsedEmails,
+  getRecipientsFromAddress,
+} from "./helper";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -270,7 +266,7 @@ export class EmailService implements IEmailService {
     email: IEmailRecord,
     senderName: string,
     senderEmail: string,
-    toList: any[],
+    toList: { name: string; email: string }[],
     ccList: any[],
     bccList: any[],
     threadId: string
@@ -281,6 +277,7 @@ export class EmailService implements IEmailService {
     const getEmails = (list) => (list ? list.map((x) => x.email) : []);
 
     const combinedEmails: string[] = [
+      senderEmail,
       ...getEmails(toList),
       ...getEmails(ccList),
       ...getEmails(bccList),
@@ -297,53 +294,41 @@ export class EmailService implements IEmailService {
       )
       .whereIn("value", combinedEmails);
 
-    const recipients: IRecipient[] = (
+    const recipients = getRecipientsFromAddress(
       [
         {
-          recipientName: senderName,
-          recipientEmail: senderEmail,
-          recipientType: "FROM",
-          threadId,
-          recipientEmployeeDetails: {
-            folderName: "sent_items",
-            isRead: false,
+          list: {
+            value: [
+              {
+                name: senderName,
+                address: senderEmail,
+              },
+            ],
           },
+          folderName: "sent_items",
+          type: "FROM",
         },
-      ] as IRecipient[]
-    ).concat(
-      toList?.map((x) =>
-        this.makeSendEmailRecipients(
-          x.name,
-          x.email,
-          "TO_LIST",
-          threadId,
-          employeeRecords,
-          contactRecords
-        )
-      ) || [],
-      ccList?.map((x) =>
-        this.makeSendEmailRecipients(
-          x.name,
-          x.email,
-          "CC_LIST",
-          threadId,
-          employeeRecords,
-          contactRecords
-        )
-      ) || [],
-      bccList?.map((x) =>
-        this.makeSendEmailRecipients(
-          x.name,
-          x.email,
-          "BCC_LIST",
-          threadId,
-          employeeRecords,
-          contactRecords
-        )
-      ) || []
+        {
+          list: { value: convertToEmailAddress(toList) },
+          folderName: "inbox",
+          type: "TO_LIST",
+        },
+        {
+          list: { value: convertToEmailAddress(ccList) },
+          folderName: "inbox",
+          type: "CC_LIST",
+        },
+        {
+          list: { value: convertToEmailAddress(bccList) },
+          folderName: "inbox",
+          type: "BCC_LIST",
+        },
+      ],
+      threadId,
+      employeeRecords,
+      contactRecords
     );
 
-    console.log("a");
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         emailEntity = await EmailRecordModel.query(trx).insert(email);
@@ -361,41 +346,6 @@ export class EmailService implements IEmailService {
       throw new CustomError(error.message, error.statusCode);
     }
     return emailEntity;
-  }
-
-  makeSendEmailRecipients(
-    name,
-    email,
-    recipientType,
-    threadId,
-    employeeRecords,
-    contactRecords
-  ) {
-    const defaultEmployeeDetails: IRecipientEmployeeDetails = {
-      folderName: "inbox",
-      isRead: false,
-    };
-    const recipient: IRecipient = {
-      recipientType,
-      recipientName: name,
-      recipientEmail: email,
-      threadId,
-      recipientCategory: "OTHERS",
-    };
-    if (employeeRecords.find((e) => e.email === email)) {
-      recipient.recipientCategory = "EMPLOYEE";
-      recipient.recipientEmployeeDetails = defaultEmployeeDetails;
-    } else {
-      const contact = contactRecords.find((c) => c.emails.includes(email));
-      if (contact) {
-        recipient.recipientCategory = "COMPANY_CONTACT";
-        recipient.recipientCompanyDetails = {
-          companyId: contact.companyId,
-          contactId: contact.id,
-        };
-      }
-    }
-    return recipient;
   }
 
   /**
@@ -623,79 +573,6 @@ export class EmailService implements IEmailService {
     return jobItem.save();
   }
 
-  async updateEmail(
-    employee: IEmployeeJwt,
-    id: string,
-    body: any
-  ): Promise<IEmailRecordModel> {}
-
-  async deleteEmail(id: string): Promise<any> {}
-
-  // @TODO fix the 0th index thing
-  async sqsEmailHandler(event: IEmailSqsEventInput) {
-    console.log("[sqsEmailHandler]", event);
-    const {
-      senderEmail,
-      senderId,
-      replyTo,
-      ConfigurationSetName,
-      recipientId,
-      recipientEmail,
-      subject,
-      body,
-      ccList,
-      bccList,
-      companyId,
-    } = event.details[0];
-    try {
-      await validateSendEmail(event);
-      const respEmail = await this.sesEmailService.sendEmail(
-        senderEmail,
-        [recipientEmail],
-        subject,
-        body,
-        ConfigurationSetName,
-        ccList,
-        bccList,
-        replyTo
-      );
-
-      if (respEmail?.$metadata?.httpStatusCode === 200) {
-        const newEmail = new EmailRecordsModel({
-          senderId,
-          senderEmail,
-          emailData: {
-            subject,
-            body,
-          },
-          ccList: ccList?.join(","),
-          bccList: bccList?.join(","),
-          recipientId,
-          recipientEmail,
-          companyId,
-          serviceProvider: "AMAZON_SES",
-          updatedBy: senderId,
-          emailType: "SENDING",
-        });
-
-        const resp = await newEmail.save();
-        return resp;
-      }
-    } catch (error) {
-      console.log("[sqsEmailHandler] error: ", error);
-
-      if (error.$metadata) {
-        const {
-          $metadata: { httpStatusCode },
-          Error: { message },
-        } = error;
-        throw new CustomError(message, httpStatusCode);
-      } else {
-        throw new CustomError(error.message, error.statusCode, error);
-      }
-    }
-  }
-
   async emailQueueInvokeHandler(Records: SQSRecord[]) {
     console.log("[receiveEmailHelper] records", Records);
     for (const record of Records) {
@@ -881,10 +758,11 @@ export class EmailService implements IEmailService {
         .first();
 
       // move the upper code here, because it is mutating record on L:831
-      if (emailRecord?.status === "RECEIVED_AND_PROCESSED") {
-        console.log("Email already processed");
-        return;
-      }
+      // @TODO uncomment this
+      // if (emailRecord?.status === "RECEIVED_AND_PROCESSED") {
+      //   console.log("Email already processed");
+      //   return;
+      // }
 
       /** THREAD AND REPLIES HANDLING */
       const {
@@ -935,37 +813,10 @@ export class EmailService implements IEmailService {
 
       const { text: bodyText, html } = mailObject;
 
-      let contactRecord: IContact = null;
-      const fromRecipient: IRecipient = {
-        recipientEmail: mailObject?.from?.value[0]?.address,
-        recipientName: mailObject?.from?.value[0]?.name,
-        recipientType: "FROM",
-        threadId,
-        recipientCompanyDetails: null,
-        recipientEmployeeDetails: null,
-      };
-
-      if (mailObject?.from?.value[0]?.address) {
-        contactRecord = await ContactModel.query()
-          .where(
-            "emails",
-            "@>",
-            JSON.stringify([mailObject?.from?.value[0]?.address])
-          )
-          .first();
-        if (contactRecord) {
-          fromRecipient.recipientCompanyDetails = {
-            companyId: contactRecord.companyId,
-            contactId: contactRecord.id,
-          };
-          fromRecipient.recipientCategory = "COMPANY_CONTACT";
-        }
-      }
-      const recipients: IRecipient[] = await this.addRecipients(
+      const recipients: IRecipient[] = await this.getReceiveEmailRecipients(
         mailObject,
         threadId
       );
-      recipients.push(fromRecipient);
 
       // move this whole transaction to another function
       let trxError = null;
@@ -986,7 +837,6 @@ export class EmailService implements IEmailService {
               containsHtml: !!html,
               status: "RECEIVED_AND_PROCESSING",
               threadId,
-              details: "{}",
             });
           }
 
@@ -1059,40 +909,39 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async addRecipients(mailObject: ParsedMail, threadId: string | null) {
-    const emailsToFind = mailObject.to?.value
-      .map((x) => x.address)
-      .concat(
-        mailObject.bcc?.value.map((x) => x.address) || [],
-        mailObject.cc?.value.map((x) => x.address) || []
-      );
+  async getReceiveEmailRecipients(
+    mailObject: ParsedMail,
+    threadId: string | null
+  ): Promise<IRecipient[]> {
+    const combinedEmails: string[] = [
+      ...getEmailsFromParsedEmails(mailObject?.from),
+      ...getEmailsFromParsedEmails(mailObject?.to),
+      ...getEmailsFromParsedEmails(mailObject?.cc),
+      ...getEmailsFromParsedEmails(mailObject?.bcc),
+    ];
 
-    const employees: IEmployee[] = await EmployeeModel.query().whereIn(
+    const employeeRecords: IEmployee[] = await EmployeeModel.query().whereIn(
       "email",
-      emailsToFind
+      combinedEmails
     );
 
-    const recipients = this.getRecipientsFromAddressList(
-      mailObject.to?.value || [],
-      "TO_LIST",
-      employees,
-      threadId
-    ).concat(
-      this.getRecipientsFromAddressList(
-        mailObject.cc?.value || [],
-        "CC_LIST",
-        employees,
-        threadId
-      ),
-      this.getRecipientsFromAddressList(
-        mailObject.bcc?.value || [],
-        "BCC_LIST",
-        employees,
-        threadId
+    const contactRecords: IContact[] = await ContactModel.query()
+      .joinRaw(
+        "CROSS JOIN LATERAL jsonb_array_elements_text(emails) AS email(value)"
       )
-    );
+      .whereIn("value", combinedEmails);
 
-    return recipients;
+    return getRecipientsFromAddress(
+      [
+        { list: mailObject.to, type: "TO_LIST", folderName: "inbox" },
+        { list: mailObject.cc, type: "CC_LIST", folderName: "inbox" },
+        { list: mailObject.bcc, type: "BCC_LIST", folderName: "inbox" },
+        { list: mailObject.from, type: "FROM", folderName: "sent_items" },
+      ],
+      threadId,
+      employeeRecords,
+      contactRecords
+    );
   }
 
   getRecipientsFromAddressList(
