@@ -13,6 +13,7 @@ export const recipientCategoryTypes: RECIPIENT_CATEGORY[] = [
 
 export interface IRecipientEmployeeDetails {
   id?: string;
+  email: string;
   recipientId?: string;
   folderName: string;
   labels?: string;
@@ -34,6 +35,7 @@ export class RecipientEmployeeDetailsModel extends Model {
 
       properties: {
         id: { type: "string" },
+        email: { type: "string" },
         recipientId: { type: "string" },
         folderName: { type: "string" },
         labels: { type: "string" },

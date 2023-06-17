@@ -174,7 +174,7 @@ const getInboxEmailsHandler = async (event) => {
   try {
     const emails = await container
       .resolve(EmailService)
-      .getInboxEmails(event.employee, event.params);
+      .getInboxEmails(event.employee, event.query);
     return formatJSONResponse(emails, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -189,7 +189,8 @@ const deleteEmailByIdHandler = async (event) => {
     return formatJSONResponse(emails, 200);
   } catch (e) {
     return formatErrorResponse(e);
-  }};
+  }
+};
 
 export const getEmailTemplateContentById = checkRolePermission(
   getEmailTemplateContentByIdHandler,

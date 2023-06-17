@@ -67,7 +67,12 @@ import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { RecipientModel } from "./models/Recipient";
 import { I_BULK_EMAIL_JOB } from "./models/interfaces/bulkEmail";
 import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
-import { EMAIL_ADDRESSES_TABLE } from "./models/commons";
+import {
+  EMAIL_ADDRESSES_TABLE,
+  EMAIL_RECIPIENT_TABLE,
+  EMAIL_RECORDS_TABLE,
+  RECIPIENT_EMPLOYEE_DETAILS,
+} from "./models/commons";
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
@@ -83,6 +88,7 @@ import {
   getEmailsFromParsedEmails,
   getRecipientsFromAddress,
 } from "./helper";
+import { RecipientEmployeeDetailsModel } from "./models/RecipientEmployeeDetails";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -1269,34 +1275,76 @@ export class EmailService implements IEmailService {
   }
 
   async getInboxEmails(employee: IEmployeeJwt, body) {
-    const { page = 1, pageSize = 10, filter } = body;
+    const {
+      page = 1,
+      pageSize = 10,
+      to,
+      from,
+      subject,
+      haveWords,
+      doesntHaveWords,
+      size,
+      dateWithin,
+      folderName,
+      hasAttachment,
+      search,
+    } = body;
     const offset = (page - 1) * pageSize;
 
     try {
-      const raw = RecipientModel.raw;
-      // Fetch the latest reply for each email thread
-      const recipientTypeArr = ["TO_LIST", "CC_LIST", "BCC_LIST"];
-      const latestReplies: { emailId: string; max: string }[] =
-        await RecipientModel.query()
-          .select("emailId", raw("MAX(created_at) AS max"))
-          .where("recipientEmail", "wmfarooqi05@gmail.com")
-          .whereIn("recipientType", recipientTypeArr)
-          .groupBy("emailId");
+      const emailRecords = RecipientModel.query().alias("r");
 
-      console.log("latestReplies", latestReplies);
-
-      const latestEmails = await EmailRecordModel.query()
-        .alias("e1")
-        .select("e1.*")
-        .leftJoin("email_records AS e2", "e1.message_id", "e2.in_reply_to")
-        .whereNull("e2.message_id")
-        .whereIn(
-          "e1.id",
-          latestReplies.map((x) => x.emailId)
+      emailRecords
+        .select("*")
+        .leftJoin(
+          `${RECIPIENT_EMPLOYEE_DETAILS} as ed`,
+          `ed.recipient_id`,
+          `r.id`
         )
-        .orderBy("e1.sentAt", "desc");
+        .leftJoin(`${EMAIL_RECORDS_TABLE} as e`, `e.id`, `r.email_id`);
 
-      return latestEmails;
+      // @TODO remove this comment
+      // // Foldername is must
+
+      emailRecords.where((builder) => {
+        builder.where((builder2) => {
+          if (search && !from && !to) {
+            builder2.orWhere("r.recipient_name", "ilike", `%${search}%`);
+            builder2.orWhere("r.recipient_email", "ilike", `%${search}%`);
+          }
+
+          if (from) {
+            builder2.orWhere((builder3) => {
+              builder3.where("r.recipient_name", "ilike", `%${search}%`);
+              builder3.andWhere("r.recipient_type", "FROM");
+            });
+          }
+
+          if (to) {
+            builder2.orWhere((builder3) => {
+              builder3.where("r.recipient_name", "ilike", `%${search}%`);
+              builder3.andWhere("r.recipient_type", "TO_LIST");
+            });
+          }
+
+          // @TODO check if we need andWhere or OrWhere
+          // (to || search) &&
+          //     .andWhere("r.recipientType", "TO_LIST");
+
+          (subject || search) &&
+            builder2.orWhere("e.subject", "ilike", `%${subject || search}%`);
+          (haveWords || search) &&
+            builder2.orWhere("e.body", "ilike", `%${haveWords || search}%`);
+          // hasAttachment && emailRecords.andWhere("e.attachments", )
+          // dateWithin && emailRecords.andWhere("e.sentAt", dateWithin);
+          // @TODO implement doesntHave
+          // case "size": // we need to handle size
+        });
+        builder.where("ed.folderName", folderName);
+      });
+
+      console.log(emailRecords.toKnexQuery().toSQL());
+      return emailRecords.execute();
     } catch (error) {
       console.error(error);
       throw new CustomError("An error occurred while fetching the inbox.", 500);
