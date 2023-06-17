@@ -15,9 +15,10 @@ export interface IRecipientEmployeeDetails {
   id?: string;
   recipientId?: string;
   folderName: string;
-  labels: string;
+  labels?: string;
   isRead: boolean;
-  category: string;
+  /** @deprecated */
+  category?: string;
 }
 
 @singleton()

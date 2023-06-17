@@ -117,7 +117,7 @@ export class EmailRecordModel extends Model {
         contentUrl: { type: ["string", "null"], default: null },
         containsHtml: { type: "boolean" },
         threadId: { type: ["string", "null"], default: null },
-        details: { type: ["string", "null"], default: {} },
+        details: { type: "object", default: {} },
       },
     };
   }

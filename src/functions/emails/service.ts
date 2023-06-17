@@ -86,6 +86,7 @@ import ContactModel from "@models/Contacts";
 import { IContact } from "@models/Contacts";
 import { IRecipientEmployeeDetails } from "./models/RecipientEmployeeDetails";
 import e from "express";
+import { IRecipientCompanyDetails } from "./models/RecipientCompanyDetails";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -197,7 +198,6 @@ export class EmailService implements IEmailService {
       inReplyTo: inReplyTo || undefined,
       references: references || undefined,
       threadId,
-      emailFolder: "SENT_ITEMS",
     };
     let emailEntity = await this.createEmailObject(
       email,
@@ -277,48 +277,79 @@ export class EmailService implements IEmailService {
   ) {
     let emailEntity: IEmailRecord = null;
     let error: any = null;
+
+    const getEmails = (list) => (list ? list.map((x) => x.email) : []);
+
+    const combinedEmails: string[] = [
+      ...getEmails(toList),
+      ...getEmails(ccList),
+      ...getEmails(bccList),
+    ];
+
+    const employeeRecords: IEmployee[] = await EmployeeModel.query().whereIn(
+      "email",
+      combinedEmails
+    );
+
+    const contactRecords: IContact[] = await ContactModel.query()
+      .joinRaw(
+        "CROSS JOIN LATERAL jsonb_array_elements_text(emails) AS email(value)"
+      )
+      .whereIn("value", combinedEmails);
+
+    const recipients: IRecipient[] = (
+      [
+        {
+          recipientName: senderName,
+          recipientEmail: senderEmail,
+          recipientType: "FROM",
+          threadId,
+          recipientEmployeeDetails: {
+            folderName: "sent_items",
+            isRead: false,
+          },
+        },
+      ] as IRecipient[]
+    ).concat(
+      toList?.map((x) =>
+        this.makeSendEmailRecipients(
+          x.name,
+          x.email,
+          "TO_LIST",
+          threadId,
+          employeeRecords,
+          contactRecords
+        )
+      ) || [],
+      ccList?.map((x) =>
+        this.makeSendEmailRecipients(
+          x.name,
+          x.email,
+          "CC_LIST",
+          threadId,
+          employeeRecords,
+          contactRecords
+        )
+      ) || [],
+      bccList?.map((x) =>
+        this.makeSendEmailRecipients(
+          x.name,
+          x.email,
+          "BCC_LIST",
+          threadId,
+          employeeRecords,
+          contactRecords
+        )
+      ) || []
+    );
+
+    console.log("a");
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         emailEntity = await EmailRecordModel.query(trx).insert(email);
 
-        const recipients: IRecipient[] = [
-          {
-            recipientName: senderName,
-            recipientEmail: senderEmail,
-            recipientType: "FROM",
-            emailId: emailEntity.id,
-            threadId,
-          },
-        ];
-        toList?.map((x) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "TO_LIST",
-            recipientName: x.name,
-            recipientEmail: x.email,
-            threadId,
-          });
-        });
-        ccList?.map((x) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "CC_LIST",
-            recipientName: x.name,
-            recipientEmail: x.email,
-            threadId,
-          });
-        });
-        bccList?.map((x) => {
-          return recipients.push({
-            emailId: emailEntity.id,
-            recipientType: "BCC_LIST",
-            recipientName: x.name,
-            recipientEmail: x.email,
-            threadId,
-          });
-        });
-
-        emailEntity["recipients"] = await RecipientModel.query(trx).insert(
+        recipients.forEach((x) => (x.emailId = emailEntity.id));
+        emailEntity["recipients"] = await RecipientModel.query(trx).insertGraph(
           recipients
         );
       } catch (e) {
@@ -330,6 +361,41 @@ export class EmailService implements IEmailService {
       throw new CustomError(error.message, error.statusCode);
     }
     return emailEntity;
+  }
+
+  makeSendEmailRecipients(
+    name,
+    email,
+    recipientType,
+    threadId,
+    employeeRecords,
+    contactRecords
+  ) {
+    const defaultEmployeeDetails: IRecipientEmployeeDetails = {
+      folderName: "inbox",
+      isRead: false,
+    };
+    const recipient: IRecipient = {
+      recipientType,
+      recipientName: name,
+      recipientEmail: email,
+      threadId,
+      recipientCategory: "OTHERS",
+    };
+    if (employeeRecords.find((e) => e.email === email)) {
+      recipient.recipientCategory = "EMPLOYEE";
+      recipient.recipientEmployeeDetails = defaultEmployeeDetails;
+    } else {
+      const contact = contactRecords.find((c) => c.emails.includes(email));
+      if (contact) {
+        recipient.recipientCategory = "COMPANY_CONTACT";
+        recipient.recipientCompanyDetails = {
+          companyId: contact.companyId,
+          contactId: contact.id,
+        };
+      }
+    }
+    return recipient;
   }
 
   /**
