@@ -85,9 +85,11 @@ import {
   applyWordFilterOnBuilder,
   convertToEmailAddress,
   getEmailsFromParsedEmails,
+  getKeywords,
   getRecipientsFromAddress,
   parseSearchQuery,
 } from "./helper";
+import { sortLabels, sortedTags } from "@functions/activities/helpers";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -1263,17 +1265,33 @@ export class EmailService implements IEmailService {
   }
 
   async getInboxEmails(employee: IEmployeeJwt, body) {
-    const { page = 0, pageSize = 10, searchQuery } = body;
+    const {
+      page = 0,
+      pageSize = 10,
+      searchQuery,
+      from: _from,
+      in: _in,
+      to: _to,
+      haveWords: _haveWords,
+      subject: _subject,
+      labels: _labels,
+    } = body;
 
-    const parsedQuery = parseSearchQuery(searchQuery);
-    const { keywords, filters } = parsedQuery;
+    // const { keywords, filters } = parsedQuery;
+    const keywords = getKeywords(searchQuery);
+    const filters = {
+      from: _from?.split(","),
+      in: _in?.split(","),
+      to: _to?.split(","),
+      haveWords: _haveWords?.split(","),
+      subject: _subject?.split(","),
+      labels: _labels?.split(",") || [],
+    };
 
     try {
       const query = EmailRecordModel.query().alias("e");
 
       query
-        .distinctOn("e.id")
-        .select("e.*")
         .leftJoin(`${EMAIL_RECIPIENT_TABLE} as r`, `r.email_id`, `e.id`)
         .leftJoin(
           `${RECIPIENT_EMPLOYEE_DETAILS} as ed`,
@@ -1291,19 +1309,34 @@ export class EmailService implements IEmailService {
         });
       }
 
-      if (filters?.in?.length) {
-        query.where("folderName", filters.in[0]);
+      if (filters.in?.length) {
+        query
+          .where("ed.folderName", filters.in[0])
+          .andWhere("ed.employeeId", employee.sub);
       }
-      filters.to &&
-        query.where((builder) => {
-          builder.whereIn("r.recipient_email", filters.to);
-          builder.andWhere("r.recipient_type", "TO_LIST");
-        });
+
+      if (filters.labels.length) {
+        query
+          .whereRaw("ed.labels @> ?", JSON.stringify(filters.labels))
+          .andWhere("ed.employeeId", employee.sub);
+      }
       filters.from &&
-        query.where((builder) => {
+        query.orWhere((builder) => {
           builder.whereIn("r.recipient_email", filters.from);
           builder.andWhere("r.recipient_type", "FROM");
         });
+      filters.to &&
+        query.orWhere((builder) => {
+          builder.whereIn("r.recipient_email", filters.to);
+          builder.andWhere("r.recipient_type", "TO_LIST");
+        });
+
+      if (filters.from || filters.to) {
+        const totalCount = filters.from.length + filters.to.length;
+        query
+          .groupBy("e.id")
+          .havingRaw("COUNT(r.recipient_email) = ?", [totalCount]);
+      }
 
       if (filters?.subject?.length) {
         query.where((builder) => {
@@ -1322,9 +1355,7 @@ export class EmailService implements IEmailService {
       console.log(query.toKnexQuery().toSQL());
       const emails: any = await query.execute();
       return EmailRecordModel.query()
-        .withGraphFetched(
-          `recipients.[recipientEmployeeDetails(filterByMe)]`
-        )
+        .withGraphFetched(`recipients.[recipientEmployeeDetails(filterByMe)]`)
         .modifiers({
           filterByMe: (query) => query.modify("filterMe", employee.sub),
         })

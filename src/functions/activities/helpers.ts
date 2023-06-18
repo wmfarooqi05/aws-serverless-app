@@ -125,9 +125,25 @@ export const createStatusHistory = (
   };
 };
 
+/**
+ * It convert a string with labels in lowercase and sorted order
+ * 'kid,Abc' -> 'abc,kid'
+ * @param label string | undefined
+ * @returns string
+ */
+export const sortLabels = (label: string | undefined): string => {
+  if (!label) return "";
+  return label
+    .split(",")
+    .map((x) => x.toLocaleLowerCase())
+    .sort((a, b) => a.localeCompare(b)).join(',');
+};
+
 export const sortedTags = (tags: string[]): string[] => {
   if (!(tags?.length > 0)) return [];
-  return tags?.sort((a, b) => a.localeCompare(b));
+  return tags
+    ?.map((x) => x.toLocaleLowerCase())
+    ?.sort((a, b) => a.localeCompare(b));
 };
 
 export const addFiltersToQueryBuilder = (queryBuilder, body) => {

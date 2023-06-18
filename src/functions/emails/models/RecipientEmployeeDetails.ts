@@ -2,6 +2,7 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { RECIPIENT_EMPLOYEE_DETAILS } from "./commons";
+import { sortedTags } from "@functions/activities/helpers";
 
 export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";
 export type RECIPIENT_CATEGORY = "EMPLOYEE" | "COMPANY_CONTACT" | "OTHERS";
@@ -16,7 +17,7 @@ export interface IRecipientEmployeeDetails {
   employeeId: string;
   recipientId?: string;
   folderName: string;
-  labels?: string;
+  labels?: string[];
   isRead: boolean;
   /** @deprecated */
   category?: string;
@@ -38,7 +39,7 @@ export class RecipientEmployeeDetailsModel extends Model {
         employeeId: { type: "string" },
         recipientId: { type: "string" },
         folderName: { type: "string" },
-        labels: { type: "string" },
+        labels: { type: "array", default: [] },
         isRead: { type: "boolean" },
         category: { type: "string" },
         createdAt: { type: "string" },
@@ -46,6 +47,11 @@ export class RecipientEmployeeDetailsModel extends Model {
       },
     };
   }
+
+  static get jsonAttributes() {
+    return ["labels"];
+  }
+
   static modifiers = {
     filterMe(query, employeeId) {
       query.where("employeeId", employeeId);

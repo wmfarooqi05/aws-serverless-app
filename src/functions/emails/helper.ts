@@ -127,6 +127,17 @@ export const convertToEmailAddress = (
 ): EmailAddress[] =>
   list?.map((x) => ({ name: x.name, address: x.email })) || [];
 
+export const getKeywords = (searchQuery: string): string[] => {
+  if (!searchQuery) return [];
+  return searchQuery.trim().split(" ");
+};
+
+/**
+ * @deprecated
+ * not working in case of from: email1@gmail.com, email2@gmail.com
+ * @param searchQuery
+ * @returns
+ */
 export const parseSearchQuery = (searchQuery: string) => {
   if (!searchQuery) return { keywords: [], filters: {} };
   const keywords = searchQuery.trim().split(" ");
