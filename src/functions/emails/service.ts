@@ -5,7 +5,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
-import EmailRecordsModel, { IJobData, JobsModel } from "@models/dynamoose/Jobs";
+import { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import {
@@ -14,7 +14,6 @@ import {
   validateMoveToFolder,
   validateSendEmail,
 } from "./schema";
-import { IEmailSqsEventInput } from "@models/interfaces/Reminders";
 import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
 import { simpleParser, Attachment, EmailAddress, ParsedMail } from "mailparser";
@@ -70,7 +69,6 @@ import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
 import {
   EMAIL_ADDRESSES_TABLE,
   EMAIL_RECIPIENT_TABLE,
-  EMAIL_RECORDS_TABLE,
   RECIPIENT_EMPLOYEE_DETAILS,
 } from "./models/commons";
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
@@ -84,11 +82,12 @@ import { deleteMessageFromSQS } from "@utils/sqs";
 import ContactModel from "@models/Contacts";
 import { IContact } from "@models/Contacts";
 import {
+  applyWordFilterOnBuilder,
   convertToEmailAddress,
   getEmailsFromParsedEmails,
   getRecipientsFromAddress,
+  parseSearchQuery,
 } from "./helper";
-import { RecipientEmployeeDetailsModel } from "./models/RecipientEmployeeDetails";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -101,7 +100,6 @@ export class EmailService implements IEmailService {
   sqsClient: SQSClient = null;
   emailDbClient: DatabaseService = null;
   constructor(
-    @inject(SESEmailService) private readonly sesEmailService: SESEmailService,
     @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });
@@ -501,18 +499,8 @@ export class EmailService implements IEmailService {
     // const values = emailAddresses.map(email => `'${email}'`).join(',')}
 
     const emailList = emailAddresses.map((x) => x.email);
-    const emails = [
-      "hassan@gmail.com",
-      "hassan2@gmail.com",
-      "jhon@gmail.com",
-      "wm2@gmail.com",
-      "wmfarooqi05@gmail.com",
-      "hazyhassan888@gmail.com",
-      "wmfarooqi70@gmail.com",
-    ];
 
     // const knex = this.docClient.getKnexClient();
-    const values: string = emailList.map((email) => `'${email}'`).join(",");
 
     // const contacts = await this.docClient
     //   .getKnexClient()("contacts")
@@ -849,9 +837,6 @@ export class EmailService implements IEmailService {
           recipients.forEach((x) => {
             x.emailId = emailRecord.id;
           });
-          const updatedObject = await RecipientModel.query(trx).insertGraph(
-            recipients
-          );
           console.log("saving recipients");
           await trx.commit();
         } catch (e) {
@@ -950,6 +935,7 @@ export class EmailService implements IEmailService {
     );
   }
 
+  /** @deprecated */
   getRecipientsFromAddressList(
     addresses: EmailAddress[],
     recipientType: RECIPIENT_TYPE,
@@ -966,12 +952,14 @@ export class EmailService implements IEmailService {
         // recipientCompanyDetails: null,
         // recipientEmployeeDetails: null,
       };
-      if (employees.find((e) => e.email === x.address)) {
+      const employee = employees.find((e) => e.email === x.address);
+      if (employee) {
         recipient.recipientEmployeeDetails = {
           category: "EMPLOYEE", // @TODO maybe remove this
           folderName: "inbox",
           isRead: false,
           labels: "",
+          employeeId: employee.id,
         };
         recipient.recipientCategory = "EMPLOYEE";
       }
@@ -1001,7 +989,7 @@ export class EmailService implements IEmailService {
       thumbnailUrl: string;
     }[];
   }> {
-    const { text, html, headers } = mailObject;
+    const { text, headers } = mailObject;
 
     // FileMap with original and s3 filenames record
     const fileMap: {
@@ -1275,88 +1263,83 @@ export class EmailService implements IEmailService {
   }
 
   async getInboxEmails(employee: IEmployeeJwt, body) {
-    const {
-      page = 1,
-      pageSize = 10,
-      to,
-      from,
-      subject,
-      haveWords,
-      doesntHaveWords,
-      size,
-      dateWithin,
-      folderName,
-      hasAttachment,
-      search,
-    } = body;
-    const offset = (page - 1) * pageSize;
+    const { page = 0, pageSize = 10, searchQuery } = body;
+
+    const parsedQuery = parseSearchQuery(searchQuery);
+    const { keywords, filters } = parsedQuery;
 
     try {
-      const emailRecords = RecipientModel.query().alias("r");
+      const query = EmailRecordModel.query().alias("e");
 
-      emailRecords
-        .select("*")
+      query
+        .distinctOn("e.id")
+        .select("e.*")
+        .leftJoin(`${EMAIL_RECIPIENT_TABLE} as r`, `r.email_id`, `e.id`)
         .leftJoin(
           `${RECIPIENT_EMPLOYEE_DETAILS} as ed`,
           `ed.recipient_id`,
           `r.id`
-        )
-        .leftJoin(`${EMAIL_RECORDS_TABLE} as e`, `e.id`, `r.email_id`);
+        );
 
-      // @TODO remove this comment
-      // // Foldername is must
-
-      emailRecords.where((builder) => {
-        builder.where((builder2) => {
-          if (search && !from && !to) {
-            builder2.orWhere("r.recipient_name", "ilike", `%${search}%`);
-            builder2.orWhere("r.recipient_email", "ilike", `%${search}%`);
-          }
-
-          if (from) {
-            builder2.orWhere((builder3) => {
-              builder3.where("r.recipient_name", "ilike", `%${search}%`);
-              builder3.andWhere("r.recipient_type", "FROM");
-            });
-          }
-
-          if (to) {
-            builder2.orWhere((builder3) => {
-              builder3.where("r.recipient_name", "ilike", `%${search}%`);
-              builder3.andWhere("r.recipient_type", "TO_LIST");
-            });
-          }
-
-          // @TODO check if we need andWhere or OrWhere
-          // (to || search) &&
-          //     .andWhere("r.recipientType", "TO_LIST");
-
-          (subject || search) &&
-            builder2.orWhere("e.subject", "ilike", `%${subject || search}%`);
-          (haveWords || search) &&
-            builder2.orWhere("e.body", "ilike", `%${haveWords || search}%`);
-          // hasAttachment && emailRecords.andWhere("e.attachments", )
-          // dateWithin && emailRecords.andWhere("e.sentAt", dateWithin);
-          // @TODO implement doesntHave
-          // case "size": // we need to handle size
+      if (keywords.length) {
+        query.where((builder) => {
+          applyWordFilterOnBuilder(builder, keywords, [
+            "e.subject",
+            "e.body",
+            "r.recipient_name",
+          ]);
         });
-        builder.where("ed.folderName", folderName);
-      });
+      }
 
-      console.log(emailRecords.toKnexQuery().toSQL());
-      return emailRecords.execute();
+      if (filters?.in?.length) {
+        query.where("folderName", filters.in[0]);
+      }
+      filters.to &&
+        query.where((builder) => {
+          builder.whereIn("r.recipient_email", filters.to);
+          builder.andWhere("r.recipient_type", "TO_LIST");
+        });
+      filters.from &&
+        query.where((builder) => {
+          builder.whereIn("r.recipient_email", filters.from);
+          builder.andWhere("r.recipient_type", "FROM");
+        });
+
+      if (filters?.subject?.length) {
+        query.where((builder) => {
+          applyWordFilterOnBuilder(builder, filters.subject, ["e.subject"]);
+        });
+      }
+
+      if (filters?.haveWords?.length) {
+        query.where((builder) => {
+          applyWordFilterOnBuilder(builder, filters.haveWords, ["e.body"]);
+        });
+      }
+
+      query.page(page, pageSize);
+
+      console.log(query.toKnexQuery().toSQL());
+      const emails: any = await query.execute();
+      return EmailRecordModel.query()
+        .withGraphFetched(
+          `recipients.[recipientEmployeeDetails(filterByMe)]`
+        )
+        .modifiers({
+          filterByMe: (query) => query.modify("filterMe", employee.sub),
+        })
+        .findByIds(emails?.results?.map((x) => x.id));
+      // const recipients = await RecipientModel.query().where
     } catch (error) {
       console.error(error);
       throw new CustomError("An error occurred while fetching the inbox.", 500);
     }
   }
 
-  async _getInboxEmails(employee: IEmployeeJwt, body) {
+  async _getInboxEmails(body) {
     const { page = 1, pageSize = 10, filter } = body;
-    const offset = (page - 1) * pageSize;
 
     try {
-      const raw = RecipientModel.raw;
       // Fetch the latest reply for each email thread
       const recipientTypeArr = ["FROM", "TO_LIST", "CC_LIST", "BCC_LIST"];
       const latestReplies: IRecipient[] = await RecipientModel.query()
@@ -1480,7 +1463,7 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async moveToFolder(employee: IEmployeeJwt, body) {
+  async moveToFolder(body) {
     const payload = JSON.parse(body);
     await validateMoveToFolder(payload);
     const emailRecord: IEmailRecord = await EmailRecordModel.query().findById(

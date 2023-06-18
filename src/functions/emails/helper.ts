@@ -3,6 +3,7 @@ import { IRecipient } from "./models/Recipient";
 import { AddressObject, EmailAddress } from "mailparser";
 import { IEmployee } from "@models/interfaces/Employees";
 import { IContact } from "@models/Contacts";
+import Objection from "objection";
 
 /**
  * Extract all emails from AddressObject | AddressObject[]
@@ -96,12 +97,14 @@ const getRecipientsFromAddressList = (
       recipientCategory: "OTHERS",
     };
 
-    if (employeeRecords.find((e) => e.email === x.address)) {
+    const employee = employeeRecords.find((e) => e.email === x.address);
+    if (employee) {
       recipient.recipientCategory = "EMPLOYEE";
       recipient.recipientEmployeeDetails = {
         folderName,
         isRead: false,
         labels: "",
+        employeeId: employee.id,
       };
     } else {
       const contact = contactRecords.find((c) => c.emails.includes(x.address));
@@ -123,3 +126,53 @@ export const convertToEmailAddress = (
   list: { name: string; email: string }[]
 ): EmailAddress[] =>
   list?.map((x) => ({ name: x.name, address: x.email })) || [];
+
+export const parseSearchQuery = (searchQuery: string) => {
+  if (!searchQuery) return { keywords: [], filters: {} };
+  const keywords = searchQuery.trim().split(" ");
+  const filters: any = {};
+
+  for (let i = 0; i < keywords.length; i++) {
+    const keyword = keywords[i];
+    const parts = keyword.split(":");
+
+    if (parts.length === 2) {
+      const filterName = parts[0];
+      let filterValue = parts[1];
+
+      if (filterValue.startsWith("(") && filterValue.endsWith(")")) {
+        filterValue = filterValue.slice(1, -1); // Remove the brackets
+      }
+      // const filterValue = filterValueStr?.split(",").map((x) => x.trim());
+
+      if (!filters[filterName]) {
+        filters[filterName] = [];
+      }
+
+      filters[filterName].push(...filterValue.split(",").map((x) => x.trim()));
+    }
+  }
+
+  return {
+    keywords: keywords.filter((keyword) => keyword.indexOf(":") === -1),
+    filters,
+  };
+};
+
+/**
+ * It return a where query for words array by apply `ilike` filter on each word
+ * @param builder
+ * @param keywords
+ * @param columns
+ */
+export const applyWordFilterOnBuilder = (
+  builder: Objection.QueryBuilder<any>,
+  keywords: string[],
+  columns: string[]
+) => {
+  keywords.forEach((keyword) => {
+    columns.forEach((column) =>
+      builder.orWhere(column, "ilike", `%${keyword}%`)
+    );
+  });
+};

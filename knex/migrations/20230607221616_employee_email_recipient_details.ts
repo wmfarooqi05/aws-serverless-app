@@ -1,8 +1,9 @@
 import { Knex } from "knex";
-import { tableName as Tables } from "../email_tables";
+import { tableName as emailTables } from "../email_tables";
+import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.recipientEmployeeDetails;
+const tableName = emailTables.recipientEmployeeDetails;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
@@ -12,12 +13,17 @@ export async function up(knex: Knex): Promise<void> {
         .uuid("recipient_id")
         .index()
         .references("id")
-        .inTable(Tables.emailRecipients)
+        .inTable(emailTables.emailRecipients)
         .notNullable();
+        table
+          .uuid("employee_id")
+          .index()
+          .references("id")
+          .inTable(Tables.employees)
+          .notNullable();
       table.string("folder_name").notNullable().defaultTo("inbox");
       table.string("labels");
       table.boolean("is_read").defaultTo(false);
-      table.string("category");
 
       table
         .timestamp("created_at", { useTz: true })

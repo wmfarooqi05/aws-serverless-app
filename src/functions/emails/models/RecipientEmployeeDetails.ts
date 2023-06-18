@@ -13,7 +13,7 @@ export const recipientCategoryTypes: RECIPIENT_CATEGORY[] = [
 
 export interface IRecipientEmployeeDetails {
   id?: string;
-  email: string;
+  employeeId: string;
   recipientId?: string;
   folderName: string;
   labels?: string;
@@ -31,11 +31,11 @@ export class RecipientEmployeeDetailsModel extends Model {
   static get jsonSchema() {
     return {
       type: "object",
-      required: ["recipientId", "folderName", "isRead"],
+      required: ["recipientId", "employeeId", "folderName", "isRead"],
 
       properties: {
         id: { type: "string" },
-        email: { type: "string" },
+        employeeId: { type: "string" },
         recipientId: { type: "string" },
         folderName: { type: "string" },
         labels: { type: "string" },
@@ -46,7 +46,11 @@ export class RecipientEmployeeDetailsModel extends Model {
       },
     };
   }
-
+  static modifiers = {
+    filterMe(query, employeeId) {
+      query.where("employeeId", employeeId);
+    },
+  };
   // static get relationMappings() {
   //   return {
   //     contact: {
