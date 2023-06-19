@@ -18,6 +18,7 @@ export const tableName = {
     process.env.RECIPIENT_COMPANY_DETAILS || "recipient_company_details",
   employeeEmailSettings:
     process.env.EMPLOYEE_EMAIL_SETTINGS || "employee_email_settings",
+  /** @deprecated */
   employeeEmailLabels:
     process.env.EMPLOYEE_EMAIL_LABELS || "employee_email_labels",
 };

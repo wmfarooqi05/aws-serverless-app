@@ -17,6 +17,8 @@ export async function up(knex: Knex): Promise<void> {
         .notNullable();
       table.string("default_signature");
       table.jsonb("pinned_list");
+      table.jsonb("labels").defaultTo([]);
+      table.jsonb("default_text_styles");
 
       table
         .timestamp("created_at", { useTz: true })

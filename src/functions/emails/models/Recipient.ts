@@ -28,6 +28,7 @@ export interface IRecipient {
   recipientType: RECIPIENT_TYPE;
   recipientName?: string;
   recipientEmail: string;
+  /** @deprecated */
   threadId: string;
   recipientCategory?: RECIPIENT_CATEGORY;
   recipientEmployeeDetails?: IRecipientEmployeeDetails;
