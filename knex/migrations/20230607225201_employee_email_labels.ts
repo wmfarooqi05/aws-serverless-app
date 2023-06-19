@@ -5,6 +5,9 @@ import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
 const tableName = EmailTables.employeeEmailLabels;
 
+/** @deprecated 
+ * we dont need this table
+*/
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {

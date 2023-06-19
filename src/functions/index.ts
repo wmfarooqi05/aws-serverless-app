@@ -47,7 +47,7 @@ import { teamHandler } from "@functions/teams";
 import { cognitoOAuthHandler } from "./auth";
 
 import { utilsHandler } from "@functions/utils";
-import { scrapeGmail } from "./google/gmail";
+// import { scrapeGmail } from "./google/gmail";
 
 const exportHandlers = {
   companyHandler,
@@ -112,8 +112,8 @@ const exportHandlers = {
   // deleteAllReminders,
 };
 
-if (process.env.NODE_ENV === "local") {
-  exportHandlers["scrapeGmail"] = scrapeGmail;
-}
+// if (process.env.NODE_ENV === "local") {
+//   exportHandlers["scrapeGmail"] = scrapeGmail;
+// }
 
 export default exportHandlers;

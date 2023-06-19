@@ -1303,7 +1303,7 @@ export class EmailService implements IEmailService {
           `r.id`
         );
 
-      if (keywords.length) {
+      if (keywords?.length) {
         query.where((builder) => {
           applyWordFilterOnBuilder(builder, keywords, [
             "e.subject",
@@ -1319,24 +1319,25 @@ export class EmailService implements IEmailService {
           .andWhere("ed.employeeId", employee.sub);
       }
 
-      if (filters.labels.length) {
+      if (filters.labels?.length) {
         query
           .whereRaw("ed.labels @> ?", JSON.stringify(filters.labels))
           .andWhere("ed.employeeId", employee.sub);
       }
-      filters.from &&
+      filters?.from?.length &&
         query.orWhere((builder) => {
           builder.whereIn("r.recipient_email", filters.from);
           builder.andWhere("r.recipient_type", "FROM");
         });
-      filters.to &&
+      filters?.to?.length &&
         query.orWhere((builder) => {
           builder.whereIn("r.recipient_email", filters.to);
           builder.andWhere("r.recipient_type", "TO_LIST");
         });
 
-      if (filters.from || filters.to) {
-        const totalCount = filters.from.length + filters.to.length;
+      if (filters?.from?.length || filters?.to?.length) {
+        const totalCount =
+          filters?.from?.length || 0 + filters?.to?.length || 0;
         query
           .groupBy("e.id")
           .havingRaw("COUNT(r.recipient_email) = ?", [totalCount]);

@@ -19,6 +19,7 @@ export const generalFolders = [
   'important',
   'spam',
   'starred',
+  "archived"
 //  'draft' will be managed later
 ]
 

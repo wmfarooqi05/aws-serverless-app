@@ -120,6 +120,8 @@ export class GoogleOAuthService {
       employeeId,
       tokenType: token.token_type,
     };
+
+    /** @NOTES this will check if cognito email and google oauth email are same
     const tokenInfo = await this.getTokenInfo(token.access_token);
     const employee: IEmployee = await EmployeeModel.query().findById(employeeId);
     if (employee.email !== tokenInfo.email) {
@@ -128,6 +130,8 @@ export class GoogleOAuthService {
         400
       );
     }
+   */
+
     // @TODO: Add check here
     // Get Employee Object, and compare if scope has same email as employee object
     const newToken: IAuthToken = await AuthTokenModel.query()

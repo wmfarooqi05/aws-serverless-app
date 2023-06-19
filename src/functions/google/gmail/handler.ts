@@ -88,18 +88,18 @@ export const createAndSendEmail = jwtMiddlewareWrapper(
   createAndSendEmailHandler
 );
 
-export const scrapeGmailHandler = async (event) => {
-  try {
-    const result = await container
-      .resolve(GoogleGmailService)
-      .scrapeGmail(event.employee);
-    return formatGoogleJSONResponse(result, 201);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
+// export const scrapeGmailHandler = async (event) => {
+//   try {
+//     const result = await container
+//       .resolve(GoogleGmailService)
+//       .scrapeGmail(event.employee);
+//     return formatGoogleJSONResponse(result, 201);
+//   } catch (e) {
+//     return formatErrorResponse(e);
+//   }
+// };
 
-export const scrapeGmail = checkRolePermission(
-  scrapeGmailHandler,
-  "COMPANY_READ_ALL"
-);
+// export const scrapeGmail = checkRolePermission(
+//   scrapeGmailHandler,
+//   "COMPANY_READ_ALL"
+// );

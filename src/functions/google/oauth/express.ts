@@ -3,17 +3,9 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 import {
-  addEmployeeToTeam,
-  createTeam,
-  deleteTeam,
-  getTeamById,
-  getTeams,
-  googleOauthCallbackHandler,
   googleOauthExtendRefreshToken,
   googleOauthTokenScope,
   oauthHandler,
-  removeEmployeeFromTeam,
-  updateTeam,
 } from "./handler";
 
 app.use((req, _, next) => {
