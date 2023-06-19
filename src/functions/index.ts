@@ -39,7 +39,7 @@ import {
   // handleSESEmailToSNSEvent,
 } from "@functions/jobs";
 
-import { getEmployees, getEmployeesWorkSummary } from "@functions/employees";
+import { employeeHandler } from "@functions/employees";
 
 import { sqsJobQueueInvokeHandler } from "@functions/sqs";
 
@@ -96,9 +96,7 @@ const exportHandlers = {
   receiveEmailHandler,
 
   // employees
-  getEmployees,
-  getEmployeesWorkSummary,
-
+  employeeHandler,
   //
   sqsJobQueueInvokeHandler,
   // bulkImportUsersProcessHandler,

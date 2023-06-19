@@ -1,6 +1,8 @@
 import { getPaginatedJoiKeys } from "@common/schema";
 import EmployeeModel from "@models/Employees";
+import { DATE_FORMATS, GenderArray } from "@models/interfaces/Employees";
 import * as Joi from "joi";
+import moment from "moment-timezone";
 
 const schemaKeys = Object.keys(EmployeeModel?.jsonSchema?.properties || {});
 
@@ -24,4 +26,29 @@ export const validateGetEmployeesSummary = async (obj: any) => {
     .validateAsync(obj, {
       abortEarly: true,
     });
+};
+
+export const validateUpdateProfile = async (obj: any) => {
+  await Joi.object({
+    name: Joi.string(),
+    picture: Joi.string().uri(),
+    gender: Joi.string().valid(...GenderArray),
+    addresses: Joi.array().items({
+      title: Joi.string().required(),
+      city: Joi.string().required(),
+      state: Joi.string(),
+      country: Joi.string(),
+      postalCode: Joi.string(),
+      address: Joi.string().required(),
+      defaultAddress: Joi.bool().required(),
+    }),
+    birthdate: Joi.string().isoDate(),
+    secondaryPhoneNumbers: Joi.array().items({
+      title: Joi.string().required(),
+      phoneNumber: Joi.string(),
+    }),
+    timezone: Joi.string().valid(...moment.tz.names()),
+    dateFormat: Joi.string()
+      .valid(...DATE_FORMATS)
+  }).validateAsync(obj);
 };

@@ -1,24 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-const getEmployees = {
-  handler: `${handlerPath(__dirname)}/handler.getEmployees`,
-  events: [
-    {
-      http: {
-        method: "get",
-        path: "employees",
-        cors: true,
-      },
-    },
-  ],
-  layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
-  ],
-};
-
-const getEmployeesWorkSummary = {
-  handler: `${handlerPath(__dirname)}/handler.getEmployeesWorkSummary`,
+const employeeHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
@@ -27,10 +11,28 @@ const getEmployeesWorkSummary = {
         cors: true,
       },
     },
-  ],
-  layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    {
+      http: {
+        method: "get",
+        path: "employees",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "employee/profile",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "employee/profile/{id}",
+        cors: true,
+      },
+    },
   ],
 };
 
-export { getEmployees, getEmployeesWorkSummary };
+export { employeeHandler };

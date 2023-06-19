@@ -8,7 +8,11 @@ import {
   RolesEnum,
 } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
-import { validateGetEmployees, validateGetEmployeesSummary } from "./schema";
+import {
+  validateGetEmployees,
+  validateGetEmployeesSummary,
+  validateUpdateProfile,
+} from "./schema";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
@@ -104,6 +108,29 @@ export class EmployeeService implements IEmployeeService {
       })
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
+  }
+
+  async getProfile(employee: IEmployeeJwt) {
+    return EmployeeModel.query()
+      .findById(employee.sub)
+      .withGraphFetched("teams");
+  }
+
+  async updateMyProfile(employee: IEmployeeJwt, body: any) {
+    const payload = JSON.parse(body);
+    await validateUpdateProfile(payload);
+
+    if (payload.addresses) {
+      let defaultAddressCount = 0;
+      payload.addresses.forEach(
+        (address) => address.defaultAddress && defaultAddressCount++
+      );
+      if (defaultAddressCount > 1) {
+        throw new CustomError("Default address cannot be more than 1", 400);
+      }
+    }
+    await EmployeeModel.query().findById(employee.sub).patch(payload);
+    return EmployeeModel.query().findById(employee.sub);
   }
 
   /**

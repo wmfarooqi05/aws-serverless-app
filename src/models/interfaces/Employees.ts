@@ -61,6 +61,7 @@ export interface IEmployee {
   emailVerified?: boolean;
   phoneNumberVerified?: boolean;
   phoneNumber?: string;
+  secondaryPhoneNumbers: [];
   reportingManager?: string;
   addedBy?: string;
 
@@ -75,4 +76,18 @@ export interface IEmployeeWithTeam extends IEmployee {
   teams: ITeam[];
 }
 
-export const TEAM_HEADER_KEY = 'x-team-id';
+export const TEAM_HEADER_KEY = "x-team-id";
+
+export const DATE_FORMATS = [
+  "MM/YYYY/DD",
+  "MM/DD/YYYY",
+  "DD/YYYY/MM",
+  "DD/MM/YYYY",
+  "DD/MMM/YYYY",
+  "DDD/MMM/YYYY",
+  "MMM/DDD/YYYY",
+  "YYYY/MMM/DD",
+  "YYYY/DD/MMM",
+  "YYYY/MM/DD",
+  "YYYY/DD/MM",
+];

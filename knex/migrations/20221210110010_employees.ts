@@ -36,7 +36,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("timezone");
       // we will store it in elastic cache
       table.string("websocket_id");
-      table.string("gender");
+      table.string("gender", 20);
       table
         .uuid("added_by")
         .index()
@@ -44,7 +44,10 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(tableName)
         .onDelete("SET NULL");
       table.string("employee_status");
+      table.string("date_format").defaultTo('DD/MM/YYYY');
       table.jsonb("details").defaultTo(JSON.stringify({}));
+      table.jsonb("secondary_phone_numbers").defaultTo([]);
+
       table
         .uuid("reporting_manager")
         .index()

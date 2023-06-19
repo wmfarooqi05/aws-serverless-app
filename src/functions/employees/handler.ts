@@ -9,8 +9,7 @@ import {
 } from "@libs/api-gateway";
 import { EmployeeService } from "./service";
 
-import { allowRoleWrapper } from "@middlewares/jwtMiddleware";
-import { RolesEnum } from "@models/interfaces/Employees";
+import { checkRolePermission } from "@middlewares/jwtMiddleware";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
@@ -23,7 +22,7 @@ const getEmployeesHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const employees = await container
       .resolve(EmployeeService)
-      .getEmployees(event.employee?.sub, event.queryStringParameters);
+      .getEmployees(event.employee?.sub, event.query);
     return formatJSONResponse(employees, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -36,19 +35,51 @@ const getEmployeesWorkSummaryHandler: ValidatedEventAPIGatewayProxyEvent<
   try {
     const employees = await container
       .resolve(EmployeeService)
-      .getEmployeesWorkSummary(event.employee, event.queryStringParameters);
+      .getEmployeesWorkSummary(event.employee, event.query);
     return formatJSONResponse(employees, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
 };
 
-export const getEmployees = allowRoleWrapper(
+const getProfileHandler = async (event) => {
+  try {
+    const employees = await container
+      .resolve(EmployeeService)
+      .getProfile(event.employee);
+    return formatJSONResponse(employees, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const updateMyProfileHandler = async (event) => {
+  try {
+    const employees = await container
+      .resolve(EmployeeService)
+      .updateMyProfile(event.employee, event.body);
+    return formatJSONResponse(employees, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getEmployees = checkRolePermission(
   getEmployeesHandler,
-  RolesEnum.SALES_MANAGER_GROUP
+  "COMPANY_READ_ALL"
 );
 
-export const getEmployeesWorkSummary = allowRoleWrapper(
+export const getEmployeesWorkSummary = checkRolePermission(
   getEmployeesWorkSummaryHandler,
-  RolesEnum.SALES_MANAGER_GROUP
+  "COMPANY_READ_ALL"
+);
+
+export const getProfile = checkRolePermission(
+  getProfileHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const updateMyProfile = checkRolePermission(
+  updateMyProfileHandler,
+  "COMPANY_READ_ALL"
 );

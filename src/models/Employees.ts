@@ -53,10 +53,7 @@ export default class EmployeeModel extends Model {
           default: [],
           nullable: true,
         },
-        city: { type: "string" },
-        state: { type: "string" },
-        country: { type: "string" },
-        // birthdate: { type: "string", nullable: true },
+        birthdate: { type: "string", nullable: true },
         emailVerified: { type: "boolean", default: false },
         phoneNumberVerified: { type: "boolean", default: false },
         phoneNumber: { type: "string" },
@@ -71,6 +68,7 @@ export default class EmployeeModel extends Model {
           default: {},
           nullable: true,
         },
+        secondaryPhoneNumbers: { type: "array", default: [] },
         EmployeeStatus: { type: "string" },
         teamId: { type: "string" },
 
@@ -87,7 +85,7 @@ export default class EmployeeModel extends Model {
   }
 
   static get jsonAttributes() {
-    return ["addresses", "settings", "socialProfiles"];
+    return ["addresses", "settings", "socialProfiles", "secondaryPhoneNumbers"];
   }
 
   static relationMappings: RelationMappings | RelationMappingsThunk = () => ({

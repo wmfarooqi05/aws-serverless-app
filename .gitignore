@@ -22,3 +22,4 @@ layers/nodejs/node_modules
 
 layers/**/nodejs/node_modules
 layers/**/*.zip
+layers/**/*.tar.gz
