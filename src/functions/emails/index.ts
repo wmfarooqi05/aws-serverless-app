@@ -122,7 +122,7 @@ const emailHandler = {
     {
       http: {
         method: "get",
-        path: "get-inbox-emails",
+        path: "email/get-my-emails",
         cors: true,
       },
     },
@@ -137,6 +137,13 @@ const emailHandler = {
       http: {
         method: "delete",
         path: "email/{emailId}",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "email/move-to-folder",
         cors: true,
       },
     },

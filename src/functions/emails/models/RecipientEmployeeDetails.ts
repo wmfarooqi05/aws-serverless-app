@@ -1,8 +1,8 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { RECIPIENT_EMPLOYEE_DETAILS } from "./commons";
-import { sortedTags } from "@functions/activities/helpers";
+import { EMAIL_RECIPIENT_TABLE, RECIPIENT_EMPLOYEE_DETAILS } from "./commons";
+import { RecipientModel } from "./Recipient";
 
 export type RECIPIENT_TYPE = "FROM" | "TO_LIST" | "CC_LIST" | "BCC_LIST";
 export type RECIPIENT_CATEGORY = "EMPLOYEE" | "COMPANY_CONTACT" | "OTHERS";
@@ -11,6 +11,16 @@ export const recipientCategoryTypes: RECIPIENT_CATEGORY[] = [
   "EMPLOYEE",
   "OTHERS",
 ];
+
+export const generalFolders = [
+  'inobx',
+  'sent_items',
+  'trash',
+  'important',
+  'spam',
+  'starred',
+//  'draft' will be managed later
+]
 
 export interface IRecipientEmployeeDetails {
   id?: string;
@@ -57,18 +67,18 @@ export class RecipientEmployeeDetailsModel extends Model {
       query.where("employeeId", employeeId);
     },
   };
-  // static get relationMappings() {
-  //   return {
-  //     contact: {
-  //       relation: Model.HasOneRelation,
-  //       modelClass: EmailRecordModel,
-  //       join: {
-  //         from: `${RECIPIENT_EMPLOYEE_DETAILS}.emailId`,
-  //         to: `${EMAIL_RECORDS_TABLE}.id`,
-  //       },
-  //     },
-  //   };
-  // }
+  static get relationMappings() {
+    return {
+      recipient: {
+        relation: Model.HasOneRelation,
+        modelClass: RecipientModel,
+        join: {
+          from: `${RECIPIENT_EMPLOYEE_DETAILS}.recipient_id`,
+          to: `${EMAIL_RECIPIENT_TABLE}.id`,
+        },
+      },
+    };
+  }
 }
 
 export type IRecipientEmployeeDetailsModel =

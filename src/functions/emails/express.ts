@@ -10,16 +10,15 @@ import {
   emailsByContact,
   getEmailById,
   getEmailTemplateContentById,
-  getInboxEmails,
+  getMyEmails,
+  moveToFolder,
   sendBulkEmails,
   sendEmail,
 } from "./handler";
 
 import {
-  addContactEmailToEmailList,
   addEmailsToEmailList,
   createEmailList,
-  deleteContactEmailFromEmailList,
   deleteEmailList,
   deleteEmailsFromEmailList,
   getAllEmailLists,
@@ -126,11 +125,15 @@ app.post("/bulk-email", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.get("/get-inbox-emails", async (req, res) => {
-  const resp = await getInboxEmails(req, {} as any);
+app.get("/email/get-my-emails", async (req, res) => {
+  const resp = await getMyEmails(req, {} as any);
   resHelper(res, resp);
 });
 
+app.put("/email/move-to-folder", async (req, res) => {
+  const resp = await moveToFolder(req, {} as any);
+  resHelper(res, resp);
+});
 
 app.get("/email/:emailId", async (req, res) => {
   const resp = await getEmailById(req, {} as any);
@@ -141,6 +144,12 @@ app.delete("/email/:emailId", async (req, res) => {
   const resp = await deleteEmailById(req, {} as any);
   resHelper(res, resp);
 });
+
+// Recipient Employee Details
+// app.post("/email/labels", async(req,res) => {
+//   const resp = await createLabel(req, {} as any);
+//   resHelper(res, resp);
+// })
 
 exports.handler = awsSlsExpress({ app });
 

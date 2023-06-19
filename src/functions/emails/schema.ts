@@ -78,7 +78,32 @@ export const validateEmailsByContact = async (employeeEmail, contactEmail) => {
 
 export const validateMoveToFolder = async (body) => {
   await Joi.object({
-    emailIds: Joi.array().items(Joi.string().guid()).min(1),
+    emailIds: Joi.array().items(Joi.string().guid()).required().min(1),
     folderName: Joi.string().required(),
+  }).validateAsync(body);
+};
+
+export const validateGetMyEmails = async (body) => {
+  await Joi.object({
+    searchQuery: Joi.string(),
+    from: Joi.string(),
+    in: Joi.string(),
+    to: Joi.string(),
+    labels: Joi.string(),
+    haveWords: Joi.string(),
+    subject: Joi.string(),
+    page: Joi.number().min(1),
+    pageSize: Joi.number().min(1),
+    // @TODO test returning Fields
+    sortBy: Joi.string(),
+    sortAscending: Joi.boolean(),
+  })
+    .validateAsync(body);
+};
+
+export const validateUpdateLabel = async (body) => {
+  await Joi.object({
+    emailIds: Joi.array().items(Joi.string().guid()).required().min(1),
+    labels: Joi.array().items(Joi.string()).required().min(1),
   }).validateAsync(body);
 };

@@ -170,11 +170,11 @@ export const emailsByContactHandler = async (event) => {
   }
 };
 
-const getInboxEmailsHandler = async (event) => {
+const getMyEmailsHandler = async (event) => {
   try {
     const emails = await container
       .resolve(EmailService)
-      .getInboxEmails(event.employee, event.query);
+      .getMyEmails(event.employee, event.query);
     return formatJSONResponse(emails, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -187,6 +187,17 @@ const deleteEmailByIdHandler = async (event) => {
       .resolve(EmailService)
       .deleteEmailById(event.employee, event.params);
     return formatJSONResponse(emails, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const moveToFolderHandler = async (event) => {
+  try {
+    const count = await container
+      .resolve(EmailService)
+      .moveToFolder(event.employee, event.body);
+    return formatJSONResponse({ message: `Updated ${count} records` }, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -217,8 +228,8 @@ export const emailsByContact = checkRolePermission(
   "COMPANY_READ_ALL"
 );
 
-export const getInboxEmails = checkRolePermission(
-  getInboxEmailsHandler,
+export const getMyEmails = checkRolePermission(
+  getMyEmailsHandler,
   "COMPANY_READ_ALL"
 );
 
@@ -229,5 +240,10 @@ export const getEmailById = checkRolePermission(
 
 export const deleteEmailById = checkRolePermission(
   deleteEmailByIdHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const moveToFolder = checkRolePermission(
+  moveToFolderHandler,
   "COMPANY_READ_ALL"
 );

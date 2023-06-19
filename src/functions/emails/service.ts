@@ -4,15 +4,16 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 
 import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
-import { SESEmailService } from "@common/service/bulk_email/SESEamilService";
 import { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import {
   validateBulkEmails,
   validateEmailsByContact,
+  validateGetMyEmails,
   validateMoveToFolder,
   validateSendEmail,
+  validateUpdateLabel,
 } from "./schema";
 import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
@@ -87,9 +88,11 @@ import {
   getEmailsFromParsedEmails,
   getKeywords,
   getRecipientsFromAddress,
-  parseSearchQuery,
 } from "./helper";
-import { sortLabels, sortedTags } from "@functions/activities/helpers";
+import {
+  RecipientEmployeeDetailsModel,
+  generalFolders,
+} from "./models/RecipientEmployeeDetails";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -960,7 +963,7 @@ export class EmailService implements IEmailService {
           category: "EMPLOYEE", // @TODO maybe remove this
           folderName: "inbox",
           isRead: false,
-          labels: "",
+          labels: [],
           employeeId: employee.id,
         };
         recipient.recipientCategory = "EMPLOYEE";
@@ -1264,9 +1267,10 @@ export class EmailService implements IEmailService {
     return emailIds;
   }
 
-  async getInboxEmails(employee: IEmployeeJwt, body) {
+  async getMyEmails(employee: IEmployeeJwt, body) {
+    await validateGetMyEmails(body);
     const {
-      page = 0,
+      page = 1,
       pageSize = 10,
       searchQuery,
       from: _from,
@@ -1350,7 +1354,8 @@ export class EmailService implements IEmailService {
         });
       }
 
-      query.page(page, pageSize);
+      query.page(page - 1, pageSize);
+      query.orderBy(...getOrderByItems(body));
 
       console.log(query.toKnexQuery().toSQL());
       const emails: any = await query.execute();
@@ -1367,144 +1372,79 @@ export class EmailService implements IEmailService {
     }
   }
 
-  async _getInboxEmails(body) {
-    const { page = 1, pageSize = 10, filter } = body;
-
-    try {
-      // Fetch the latest reply for each email thread
-      const recipientTypeArr = ["FROM", "TO_LIST", "CC_LIST", "BCC_LIST"];
-      const latestReplies: IRecipient[] = await RecipientModel.query()
-        .where("recipientEmail", "wmfarooqi05@gmail.com") //employee.email)
-        .whereIn("recipientType", recipientTypeArr)
-        .groupBy("emailId")
-        .select("emailId")
-        .max("createdAt");
-
-      console.log("latestReplies", latestReplies);
-
-      const emailRecordsQuery = EmailRecordModel.query()
-        .joinRelated("recipients")
-        .whereIn(
-          "recipients.emailId",
-          latestReplies.map((reply) => reply.emailId)
-        );
-      // .whereIn("recipients.recipientType", recipientTypeArr)
-      // .andWhere((builder) => {
-      //   builder.from("recipients").whereIn(
-      //     raw("(email_id, recipients.created_at)"),
-      //     latestReplies.map((reply) => [reply.emailId, reply.max])
-      //   );
-      // });
-
-      // Apply filters based on the provided filter parameter
-      if (false) {
-        //(filter) {
-        // Split the filter parameter into filterBy and filterValue
-        const [filterBy, filterValue] = filter.split(":");
-
-        // Apply the appropriate filter based on the filterBy value
-        switch (filterBy) {
-          case "from":
-            emailRecordsQuery.where("senderId", "like", `%${filterValue}%`);
-            break;
-          case "to":
-            emailRecordsQuery.whereExists(
-              RecipientModel.query()
-                .whereRaw(
-                  `${RecipientModel.tableName}.emailId = ${EmailRecordModel.tableName}.id`
-                )
-                .andWhere("recipientEmail", "like", `%${filterValue}%`)
-                .andWhere("recipientType", "TO_LIST")
-            );
-            break;
-          case "subject":
-            emailRecordsQuery.where("subject", "like", `%${filterValue}%`);
-            break;
-          case "hasTheWords":
-            emailRecordsQuery.where(function () {
-              this.where("subject", "like", `%${filterValue}%`).orWhere(
-                "body",
-                "like",
-                `%${filterValue}%`
-              );
-            });
-            break;
-          case "doesntHave":
-            emailRecordsQuery.whereNot(function () {
-              this.where("subject", "like", `%${filterValue}%`).orWhere(
-                "body",
-                "like",
-                `%${filterValue}%`
-              );
-            });
-            break;
-          case "size":
-            const [sizeOperator, sizeValue] = filterValue.split(":");
-            emailRecordsQuery.where("size", sizeOperator, sizeValue);
-            break;
-          case "dateWithin":
-            const [dateOperator, dateValue] = filterValue.split(":");
-            const currentDate = new Date();
-            const dateToCompare = new Date(
-              currentDate.setDate(currentDate.getDate() - parseInt(dateValue))
-            );
-            emailRecordsQuery.where(
-              "sentAt",
-              dateOperator,
-              dateToCompare.toISOString()
-            );
-            break;
-          case "search":
-            emailRecordsQuery.where(function () {
-              this.where("senderId", "like", `%${filterValue}%`)
-                .orWhere("subject", "like", `%${filterValue}%`)
-                .orWhere("body", "like", `%${filterValue}%`);
-            });
-            break;
-          case "hasAttachment":
-            emailRecordsQuery.where("attachments", "!=", "[]");
-            break;
-          case "dontIncludeChats":
-            emailRecordsQuery.whereNot(function () {
-              this.where("emailType", "CHAT");
-            });
-            break;
-          default:
-            // Invalid filter parameter
-            throw new CustomError("Invalid filter parameter.", 400);
-        }
-      }
-
-      /** @todo @important these are valid filters, don't remove this code */
-      // Apply additional use case filters
-      // emailRecordsQuery
-      //   .where("status", "PENDING")
-      //   .whereNull("inReplyTo")
-      //   .orderBy("sentAt", "desc")
-      //   .limit(pageSize)
-      //   .offset(offset);
-
-      // Execute the query
-      const emailRecords = await emailRecordsQuery;
-
-      return emailRecords;
-    } catch (error) {
-      console.error(error);
-      throw new CustomError("An error occurred while fetching the inbox.", 500);
-    }
-  }
-
-  async moveToFolder(body) {
+  async moveToFolder(employee: IEmployeeJwt, body) {
     const payload = JSON.parse(body);
     await validateMoveToFolder(payload);
-    const emailRecord: IEmailRecord = await EmailRecordModel.query().findById(
-      emailId
+    const { emailIds, folderName }: { emailIds: string[]; folderName: string } =
+      payload;
+
+    const emailRecords: IEmailRecord[] =
+      await EmailRecordModel.query().findByIds(emailIds);
+
+    const missingIds = emailIds.filter(
+      (id) => !emailRecords.some((obj) => obj.id === id)
     );
-    if (!emailRecord) {
-      throw new CustomError(`Email record with id: ${emailId} not found`, 404);
+
+    if (missingIds.length) {
+      throw new CustomError(
+        `Email record with id(s): ${missingIds} not found`,
+        404
+      );
     }
-    if (emailRecord.emailFolder === "TRASH") {
-      throw new CustomError("Email record already in trahs", 400);
+    // Add validation if folder exists
+    if (!generalFolders.some((folder) => folder === folderName)) {
+      // @TODO implement labels strategy
+      throw new CustomError(
+        `Folder name \'${folderName}\' doesn't exists`,
+        400
+      );
     }
+    return RecipientEmployeeDetailsModel.query()
+      .patch({ folderName })
+      .where({ employeeId: employee.sub })
+      .whereExists(
+        RecipientEmployeeDetailsModel.relatedQuery("recipient").whereIn(
+          "emailId",
+          emailIds
+        )
+      );
+  }
+
+  async updateLabel(employee: IEmployeeJwt, body) {
+    const payload = JSON.parse(body);
+    await validateUpdateLabel(payload);
+    const { emailIds, labels }: { emailIds: string[]; labels: string } =
+      payload;
+
+    const emailRecords: IEmailRecord[] =
+      await EmailRecordModel.query().findByIds(emailIds);
+
+    const missingIds = emailIds.filter(
+      (id) => !emailRecords.some((obj) => obj.id === id)
+    );
+
+    if (missingIds.length) {
+      throw new CustomError(
+        `Email record with id(s): ${missingIds} not found`,
+        404
+      );
+    }
+    // Add validation if labels exists
+    // if (!generalFolders.some((folder) => folder === folderName)) {
+    //   // @TODO implement labels strategy
+    //   throw new CustomError(
+    //     `Folder name \'${folderName}\' doesn't exists`,
+    //     400
+    //   );
+    // }
+    return RecipientEmployeeDetailsModel.query()
+      .patch({ labels: JSON.stringify(labels) })
+      .where({ employeeId: employee.sub })
+      .whereExists(
+        RecipientEmployeeDetailsModel.relatedQuery("recipient").whereIn(
+          "emailId",
+          emailIds
+        )
+      );
   }
 }

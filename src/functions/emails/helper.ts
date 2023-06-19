@@ -103,7 +103,7 @@ const getRecipientsFromAddressList = (
       recipient.recipientEmployeeDetails = {
         folderName,
         isRead: false,
-        labels: "",
+        labels: [],
         employeeId: employee.id,
       };
     } else {
