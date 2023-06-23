@@ -13,7 +13,7 @@ const getAllCalendars = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -29,7 +29,7 @@ const getMeetings = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -45,7 +45,7 @@ const getMeetingById = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 const createMeeting = {
@@ -60,7 +60,7 @@ const createMeeting = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 
@@ -76,7 +76,7 @@ const updateMeetingById = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 const deleteMeetingById = {
@@ -91,7 +91,7 @@ const deleteMeetingById = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 

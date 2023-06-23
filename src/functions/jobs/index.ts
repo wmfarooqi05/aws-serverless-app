@@ -12,7 +12,7 @@ const importData = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 // const uploadCompanySheetToS3 = {
@@ -61,7 +61,7 @@ const bulkCognitoSignup = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 // @DEV i guess not in use now
@@ -76,7 +76,7 @@ const streamRecordHelper = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 const uploadSignupBulkJob = {
@@ -90,7 +90,7 @@ const uploadSignupBulkJob = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 // dev only
@@ -107,7 +107,7 @@ const bulkImportUsersProcessHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 const handleDynamoStreamRecords = {
@@ -118,12 +118,12 @@ const handleDynamoStreamRecords = {
     {
       stream: {
         type: "dynamodb",
-        arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+        arn: "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/Jobs/stream/2023-05-02T11:39:32.489",
         batchSize: 10,
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 // const handleSESEmailToSNSEvent = {
@@ -132,12 +132,12 @@ const handleDynamoStreamRecords = {
 //     {
 //       stream: {
 //         type: "dynamodb",
-//         arn: "arn:aws:dynamodb:ca-central-1:524073432557:table/Jobs/stream/2023-05-02T11:39:32.489",
+//         arn: "arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/Jobs/stream/2023-05-02T11:39:32.489",
 //         batchSize: 100,
 //       },
 //     },
 //   ],
-//   layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+//   layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 // };
 
 export {

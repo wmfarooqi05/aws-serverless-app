@@ -4,7 +4,7 @@ const messageEvent = {
     timestamp: "2023-04-14T20:14:03.857Z",
     source: "wmfarooqi05@gmail.com",
     sourceArn:
-      "arn:aws:ses:ca-central-1:524073432557:identity/wmfarooqi05@gmail.com",
+      "arn:aws:ses:${self:provider.region}:${aws:accountId}:identity/wmfarooqi05@gmail.com",
     sendingAccountId: "524073432557",
     messageId: "010d018781674e51-ef0c0264-a610-4f7b-9543-1a73cd14edb4-000000",
     destination: ["wmfarooqi70@gmail.com"],
@@ -46,10 +46,10 @@ const messageEvent = {
 const payload = {
   Type: "Notification",
   MessageId: "82379f5b-5f3e-50b0-9720-c3e8e972f126",
-  TopicArn: "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
+  TopicArn: "arn:aws:sns:${self:provider.region}:${aws:accountId}:email-sns-topic",
   Subject: "Amazon SES Email Event Notification",
   Message:
-    '{"eventType":"Delivery","mail":{"timestamp":"2023-04-14T20:14:03.857Z","source":"wmfarooqi05@gmail.com","sourceArn":"arn:aws:ses:ca-central-1:524073432557:identity/wmfarooqi05@gmail.com","sendingAccountId":"524073432557","messageId":"010d018781674e51-ef0c0264-a610-4f7b-9543-1a73cd14edb4-000000","destination":["wmfarooqi70@gmail.com"],"headersTruncated":false,"headers":[{"name":"From","value":"wmfarooqi05@gmail.com"},{"name":"Reply-To","value":"wmfarooqi05@gmail.com"},{"name":"To","value":"wmfarooqi70@gmail.com"},{"name":"Subject","value":"abcd"},{"name":"MIME-Version","value":"1.0"},{"name":"Content-Type","value":"text/plain; charset=UTF-8"},{"name":"Content-Transfer-Encoding","value":"7bit"}],"commonHeaders":{"from":["wmfarooqi05@gmail.com"],"replyTo":["wmfarooqi05@gmail.com"],"to":["wmfarooqi70@gmail.com"],"messageId":"010d018781674e51-ef0c0264-a610-4f7b-9543-1a73cd14edb4-000000","subject":"abcd"},"tags":{"ses:operation":["SendEmail"],"ses:configuration-set":["email_sns_config"],"ses:source-ip":["3.97.212.13"],"ses:from-domain":["gmail.com"],"ses:caller-identity":["gel-api-dev-ca-central-1-lambdaRole"],"ses:outgoing-ip":["23.249.208.13"]}},"delivery":{"timestamp":"2023-04-14T20:14:04.814Z","processingTimeMillis":957,"recipients":["wmfarooqi70@gmail.com"],"smtpResponse":"250 2.0.0 OK  1681503244 y22-20020a05622a005600b003eadc19626csi1884304qtw.102 - gsmtp","reportingMTA":"d208-13.smtp-out.ca-central-1.amazonses.com"}}\n',
+    '{"eventType":"Delivery","mail":{"timestamp":"2023-04-14T20:14:03.857Z","source":"wmfarooqi05@gmail.com","sourceArn":"arn:aws:ses:${self:provider.region}:${aws:accountId}:identity/wmfarooqi05@gmail.com","sendingAccountId":"524073432557","messageId":"010d018781674e51-ef0c0264-a610-4f7b-9543-1a73cd14edb4-000000","destination":["wmfarooqi70@gmail.com"],"headersTruncated":false,"headers":[{"name":"From","value":"wmfarooqi05@gmail.com"},{"name":"Reply-To","value":"wmfarooqi05@gmail.com"},{"name":"To","value":"wmfarooqi70@gmail.com"},{"name":"Subject","value":"abcd"},{"name":"MIME-Version","value":"1.0"},{"name":"Content-Type","value":"text/plain; charset=UTF-8"},{"name":"Content-Transfer-Encoding","value":"7bit"}],"commonHeaders":{"from":["wmfarooqi05@gmail.com"],"replyTo":["wmfarooqi05@gmail.com"],"to":["wmfarooqi70@gmail.com"],"messageId":"010d018781674e51-ef0c0264-a610-4f7b-9543-1a73cd14edb4-000000","subject":"abcd"},"tags":{"ses:operation":["SendEmail"],"ses:configuration-set":["email_sns_config"],"ses:source-ip":["3.97.212.13"],"ses:from-domain":["gmail.com"],"ses:caller-identity":["gel-api-dev-ca-central-1-lambdaRole"],"ses:outgoing-ip":["23.249.208.13"]}},"delivery":{"timestamp":"2023-04-14T20:14:04.814Z","processingTimeMillis":957,"recipients":["wmfarooqi70@gmail.com"],"smtpResponse":"250 2.0.0 OK  1681503244 y22-20020a05622a005600b003eadc19626csi1884304qtw.102 - gsmtp","reportingMTA":"d208-13.smtp-out.ca-central-1.amazonses.com"}}\n',
   Timestamp: "2023-04-14T20:14:04.925Z",
   SignatureVersion: "1",
   Signature:
@@ -57,7 +57,7 @@ const payload = {
   SigningCertURL:
     "https://sns.ca-central-1.amazonaws.com/SimpleNotificationService-56e67fcb41f6fec09b0196692625d385.pem",
   UnsubscribeURL:
-    "https://sns.ca-central-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:ca-central-1:524073432557:email-sns-topic:2f9cfa03-5f0e-4c9d-9f38-3ff6001faba6",
+    "https://sns.ca-central-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:${self:provider.region}:${aws:accountId}:email-sns-topic:2f9cfa03-5f0e-4c9d-9f38-3ff6001faba6",
 };
 
 import { SNSHandler, SNSEvent } from "aws-lambda";

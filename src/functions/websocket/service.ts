@@ -19,7 +19,9 @@ export interface IWebSocketService {}
 
 // let endpoint = "http://localhost:3001";
 // if (process.env.STAGE !== "local") {
-const endpoint = `https://${process.env.APIG_WS_API_ID}.execute-api.${process.env.REGION}.amazonaws.com/${process.env.STAGE}`;
+console.log("APIG_WS_ENDPOINT", process.env.APIG_WS_ENDPOINT);
+const endpoint = process.env.APIG_WS_ENDPOINT;
+//`https://${process.env.APIG_WS_ENDPOINT}.execute-api.${process.env.REGION}.amazonaws.com/${process.env.STAGE}`;
 // }
 
 const config: ApiGatewayManagementApiClientConfig = {

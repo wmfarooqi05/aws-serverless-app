@@ -104,7 +104,7 @@ const activitiesHandler = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
   ],
 };
 

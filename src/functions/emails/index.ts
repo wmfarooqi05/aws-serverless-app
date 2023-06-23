@@ -149,8 +149,8 @@ const emailHandler = {
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
-    "arn:aws:lambda:ca-central-1:524073432557:layer:image-layer-v1:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
   ],
 };
 
@@ -159,13 +159,13 @@ const receiveEmailHandler = {
   events: [
     {
       sqs: {
-        arn: `arn:aws:sqs:ca-central-1:524073432557:EmailQueue`,
+        arn: "arn:aws:sqs:${self:provider.region}:${aws:accountId}:EmailQueue",
       },
     },
   ],
   layers: [
-    "arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5",
-    "arn:aws:lambda:ca-central-1:524073432557:layer:image-layer-v1:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
   ],
 };
 

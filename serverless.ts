@@ -70,8 +70,10 @@ const serverlessConfiguration: AWS = {
       REGION: "${self:custom.region}",
       STACK_NAME: "${self:custom.STACK_NAME}",
       JOB_QUEUE: "${self:custom.JOB_QUEUE}",
-      JOBS_TABLE: "${self:service}_${self:custom.region}_${self:custom.JOBS_DYNAMO_TABLE}",
-      APIG_WS_ENDPOINT: "${self:custom.APIG_WS_ENDPOINT}"
+      JOBS_TABLE:
+        "${self:service}_${self:custom.region}_${self:custom.JOBS_DYNAMO_TABLE}",
+      ACCOUNT_ID: "${self:custom.ACCOUNT_ID}",
+      APIG_WS_ENDPOINT: "${self:custom.APIG_WS_ENDPOINT}",
       // STAGE: "${opt:stage, 'dev'}",
 
       // ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com
@@ -113,8 +115,23 @@ const serverlessConfiguration: AWS = {
     VPC_SECURITY_GROUP: process.env.VPC_SECURITY_GROUP,
     JOBS_FOLDER: process.env.JOBS_FOLDER,
     userPoolId: process.env.COGNITO_USER_POOL_ID,
-    snsTopicArn: "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
+    snsTopicArn:
+      "arn:aws:sns:${self:provider.region}:${aws:accountId}:email-sns-topic",
     JOBS_DYNAMO_TABLE: process.env.JOBS_DYNAMO_TABLE,
+    ACCOUNT_ID: "${aws:accountId}",
+    APIG_WS_ENDPOINT: {
+      "Fn::Join": [
+        "",
+        [
+          "https://",
+          { Ref: "WebsocketsApi" },
+          ".execute-api.",
+          { Ref: "AWS::Region" },
+          ".amazonaws.com/",
+          "${self:custom.STAGE}",
+        ],
+      ],
+    },
     // cognitoAuthorizerArn:
     //   "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
 

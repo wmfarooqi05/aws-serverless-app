@@ -12,7 +12,7 @@ const utilsHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:ca-central-1:524073432557:layer:jobs-packages:5"],
+  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };
 
 export { utilsHandler };
