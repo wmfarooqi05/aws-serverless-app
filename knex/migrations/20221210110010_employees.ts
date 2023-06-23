@@ -1,13 +1,14 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
+import { GenderArray, RolesArray } from "../../src/models/interfaces/Employees";
 
 export const EmployeeRolesMigrate = [
-  "SALES_REP_GROUP",
-  "SALES_MANAGER_GROUP",
-  "REGIONAL_MANAGER_GROUP",
-  "ADMIN_GROUP",
-  "SUPER_ADMIN_GROUP",
+  "SALES_REP",
+  "SALES_MANAGER",
+  "REGIONAL_MANAGER",
+  "ADMIN",
+  "SUPER_ADMIN",
 ];
 
 const tableName = Tables.employees;
@@ -16,35 +17,32 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table.uuid("sub").unique().notNullable();
-      table.string("picture");
       table.string("username").unique().notNullable();
       table.string("email").unique().notNullable();
       table.string("name").notNullable();
-      table.string("enabled");
-      table.string("job_title");
+      table.string("picture");
+      table.string("job_title").defaultTo(RolesArray[0]);
       table
         .enum("role", EmployeeRolesMigrate)
         .defaultTo(EmployeeRolesMigrate[0]);
       table.jsonb("addresses").defaultTo([]);
       table.date("birthdate");
-      table.date("email_verified");
-      table.date("phone_number_verified");
-      table.date("phone_number");
-      table.jsonb("settings");
-      table.jsonb("social_profiles");
-      table.string("timezone");
-      // we will store it in elastic cache
-      table.string("websocket_id");
-      table.string("gender", 20);
+      table.boolean("email_verified").defaultTo(false);
+      table.boolean("phone_number_verified").defaultTo(false);
+      table.string("phone_number");
+      table.jsonb("settings").defaultTo({});
+      table.jsonb("social_profiles").defaultTo({});
+      table
+        .string("timezone")
+        .defaultTo(process.env.CANADA_DEFAULT_TIMEZONE || "America/Toronto");
+      table.string("gender", 20).defaultTo(GenderArray[0]);
       table
         .uuid("added_by")
         .index()
         .references("id")
         .inTable(tableName)
         .onDelete("SET NULL");
-      table.string("employee_status");
-      table.string("date_format").defaultTo('DD/MM/YYYY');
+      table.string("employee_status").defaultTo('ENABLED');
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table.jsonb("secondary_phone_numbers").defaultTo([]);
 

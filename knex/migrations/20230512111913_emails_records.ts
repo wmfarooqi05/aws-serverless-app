@@ -24,7 +24,6 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("result");
       table.string("in_reply_to");
       table.string("references");
-      table.string("references");
       table.string("priority");
       table.string("content_url");
       table.boolean("contains_html");

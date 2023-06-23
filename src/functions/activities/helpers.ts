@@ -207,9 +207,9 @@ export const attachManagerRestrictions = (
   employeeIdKey: string
 ): Knex.QueryBuilder<any, any> => {
   switch (RolesEnum[employee["cognito:groups"][0]]) {
-    case RolesEnum.SALES_REP_GROUP:
+    case RolesEnum.SALES_REP:
       throwUnAuthorizedError();
-    case RolesEnum.SALES_MANAGER_GROUP:
+    case RolesEnum.SALES_MANAGER:
       qb.rightJoin("employees as e", "a.created_by", "=", "e.id");
       // qb.select("e.reporting_manager", "e.team_id");
       qb.where(function () {
@@ -219,7 +219,7 @@ export const attachManagerRestrictions = (
         );
       });
       break;
-    case RolesEnum.REGIONAL_MANAGER_GROUP:
+    case RolesEnum.REGIONAL_MANAGER:
       qb.join("employees as e", "a.created_by", "=", "e.id");
       // qb.select("e.team_id", "e.reporting_manager");
       qb.where("e.team_id", employee.teamId);

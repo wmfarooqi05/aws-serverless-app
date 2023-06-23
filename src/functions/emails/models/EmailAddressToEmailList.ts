@@ -15,11 +15,6 @@ export interface IEmployeeAddressToEmailList {
   employeeId: string;
 }
 
-export interface IEmployeeTeam {
-  teamId: string;
-  employeeId: string;
-}
-
 @singleton()
 export default class EmailAddressToEmailListModel extends Model {
   static get tableName() {

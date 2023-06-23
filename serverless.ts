@@ -12,12 +12,10 @@ const dependencies: string[] = Object.keys(
 
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 
-const serviceName = "global-employment";
-
 ensureEnvConfigs();
 
 const serverlessConfiguration: AWS = {
-  service: serviceName,
+  service: process.env.SERVICE_NAME || "global-employment",
   frameworkVersion: "3",
   plugins: [
     "serverless-esbuild",

@@ -59,14 +59,14 @@ export const validateRequestByEmployeeRole = async (
   if (!requestingEmployeeObject || !tableRowCreator) return false;
 
   switch (RolesEnum[requestingEmployee["cognito:groups"][0]]) {
-    case RolesEnum.SALES_REP_GROUP:
+    case RolesEnum.SALES_REP:
       if (
         originalObject[creatorEmployeeColumnName] !== requestingEmployee.sub
       ) {
         return false;
       }
       break;
-    case RolesEnum.SALES_MANAGER_GROUP:
+    case RolesEnum.SALES_MANAGER:
       if (
         originalObject[creatorEmployeeColumnName] !==
         requestingEmployeeObject.reportingManager
@@ -74,7 +74,7 @@ export const validateRequestByEmployeeRole = async (
         return false;
       }
       break;
-    case RolesEnum.REGIONAL_MANAGER_GROUP:
+    case RolesEnum.REGIONAL_MANAGER:
       // Commenting due to change in teamId structure. this was working code
       // update this when we again want this kind of restrictions
       // if (tableRowCreator.teamId !== requestingEmployee.teamId) {

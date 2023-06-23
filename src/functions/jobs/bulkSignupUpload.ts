@@ -102,5 +102,5 @@ const validateSignupData = async (data) => {
 
 export const handler = allowRoleWrapper(
   bulkCognitoSignup,
-  RolesEnum.SALES_REP_GROUP
+  RolesEnum.SALES_REP
 );

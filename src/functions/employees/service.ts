@@ -153,7 +153,7 @@ export class EmployeeService implements IEmployeeService {
 
     if (
       !(
-        RolesEnum[employeeJwt.role] >= RolesEnum.ADMIN_GROUP ||
+        RolesEnum[employeeJwt.role] >= RolesEnum.ADMIN ||
         RolesEnum[employeeJwt.role] > RolesEnum[employeeRole.role]
       )
     ) {

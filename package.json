@@ -14,9 +14,9 @@
     "deploy:dev": "NODE_ENV=dev sls deploy",
     "deploy:stage": "NODE_ENV=stage sls deploy",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "knex:migrate:make": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:make",
-    "knex:migrate:latest": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:latest",
-    "knex:migrate:rollback": "NODE_ENV=dev knex --knexfile knex/knex-migrate.ts migrate:rollback"
+    "knex:migrate:make": "NODE_ENV=stage knex --knexfile knex/knex-migrate.ts migrate:make",
+    "knex:migrate:latest": "NODE_ENV=stage knex --knexfile knex/knex-migrate.ts migrate:latest",
+    "knex:migrate:rollback": "NODE_ENV=stage knex --knexfile knex/knex-migrate.ts migrate:rollback"
   },
   "engines": {
     "node": ">=18.0.0"

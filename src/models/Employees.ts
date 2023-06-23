@@ -24,7 +24,6 @@ export default class EmployeeModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
-        sub: { type: "string" },
         username: { type: "string" },
         name: { type: "string" },
         email: {
@@ -33,14 +32,10 @@ export default class EmployeeModel extends Model {
           maxLength: 70,
         },
         picture: { type: "string" },
-        enabled: {
-          type: "boolean",
-          default: true,
-        },
         jobTitle: { type: "string" },
         role: {
           type: "string",
-          default: RolesArray[RolesEnum.SALES_REP_GROUP],
+          default: RolesArray[RolesEnum.SALES_REP],
           enum: RolesArray,
         },
         gender: {

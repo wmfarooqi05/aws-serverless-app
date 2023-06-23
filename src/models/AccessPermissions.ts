@@ -94,7 +94,7 @@ export type IAccessPermissionsCacheMap = {
 };
 
 const defaultPermissions: IAccessPermissions = {
-  role: "SALES_MANAGER_GROUP",
+  role: "SALES_MANAGER",
   tableName: "COMPANIES",
   permissionType: PermissionTypes.READ_ALL,
   isAllowed: true,
@@ -105,7 +105,7 @@ const defaultPermissions: IAccessPermissions = {
 };
 
 const defaultAllowedPermissions: IAccessPermissions = {
-  role: "SALES_REP_GROUP",
+  role: "SALES_REP",
   tableName: "COMPANIES",
   permissionType: PermissionTypes.READ_ALL,
   isAllowed: true,
@@ -116,7 +116,7 @@ const defaultAllowedPermissions: IAccessPermissions = {
 };
 
 const allowedManagers: IAccessPermissions = {
-  role: "SALES_MANAGER_GROUP",
+  role: "SALES_MANAGER",
   tableName: "COMPANIES",
   permissionType: PermissionTypes.UPDATE,
   isAllowed: true,

@@ -85,10 +85,10 @@ export const jwtRequired = () => {
       try {
         // @TODO change this to guest
         const role =
-          event?.employee?.role || RolesArray[RolesEnum.SALES_REP_GROUP];
+          event?.employee?.role || RolesArray[RolesEnum.SALES_REP];
         const roleFound = RolesArray.find((x) => x === role) ? true : false;
 
-        // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN_GROUP]];
+        // event.employee[roleKey] = [RolesArray[RolesEnum.ADMIN]];
 
         // @DEV
         event.employee.role = role;
@@ -208,7 +208,7 @@ export const allowOnlyMe = (key: string) => {
  * @returns
  */
 export const allowMeOrRole = (
-  permittedRole: number = RolesEnum.SALES_REP_GROUP,
+  permittedRole: number = RolesEnum.SALES_REP,
   key: string
 ) => {
   return {

@@ -96,7 +96,7 @@ export class TeamService implements ITeamService {
   ) {
     await validateAddDeleteEmployeeToTeam(admin.sub, teamId, employeeId);
     if (
-      RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
+      RolesEnum[admin.role] < RolesEnum.ADMIN &&
       !admin.teamId.includes(teamId)
     ) {
       throw new CustomError(
@@ -115,7 +115,7 @@ export class TeamService implements ITeamService {
   ) {
     await validateAddDeleteEmployeeToTeam(admin.sub, teamId, employeeId);
     if (
-      RolesEnum[admin.role] < RolesEnum.ADMIN_GROUP &&
+      RolesEnum[admin.role] < RolesEnum.ADMIN &&
       !admin.teamId.includes(teamId)
     ) {
       throw new CustomError(

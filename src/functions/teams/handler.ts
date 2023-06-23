@@ -115,15 +115,15 @@ export const getTeamById = checkRolePermission(
 );
 export const updateTeam = allowRoleWrapper(
   updateTeamHandler,
-  RolesEnum.ADMIN_GROUP
+  RolesEnum.ADMIN
 );
 export const createTeam = allowRoleWrapper(
   createTeamHandler,
-  RolesEnum.ADMIN_GROUP
+  RolesEnum.ADMIN
 );
 export const deleteTeam = allowRoleWrapper(
   deleteTeamHandler,
-  RolesEnum.ADMIN_GROUP
+  RolesEnum.ADMIN
 );
 
 // Make this starting from manager [role 2]

@@ -12,8 +12,8 @@ export async function up(knex: Knex): Promise<void> {
         .uuid("updated_by")
         .index()
         .references("id")
-        .inTable(Tables.employees)
-        .notNullable();
+        .inTable(Tables.employees);
+
       table.string("team_name").notNullable().unique();
       table.jsonb("details").defaultTo({});
       table.jsonb("settings").defaultTo({});

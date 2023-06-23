@@ -19,12 +19,12 @@ export const getEmployeeFilter = (
   // Then we also have to check custom permissions in this case
   let key = "";
   switch (RolesEnum[employee.role]) {
-    case RolesEnum.SALES_REP_GROUP:
+    case RolesEnum.SALES_REP:
       throw new CustomError(
         "This role is not authorized to see this data",
         403
       );
-    case RolesEnum.SALES_MANAGER_GROUP:
+    case RolesEnum.SALES_MANAGER:
       if (raw) {
         key = "reporting_manager";
         if (alias) {
@@ -34,7 +34,7 @@ export const getEmployeeFilter = (
         key = "reportingManager";
       }
       return { [key]: employee.sub };
-    case RolesEnum.REGIONAL_MANAGER_GROUP:
+    case RolesEnum.REGIONAL_MANAGER:
       if (raw) {
         key = "team_id";
         if (alias) {
@@ -63,9 +63,9 @@ export const checkManagerPermissions = (
     throw new CustomError("No valid role present", 403);
   }
   switch (RolesEnum[manager["cognito:groups"][0]]) {
-    case RolesEnum.SALES_REP_GROUP:
+    case RolesEnum.SALES_REP:
       throwUnAuthorizedError();
-    case RolesEnum.SALES_MANAGER_GROUP:
+    case RolesEnum.SALES_MANAGER:
       if (
         manager.sub !== employee.reportingManager &&
         manager.sub !== employee.id
@@ -73,10 +73,10 @@ export const checkManagerPermissions = (
         throwUnAuthorizedError();
       }
       return;
-    case RolesEnum.REGIONAL_MANAGER_GROUP:
+    case RolesEnum.REGIONAL_MANAGER:
       if (
         !(
-          RolesEnum.REGIONAL_MANAGER_GROUP >= RolesEnum[employee.role] &&
+          RolesEnum.REGIONAL_MANAGER >= RolesEnum[employee.role] &&
           employee.teams.find((x) => x.id === manager.currentTeamId)
         )
       ) {

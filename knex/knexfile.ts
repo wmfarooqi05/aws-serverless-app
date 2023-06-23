@@ -49,6 +49,9 @@ export const config: Record<ENV, Knex.Config> = {
       tableName: "knex_migrations",
       directory: "./migrations",
     },
+    seeds: {
+      directory: "./seeds",
+    },
   },
   stage: {
     client: "pg",
@@ -64,6 +67,9 @@ export const config: Record<ENV, Knex.Config> = {
     pool: {
       min: 2,
       max: 10,
+    },
+    seeds: {
+      directory: "./seeds",
     },
     // migrations: {
     //   tableName: "knex_migrations",
@@ -88,6 +94,9 @@ export const config: Record<ENV, Knex.Config> = {
     migrations: {
       tableName: "knex_migrations",
       directory: "./src/database/migrations",
+    },
+    seeds: {
+      directory: "./seeds",
     },
   },
 };

@@ -20,54 +20,70 @@ export interface IEmployeeJwt {
 export const roleKey = "role";
 
 export type IRoles =
-  | "SALES_REP_GROUP"
-  | "SALES_MANAGER_GROUP"
-  | "REGIONAL_MANAGER_GROUP"
-  | "ADMIN_GROUP"
-  | "SUPER_ADMIN_GROUP";
+  | "SALES_REP"
+  | "SALES_MANAGER"
+  | "REGIONAL_MANAGER"
+  | "ADMIN"
+  | "SUPER_ADMIN";
 
 export const RolesEnum: Readonly<Record<IRoles, number>> = Object.freeze({
-  SALES_REP_GROUP: 0,
-  SALES_MANAGER_GROUP: 1,
-  REGIONAL_MANAGER_GROUP: 2,
-  ADMIN_GROUP: 3,
-  SUPER_ADMIN_GROUP: 4,
+  SALES_REP: 0,
+  SALES_MANAGER: 1,
+  REGIONAL_MANAGER: 2,
+  ADMIN: 3,
+  SUPER_ADMIN: 4,
 });
 
 export const RolesArray: IRoles[] = [
-  "SALES_REP_GROUP",
-  "SALES_MANAGER_GROUP",
-  "REGIONAL_MANAGER_GROUP",
-  "ADMIN_GROUP",
-  "SUPER_ADMIN_GROUP",
+  "SALES_REP",
+  "SALES_MANAGER",
+  "REGIONAL_MANAGER",
+  "ADMIN",
+  "SUPER_ADMIN",
 ];
 
 export type GenderType = "Male" | "Female" | "Other";
 
 export const GenderArray: GenderType[] = ["Male", "Female", "Other"];
 
+export interface Address {
+  title: string;
+  address: string;
+  city: string;
+  state?: string;
+  defaultAddress: boolean;
+  postalCode?: string;
+  country?: string;
+}
+
+export interface PHONE_NUMBER  {
+  title: string;
+  phoneNumber:string;
+}
+
 export interface IEmployee {
   id?: string;
   username?: string;
-  sub?: string;
-  name: string;
-  picture?: string;
   email: string;
-  enabled?: boolean;
+  name: string;
+  picture?: string | null;
   jobTitle?: string;
-  role: string; // IRoles;
+  role: IRoles;
   gender?: GenderType;
-  birthdate?: string;
+  addresses: Address[];
+  birthdate?: string | null;
   emailVerified?: boolean;
   phoneNumberVerified?: boolean;
-  phoneNumber?: string;
-  secondaryPhoneNumbers: [];
-  reportingManager?: string;
-  addedBy?: string;
+  phoneNumber?: string | null;
+  secondaryPhoneNumbers: PHONE_NUMBER[];
+  reportingManager?: string | null;
+  addedBy?: string | null;
 
-  settings?: JSON;
-  socialProfiles?: JSON;
-  EmployeeStatus?: string;
+  settings?: any;
+  socialProfiles?: any;
+  timezone?: string | null;
+  employeeStatus?: string;
+  details: any;
   createdAt?: string;
   updatedAt?: string;
 }

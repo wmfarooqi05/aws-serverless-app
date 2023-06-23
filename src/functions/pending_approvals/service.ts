@@ -219,7 +219,7 @@ export class PendingApprovalService implements IPendingApprovalService {
       //      @TODO assign this to some admin guy
       const managers: IEmployee[] = await Employee.query().where({
         teamId: employeeItem.teamId,
-        role: RolesArray[RolesEnum.SALES_MANAGER_GROUP],
+        role: RolesArray[RolesEnum.SALES_MANAGER],
       });
       managers.forEach((x) => approvers.push(x.id));
     } else {

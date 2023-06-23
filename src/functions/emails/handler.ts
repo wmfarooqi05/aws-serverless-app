@@ -172,6 +172,7 @@ export const emailsByContactHandler = async (event) => {
 
 const getMyEmailsHandler = async (event) => {
   try {
+    console.log('env', process.env);
     const emails = await container
       .resolve(EmailService)
       .getMyEmails(event.employee, event.query);
@@ -216,7 +217,7 @@ export const sendEmail = checkRolePermission(
 );
 export const deleteEmail = allowRoleWrapper(
   deleteEmailHandler,
-  RolesEnum.ADMIN_GROUP
+  RolesEnum.ADMIN
 );
 export const sendBulkEmails = checkRolePermission(
   sendBulkEmailsHandler,

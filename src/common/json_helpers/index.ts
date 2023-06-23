@@ -8,6 +8,7 @@ import {
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import { randomUUID } from "crypto";
 import { Knex } from "knex";
+import { mapKeys, snakeCase } from "lodash";
 import { CustomError } from "src/helpers/custom-error";
 
 /**
@@ -594,3 +595,7 @@ export const snakeToCamel = (obj) => {
   }
   return newObj;
 };
+
+export const convertKeysToSnakeCase = (obj) => {
+  return mapKeys(obj, (_, key) => snakeCase(key));
+}

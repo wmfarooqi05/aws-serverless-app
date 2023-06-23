@@ -57,7 +57,11 @@ export const JobsSchema = new Schema(
   }
 );
 
+const { JOBS_DYNAMO_TABLE, STAGE, SERVICE_NAME } = process.env;
 // Create the first table model
-export const JobsModel = model("Jobs", JobsSchema);
+export const JobsModel = model(
+  `${SERVICE_NAME}_${STAGE}_${JOBS_DYNAMO_TABLE}`,
+  JobsSchema
+);
 
 export default JobsModel;

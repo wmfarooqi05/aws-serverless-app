@@ -102,7 +102,7 @@ export const bulkImportUsersProcessHandler = async (jobData: IJobData) => {
     if (
       [...newManagers, ...existingManagers]
         .map((x) => x.role)
-        .includes(RolesArray[RolesEnum.SALES_REP_GROUP])
+        .includes(RolesArray[RolesEnum.SALES_REP])
     ) {
       throw new CustomError("Reporting Manager cannot be a sales rep", 400);
     }

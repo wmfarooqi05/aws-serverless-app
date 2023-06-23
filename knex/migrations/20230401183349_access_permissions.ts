@@ -13,18 +13,18 @@ enum PermissionTypes {
 }
 
 export const RolesArray = [
-  "SALES_REP_GROUP",
-  "SALES_MANAGER_GROUP",
-  "REGIONAL_MANAGER_GROUP",
-  "ADMIN_GROUP",
-  "SUPER_ADMIN_GROUP",
+  "SALES_REP",
+  "SALES_MANAGER",
+  "REGIONAL_MANAGER",
+  "ADMIN",
+  "SUPER_ADMIN",
 ];
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
 
-      table.enum("role", RolesArray).notNullable().defaultTo("SALES_REP_GROUP");
+      table.enum("role", RolesArray).notNullable().defaultTo("SALES_REP");
       table.string("table_name").notNullable();
 
       table.enum("permission_type", Object.values(PermissionTypes)).notNullable();

@@ -37,7 +37,7 @@ export const allowMeWrapper = (func: any, key: string) => {
 
 export const allowMeOrRoleWrapper = (
   func: any,
-  permittedRole: number = RolesEnum.SALES_REP_GROUP,
+  permittedRole: number = RolesEnum.SALES_REP,
   key: string
 ) => {
   return middy(func)
@@ -55,7 +55,7 @@ export const allowMeOrRoleWrapper = (
  */
 export const allowRoleWrapper = (
   func: any,
-  role: number = RolesEnum.SALES_REP_GROUP
+  role: number = RolesEnum.SALES_REP
 ) => {
   return middy(func)
     .use(decodeJWTMiddleware())
