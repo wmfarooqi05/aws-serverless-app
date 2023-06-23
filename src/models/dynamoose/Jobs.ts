@@ -1,6 +1,6 @@
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { randomUUID } from "crypto";
-import { Schema, model, type } from "dynamoose";
+import { Schema, model } from "dynamoose";
 import { AnyItem } from "dynamoose/dist/Item";
 import moment from "moment-timezone";
 
@@ -57,11 +57,7 @@ export const JobsSchema = new Schema(
   }
 );
 
-const { JOBS_DYNAMO_TABLE, STAGE, SERVICE_NAME } = process.env;
 // Create the first table model
-export const JobsModel = model(
-  `${SERVICE_NAME}_${STAGE}_${JOBS_DYNAMO_TABLE}`,
-  JobsSchema
-);
+export const JobsModel = model(process.env.JOBS_TABLE, JobsSchema);
 
 export default JobsModel;
