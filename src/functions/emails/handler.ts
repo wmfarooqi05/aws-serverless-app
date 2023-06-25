@@ -172,7 +172,7 @@ export const emailsByContactHandler = async (event) => {
 
 const getMyEmailsHandler = async (event) => {
   try {
-    console.log('env', process.env);
+    console.log("env", process.env);
     const emails = await container
       .resolve(EmailService)
       .getMyEmails(event.employee, event.query);
@@ -198,6 +198,17 @@ const moveToFolderHandler = async (event) => {
     const count = await container
       .resolve(EmailService)
       .moveToFolder(event.employee, event.body);
+    return formatJSONResponse({ message: `Updated ${count} records` }, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+const bulkEmailSqsEventHandler = async (event) => {
+  try {
+    const count = await container
+      .resolve(EmailService)
+      .bulkEmailSqsEventHandler(event.employee, event.body);
     return formatJSONResponse({ message: `Updated ${count} records` }, 200);
   } catch (e) {
     return formatErrorResponse(e);

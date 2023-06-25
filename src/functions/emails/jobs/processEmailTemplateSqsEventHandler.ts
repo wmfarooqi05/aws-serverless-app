@@ -1,18 +1,13 @@
 import {
   CreateTemplateCommand,
-  GetTemplateCommand,
   SESClient,
-  UpdateTemplateCommand,
-  UpdateTemplateCommandInput,
 } from "@aws-sdk/client-ses";
-import { SQSClient } from "@aws-sdk/client-sqs";
 import {
   EmailTemplatesModel,
   IEmailTemplate,
 } from "@functions/emails/models/EmailTemplate";
 import { getS3BufferFromUrl, uploadContentToS3 } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
-import { DatabaseService } from "@libs/database/database-service-objection";
 import { IJobData } from "@models/dynamoose/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";

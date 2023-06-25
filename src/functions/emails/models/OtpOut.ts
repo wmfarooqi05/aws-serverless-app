@@ -19,14 +19,11 @@ export class OptOutModel extends Model {
       required: ["email"],
 
       properties: {
-        id: { type: "integer" },
+        id: { type: "string" },
         email: {
           type: "string",
-          format: "email",
-          minLength: 1,
-          maxLength: 255,
         },
-        reason: { type: "string", minLength: 1, maxLength: 255 },
+        reason: { type: "string" },
         created_at: { type: "timestamp" },
         updated_at: { type: "timestamp" },
       },

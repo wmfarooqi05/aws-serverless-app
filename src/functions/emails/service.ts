@@ -51,6 +51,9 @@ import {
   SESClient,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
+  SendTemplatedEmailCommand,
+  SendTemplatedEmailCommandInput,
+  SendTemplatedEmailCommandOutput,
 } from "@aws-sdk/client-ses";
 import { formatErrorResponse } from "@libs/api-gateway";
 
@@ -453,7 +456,6 @@ export class EmailService implements IEmailService {
           copyS3Object(
             keys.fileKey,
             newKey,
-            "public-read",
             false,
             keys.bucketName,
             keys.region
@@ -1027,7 +1029,6 @@ export class EmailService implements IEmailService {
       uploadContentToS3(
         `emails/${folderId}/attachments/${x.s3FileName}`,
         x.content,
-        "public-read"
       )
     );
 
@@ -1035,7 +1036,6 @@ export class EmailService implements IEmailService {
       uploadContentToS3(
         `emails/${folderId}/attachments/thumb_${x.name}`,
         x.thumbnailBuffer,
-        "public-read"
       )
     );
 
@@ -1448,4 +1448,43 @@ export class EmailService implements IEmailService {
         )
       );
   }
+
+  bulkEmailSqsEventHandler = async (employee, body) => {
+    const payload = JSON.parse(body);
+    const { templateName, emailTemplateS3Url, subject, destination } = payload;
+    const email: any = {
+      attachments: [],
+      body: emailTemplateS3Url,
+      isBodyUploaded: true,
+      emailType: "BULK",
+      direction: "SENT",
+      subject,
+      status: "SENDING",
+      // details: { placeholders: x.placeholders },
+    } as IEmailRecord;
+    const toEmailObject = splitEmailAndName(destination);
+    const recipients = [
+      {
+        recipientEmail: toEmailObject.email,
+        recipientType: "TO_LIST",
+        recipientName: toEmailObject.name,
+      },
+    ] as IRecipient[];
+    email["recipients"] = recipients;
+    const command: SendTemplatedEmailCommandInput = {
+      Destination: {
+        ToAddresses: [payload.destination],
+      },
+      ConfigurationSetName: "email_sns_config",
+      Source: "Waleed Mehmood <wmfarooqi05@gmail.com>",
+      Template: templateName,
+      TemplateData: JSON.stringify({}),
+    };
+
+    const resp: SendTemplatedEmailCommandOutput = await sesClient.send(
+      new SendTemplatedEmailCommand(command)
+    );
+
+    console.log("resp", resp);
+  };
 }

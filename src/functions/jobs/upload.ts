@@ -57,15 +57,17 @@ export const uploadToS3 = async (path, body) => {
 export const uploadFileToS3 = async (
   filePath: string,
   Key: string,
+  /** @deprecated ACL will always be private */
   ACL: string = null
 ) => {
   const fileContent = await fs.promises.readFile(filePath);
-  return uploadContentToS3(Key, fileContent, ACL);
+  return uploadContentToS3(Key, fileContent);
 };
 
 export const uploadContentToS3 = async (
   Key: string,
   fileContent: any,
+  /** @deprecated */
   ACL: string = "private"
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const uploadParams: PutObjectCommandInput = {
@@ -73,9 +75,10 @@ export const uploadContentToS3 = async (
     Key,
     Body: fileContent,
   };
-  if (ACL) {
-    uploadParams.ACL = ACL;
-  }
+  // if (ACL) {
+    // ACL will always be private
+    // uploadParams.ACL = ACL;
+  // }
 
   try {
     const command = new PutObjectCommand(uploadParams);
@@ -92,7 +95,6 @@ export const uploadContentToS3 = async (
 export const uploadJsonAsXlsx = async (
   Key: string,
   content: any,
-  ACL: string = null
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const rows = [];
   const headers = Object.keys(content[0]);
@@ -106,7 +108,7 @@ export const uploadJsonAsXlsx = async (
   const worksheet = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
   const buffer = XLSX.write(workbook, { type: "buffer" });
-  return uploadContentToS3(Key, buffer, ACL);
+  return uploadContentToS3(Key, buffer);
 };
 
 /**
@@ -124,7 +126,6 @@ export const uploadJsonAsXlsx = async (
 export const copyS3Object = async (
   sourceKey: string,
   destinationKey: string,
-  ACL: string = null,
   deleteOriginal: boolean = false,
   sourceBucket: string = process.env.DEPLOYMENT_BUCKET,
   sourceRegion: string = process.env.REGION,
@@ -137,9 +138,10 @@ export const copyS3Object = async (
     Key: destinationKey,
   };
 
-  if (ACL) {
-    copyParams.ACL = ACL;
-  }
+  // always private
+  // if (ACL) {
+  //   copyParams.ACL = ACL;
+  // }
 
   try {
     const { sourceClient, destinationClient } = getS3ClientsForRegions(
@@ -167,7 +169,7 @@ export const copyS3Object = async (
  *
  * @param sourceFolder
  * @param destinationFolder
- * @param ACL
+ * @deprecated @param ACL
  * @param deleteOriginal
  * @param sourceBucket
  * @param sourceRegion
@@ -177,6 +179,7 @@ export const copyS3Object = async (
 export const copyS3FolderContent = async (
   sourceFolder: string,
   destinationFolder: string,
+  /** @deprecated ACL will always be private */
   ACL: string = "private",
   deleteOriginal: boolean = false,
   sourceBucket: string = process.env.DEPLOYMENT_BUCKET,
@@ -202,7 +205,7 @@ export const copyS3FolderContent = async (
       Key: `${destinationFolder}/${object.Key.substring(
         sourceFolder.length + 1
       )}`,
-      ACL,
+      // ACL,
     };
     await destinationClient.send(new CopyObjectCommand(copyObjectCommand));
 
