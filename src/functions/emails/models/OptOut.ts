@@ -24,8 +24,8 @@ export class OptOutModel extends Model {
           type: "string",
         },
         reason: { type: "string" },
-        created_at: { type: "timestamp" },
-        updated_at: { type: "timestamp" },
+        createdAt: { type: "timestamp" },
+        updatedAt: { type: "timestamp" },
       },
     };
   }

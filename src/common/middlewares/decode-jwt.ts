@@ -96,13 +96,13 @@ export const jwtRequired = () => {
           event.employee.teamId = "f861b2dc-b1b9-4c59-9047-99bcfeca9cda"; // @TODO fix this with cognito auth
         }
 
-        if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
-          console.log("Auth Token missing or invalid");
-          return formatErrorResponse({
-            message: "Auth Token missing or invalid",
-            statusCode: 403,
-          });
-        }
+        // if (!(roleFound && event?.employee?.sub && event?.employee?.teamId)) {
+        //   console.log("Auth Token missing or invalid");
+        //   return formatErrorResponse({
+        //     message: "Auth Token missing or invalid",
+        //     statusCode: 403,
+        //   });
+        // }
       } catch (e) {
         return formatErrorResponse({
           message: "Auth Token missing or invalid",

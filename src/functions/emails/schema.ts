@@ -15,7 +15,6 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
           .required(),
         subject: Joi.string().required(),
         body: Joi.string().required(),
-        isBodyUploaded: Joi.boolean(),
         ccList: Joi.array().items(
           Joi.object({
             email: Joi.string().email().required(),
@@ -42,8 +41,10 @@ export const validateSendEmail = (obj: IEmailSqsEventInput) => {
     ),
     inReplyTo: Joi.string().allow(null),
     references: Joi.string().allow(null),
+    from: Joi.string().email().allow(null),
+    overrideFrom: Joi.bool().allow(null),
   }).validateAsync(obj, {
-    allowUnknown: true,
+    allowUnknown: true, // @TODO remove this
   });
 };
 
@@ -97,8 +98,7 @@ export const validateGetMyEmails = async (body) => {
     // @TODO test returning Fields
     sortBy: Joi.string(),
     sortAscending: Joi.boolean(),
-  })
-    .validateAsync(body);
+  }).validateAsync(body);
 };
 
 export const validateUpdateLabel = async (body) => {

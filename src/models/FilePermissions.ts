@@ -11,7 +11,7 @@ export type THUMBNAIL_STATUS =
   | "ERROR";
 export type UPLOAD_STATUS = "UPLOADED" | "ERROR";
 
-export interface PermissionsMap {
+export interface FilePermissionsMap {
   [employeeId: string]: {
     employeeId: string;
     email: string;
@@ -25,15 +25,15 @@ export interface IFilePermissions {
   fileKey: string;
   bucketName: string;
   region: string;
-  fileType: string;
-  fileSize: string;
-  originalName: string;
+  contentType: string;
+  fileSize?: string;
+  originalFilename: string;
   thumbnailStatus: THUMBNAIL_STATUS;
   thumbnailUrl?: string;
-  permissions: PermissionsMap;
+  permissions: FilePermissionsMap;
   createdAt?: string;
   updatedAt?: string;
-  uploadStatus: "UPLOADED" | "ERROR";
+  uploadStatus: UPLOAD_STATUS;
   error: string;
 }
 
@@ -50,27 +50,22 @@ export class FilePermissionModel extends Model {
   static get jsonSchema() {
     return {
       type: "object",
-      required: ["permissions"],
-
       properties: {
         id: { type: "string" },
-
         fileUrl: { type: "string" },
-        fileKey: { type: "string" },
-        bucketName: { type: "string" },
-        region: { type: "string" },
-        fileType: { type: "string" },
-        fileSize: { type: "string" },
-        originalName: { type: "string" },
-        // in future, run a job to insert thumbnails of files
-        // instead of doing it manually
-        thumbnailStatus: { type: "string" },
-        thumbnailUrl: { type: "string" },
-        permissions: { type: "object", default: {} },
-        uploadStatus: UPLOAD_STATUS;
-        error: string;
-        created_at: { type: "timestamp" },
-        updated_at: { type: "timestamp" },
+        fileKey: { type: ["string", "null"] },
+        bucketName: { type: ["string", "null"] },
+        region: { type: ["string", "null"] },
+        contentType: { type: ["string", "null"] },
+        fileSize: { type: ["string", "null"] },
+        originalFilename: { type: ["string", "null"], default: {} },
+        thumbnailStatus: { type: ["string", "null"] },
+        thumbnailUrl: { type: ["string", "null"] },
+        permissions: { type: ["object", "null"] },
+        uploadStatus: { type: ["string", "null"] },
+        error: { type: ["string", "null"] },
+        createdAt: { type: "string" },
+        updatedAt: { type: "string" },
       },
     };
   }

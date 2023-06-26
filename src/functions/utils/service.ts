@@ -21,12 +21,10 @@ export class UtilService {
         const ext = getExtension(filename);
         const newFileName = `${randomUUID()}${ext}`;
         const key = `tmp/${newFileName}`;
-        const ACL = "public-read";
         const command = new PutObjectCommand({
           Bucket: process.env.DEPLOYMENT_BUCKET,
           Key: key,
           ContentType: "application/octet-stream",
-          ACL, // Set ACL as per your requirement
         });
 
         const signedUrl = await getSignedUrl(this.s3Client, command, {
@@ -37,8 +35,7 @@ export class UtilService {
           key,
           originalFileName: filename,
           newFileName: newFileName,
-          urlAfterUpload: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${key}`,
-          ACL,
+          urlAfterUpload: `${process.env.CLOUD_FRONT_URL}/${key}`,
         };
       })
     );

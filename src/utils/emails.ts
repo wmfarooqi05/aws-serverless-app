@@ -1,4 +1,5 @@
 import { CustomError } from "@helpers/custom-error";
+import { convert } from "html-to-text";
 
 export const formatRFC2822Message = (
   from: string,
@@ -117,7 +118,42 @@ export const validateEmailReferences = (inReplyTo, references) => {
 };
 
 export const extractTextFromHTML = (htmlContent) => {
-  const tempElement = document.createElement('div');
+  const tempElement = document.createElement("div");
   tempElement.innerHTML = htmlContent;
   return tempElement.innerText;
+};
+
+export const constructFileContent = (
+  emailBody: string
+): {
+  containsHtml: boolean;
+  fileContent: { text: string; html: string | null; headers: any };
+} => {
+  if (isHtml(emailBody)) {
+    return {
+      containsHtml: true,
+      fileContent: {
+        text: convert(emailBody, { wordwrap: 160 }),
+        html: emailBody,
+        headers: {},
+      },
+    };
+  } else {
+    return {
+      containsHtml: false,
+      fileContent: {
+        text: convert(emailBody, { wordwrap: 160 }),
+        headers: {},
+        html: null,
+      },
+    };
+  }
+};
+
+export const extractHtmlAndText = (
+  emailBody: string
+): { containsHtml: boolean; text: string } => {
+  const containsHtml = isHtml(emailBody);
+  const text = containsHtml ? convert(emailBody, { wordwrap: 160 }) : emailBody;
+  return { containsHtml, text };
 };

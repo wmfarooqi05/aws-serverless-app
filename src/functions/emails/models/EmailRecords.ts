@@ -46,6 +46,7 @@ export interface IATTACHMENT {
   cid?: string;
   thumbnailUrl?: string;
   updatedAt: string;
+  fileSize: string;
 }
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";

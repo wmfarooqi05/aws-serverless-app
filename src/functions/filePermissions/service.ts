@@ -3,10 +3,11 @@ import {
   PutObjectCommandInput,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { copyS3Object, copyS3ObjectAndGetSize } from "@functions/jobs/upload";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import {
   FilePermissionModel,
-  FilePermissions,
+  FilePermissionsMap,
   IFilePermissions,
   PermissionsMap,
 } from "@models/FilePermissions";
@@ -15,30 +16,28 @@ import { checkThumbnailStatus, constructS3Url } from "@utils/s3";
 import { inject, injectable } from "tsyringe";
 
 @injectable()
-export class CompanyService {
+export class FilePermissionsService {
   s3Client: S3Client = null;
-  constructor(
-    @inject(DatabaseService) private readonly _: DatabaseService
-  ) {
+  constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
     this.s3Client = new S3Client({ region: process.env.REGION });
   }
 
   async uploadFilesToBucketWithPermissions(
-    bucketName: string,
-    region: string,
     files: {
+      originalFilename: string;
+      contentType: string;
       Key: string;
       fileContent: any;
-      fileType: string;
-      originalName: string;
     }[],
-    permissionMap: PermissionsMap
+    permissionMap: PermissionsMap,
+    bucketName: string = process.env.DEPLOYMENT_BUCKET,
+    region: string = process.env.REGION
   ): Promise<IFilePermissions[]> {
     const filePromises = files.map(({ Key, fileContent }) => {
       const uploadParams: PutObjectCommandInput = {
         Bucket: process.env.DEPLOYMENT_BUCKET,
         Key,
-        Body: fileContent,
+        Body: JSON.stringify(fileContent),
       };
 
       const command = new PutObjectCommand(uploadParams);
@@ -46,19 +45,73 @@ export class CompanyService {
     });
     const responses = await Promise.allSettled(filePromises);
     const dbEntries: IFilePermissions[] = responses.map((x, index) => {
-      const { Key, fileContent, fileType, originalName } = files[index];
+      const { Key, fileContent, contentType, originalFilename } = files[index];
       return {
         bucketName,
         region,
         fileKey: Key,
         fileUrl: constructS3Url(bucketName, region, Key),
-        fileSize: bytes(fileContent).toString(),
-        fileType,
-        originalName,
+        contentType,
+        originalFilename,
         permissions: permissionMap,
-        thumbnailStatus: checkThumbnailStatus(fileType),
+        thumbnailStatus: checkThumbnailStatus(contentType),
         uploadStatus: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
-        error: x.status === "rejected" && x.reason,
+        error: x.status === "rejected" ? x.reason : null,
+        fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
+      } as IFilePermissions;
+    });
+
+    const dbResp: IFilePermissions[] = await FilePermissionModel.query().insert(
+      dbEntries
+    );
+    return dbResp;
+  }
+
+  async copyFilesToBucketWithPermissions(
+    files: {
+      originalFilename: string;
+      contentType: string;
+      sourceKey: string;
+      destinationKey: string;
+      deleteOriginal?: boolean;
+      sourceBucket: string;
+      sourceRegion: string;
+    }[],
+    permissionMap: FilePermissionsMap,
+    destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
+    destinationRegion: string = process.env.REGION
+  ): Promise<IFilePermissions[]> {
+    const filePromises = files.map((x) =>
+      copyS3ObjectAndGetSize(
+        x.sourceKey,
+        x.destinationKey,
+        x.deleteOriginal,
+        x.sourceBucket,
+        x.sourceRegion,
+        destinationBucket,
+        destinationRegion
+      )
+    );
+
+    const responses = await Promise.allSettled(filePromises);
+    const dbEntries: IFilePermissions[] = responses.map((x, index) => {
+      const { destinationKey, contentType, originalFilename } = files[index];
+      return {
+        bucketName: destinationBucket,
+        region: destinationRegion,
+        fileKey: destinationKey,
+        fileUrl: constructS3Url(
+          destinationBucket,
+          destinationRegion,
+          destinationKey
+        ),
+        contentType,
+        originalFilename,
+        permissions: permissionMap,
+        thumbnailStatus: checkThumbnailStatus(contentType),
+        uploadStatus: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
+        error: x.status === "rejected" ? x.reason : null,
+        fileSize: x.status === "fulfilled" ? x.value.size : 0,
       };
     });
 

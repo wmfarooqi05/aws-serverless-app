@@ -4,7 +4,7 @@ export const constructS3Url = (
   bucketName: string,
   region: string,
   fileKey: string
-) => `${bucketName}.s3Client.${region}.amazonaws.com/${fileKey}`;
+) => `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
 
 export const checkThumbnailStatus = (
   fileType: string | null | undefined

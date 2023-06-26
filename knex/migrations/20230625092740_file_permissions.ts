@@ -13,11 +13,11 @@ export async function up(knex: Knex): Promise<void> {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("file_url").notNullable().unique();
       table.string("file_key");
-      table.string("bucket");
+      table.string("bucket_name");
       table.string("region");
-      table.string("file_type");
+      table.string("content_type");
       table.string("file_size");
-      table.string("original_name");
+      table.string("original_filename");
       table.string("thumbnail_status");
       table.string("thumbnail_url");
       table.jsonb("permissions");

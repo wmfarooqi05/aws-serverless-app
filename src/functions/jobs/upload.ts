@@ -10,6 +10,7 @@ import {
   GetObjectCommandInput,
   DeleteObjectCommandOutput,
   ListObjectsCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -18,6 +19,7 @@ import * as XLSX from "xlsx";
 import { snakeCase } from "lodash";
 import { Readable } from "stream";
 import { CustomError } from "@helpers/custom-error";
+import bytes from "@utils/bytes";
 
 // @TODO rename this to s3-utils
 
@@ -76,8 +78,8 @@ export const uploadContentToS3 = async (
     Body: fileContent,
   };
   // if (ACL) {
-    // ACL will always be private
-    // uploadParams.ACL = ACL;
+  // ACL will always be private
+  // uploadParams.ACL = ACL;
   // }
 
   try {
@@ -94,7 +96,7 @@ export const uploadContentToS3 = async (
 
 export const uploadJsonAsXlsx = async (
   Key: string,
-  content: any,
+  content: any
 ): Promise<{ fileUrl: string; fileKey: string }> => {
   const rows = [];
   const headers = Object.keys(content[0]);
@@ -162,6 +164,67 @@ export const copyS3Object = async (
       await sourceClient.send(new DeleteObjectCommand(deleteParams));
     }
     return newLoc;
+  } catch (e) {}
+};
+
+/**
+ *
+ * @param sourceKey
+ * @param destinationKey
+ * @param ACL
+ * @param deleteOriginal
+ * @param sourceBucket
+ * @param sourceRegion
+ * @param destinationBucket
+ * @param destinationRegion
+ * @returns
+ */
+export const copyS3ObjectAndGetSize = async (
+  sourceKey: string,
+  destinationKey: string,
+  deleteOriginal: boolean = false,
+  sourceBucket: string = process.env.DEPLOYMENT_BUCKET,
+  sourceRegion: string = process.env.REGION,
+  destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
+  destinationRegion: string = process.env.REGION
+): Promise<{ newLoc: CopyObjectCommandOutput; size: string }> => {
+  const copyParams: CopyObjectCommandInput = {
+    Bucket: destinationBucket,
+    CopySource: `${sourceBucket}/${sourceKey}`,
+    Key: destinationKey,
+  };
+
+  // always private
+  // if (ACL) {
+  //   copyParams.ACL = ACL;
+  // }
+
+  try {
+    const { sourceClient, destinationClient } = getS3ClientsForRegions(
+      sourceRegion,
+      destinationRegion
+    );
+
+    const newLoc = await destinationClient.send(
+      new CopyObjectCommand(copyParams)
+    );
+
+    const head = await destinationClient.send(
+      new HeadObjectCommand({
+        Bucket: destinationBucket,
+        Key: destinationKey,
+      })
+    );
+
+    // Delete the object from the old location
+    if (deleteOriginal) {
+      const deleteParams = {
+        Bucket: sourceBucket,
+        Key: sourceKey,
+      };
+      await sourceClient.send(new DeleteObjectCommand(deleteParams));
+    }
+    return { newLoc, size: bytes(head.ContentLength).toString() };
   } catch (e) {}
 };
 
