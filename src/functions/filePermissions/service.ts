@@ -48,7 +48,6 @@ export class FilePermissionsService {
       !process.env.CLOUDFRONT_PRIVATE_KEY &&
       !this.cloudFrontPrivateKeyInitializing
     ) {
-      console.log("fetching CLOUDFRONT_PRIVATE_KEY");
       this.cloudFrontPrivateKeyInitializing = true;
       const privateKey = await this.secretManager.getValueFromSecretManager(
         "cloudfront/dev/signing-private-key"
@@ -164,46 +163,23 @@ export class FilePermissionsService {
     employee: IEmployeeJwt,
     fileUrls: string[]
   ): Promise<IFilePermissions[]> {
-    await this.initializeCloudFrontPrivateKey();
     const filePermissionRecords: IFilePermissions[] =
       await FilePermissionModel.query().whereIn("fileUrl", fileUrls);
 
-    const permittedFiles = filePermissionRecords.filter(
-      (x) => typeof x.permissions[employee.sub] !== undefined
-    );
-
-    const filePromises: Promise<{
-      signedUrl: string;
-      originalUrl: string;
-    }>[] = [];
-    const thumbPromises: Promise<{
-      signedUrl: string;
-      originalUrl: string;
-    }>[] = [];
-
-    permittedFiles.forEach(({ fileUrl, thumbnailUrl }) => {
-      fileUrl = this.getCloudFrontSignedUrl(
-        fileUrl,
-        process.env.CLOUDFRONT_PRIVATE_KEY
-      );
-      thumbnailUrl = this.getCloudFrontSignedUrl(
-        thumbnailUrl,
-        process.env.CLOUDFRONT_PRIVATE_KEY
-      );
-    });
-
-    const files = await Promise.all(filePromises);
-    const thumbnails = await Promise.all(thumbPromises);
-
-    // filePermissionRecords[0].
-    return permittedFiles.map((x, index) => {
-      const thumbUrl = thumbnails.find((t) => t.originalUrl === x.thumbnailUrl);
-      return {
+    await this.initializeCloudFrontPrivateKey();
+    return filePermissionRecords
+      .filter((x) => x.permissions[employee.sub])
+      .map((x) => ({
         ...x,
-        fileUrl: files[index].signedUrl,
-        thumbnailUrl: thumbUrl ? thumbUrl.signedUrl : x.thumbnailUrl,
-      };
-    });
+        fileUrl: this.getCloudFrontSignedUrl(
+          x.fileUrl,
+          process.env.CLOUDFRONT_PRIVATE_KEY
+        ),
+        thumbnailUrl: this.getCloudFrontSignedUrl(
+          x.thumbnailUrl,
+          process.env.CLOUDFRONT_PRIVATE_KEY
+        ),
+      }));
   }
 
   getCloudFrontSignedUrl(
@@ -217,7 +193,7 @@ export class FilePermissionsService {
     }
     const cdnUrl = `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${fileKey}`;
     const keyPairId = process.env.CLOUD_FRONT_PUBLIC_KEY_ID;
-    // new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toDateString()
+
     return getSignedUrl({
       url: cdnUrl,
       keyPairId,

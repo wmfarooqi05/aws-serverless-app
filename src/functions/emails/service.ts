@@ -2,7 +2,7 @@ import "reflect-metadata";
 // import { DatabaseService } from "./models/database";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { container, inject, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
@@ -20,12 +20,9 @@ import * as fs from "fs";
 import {
   simpleParser,
   Attachment,
-  EmailAddress,
   ParsedMail,
-  MailParser,
 } from "mailparser";
 import {
-  copyS3Object,
   getKeysFromS3Url,
   uploadContentToS3,
   getS3ReadableFromUrl,
@@ -33,16 +30,13 @@ import {
 import {
   EmailRecordModel,
   IEmailRecord,
-  IATTACHMENT,
   IEmailRecordModel,
   IEmailRecordWithRecipients,
 } from "./models/EmailRecords";
 import * as stream from "stream";
 
-import { IRecipient, RECIPIENT_TYPE } from "./models/Recipient";
+import { IRecipient } from "./models/Recipient";
 import {
-  CopyObjectCommand,
-  CopyObjectCommandInput,
   CopyObjectCommandOutput,
   GetObjectCommand,
   S3Client,
@@ -68,7 +62,6 @@ import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
 import {
   constructFileContent,
-  extractHtmlAndText,
   mergeEmailAndName,
   mergeEmailAndNameList,
   splitEmailAndName,
@@ -87,7 +80,6 @@ import {
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
-import { generateThumbnailFromImageBuffers } from "@utils/thumbnails";
 import processEmailTemplateSqsEventHandler from "@functions/emails/jobs/processEmailTemplateSqsEventHandler";
 import { bulkEmailPrepareSqsEventHandler } from "@functions/emails/jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "@functions/emails/jobs/bulkEmailSqsEventHandler";
@@ -107,15 +99,12 @@ import {
 } from "./models/RecipientEmployeeDetails";
 import { FilePermissionsService } from "@functions/filePermissions/service";
 import {
-  FilePermissionModel,
   FilePermissionsMap,
   IFilePermissions,
 } from "@models/FilePermissions";
-import bytes from "@utils/bytes";
-import { getSecretValueFromSecretManager } from "@utils/secretManager";
 import { SecretManager } from "@common/service/SecretManager";
+import { S3Service } from "@common/service/S3Service";
 
-const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
 const sesClient = new SESClient({ region: process.env.REGION });
 
@@ -131,7 +120,8 @@ export class EmailService implements IEmailService {
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
     private readonly filePermissionsService: FilePermissionsService,
-    @inject(SecretManager) private readonly secretManager: SecretManager
+    @inject(SecretManager) private readonly secretManager: SecretManager,
+    @inject(S3Service) private readonly s3Service: S3Service
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });
   }
@@ -174,38 +164,70 @@ export class EmailService implements IEmailService {
       });
     });
 
-    /**
-     * content json [0] at 0th row
-     * attachments on 0+ rows, so length will be attachment.length + 1
-     */
+    // if (!recipients.find((x) => x.recipientEmail === employee.email)) {
+    //   throw new CustomError("You are not allowed to view this email", 403);
+    // }
 
-    const {
-      attachments,
-      contentUrl,
-      containsHtml,
-      isBodyUploaded,
-      recipients,
-    } = emailRecord;
+    // We will handle file permission issue later on
 
-    if (!recipients.find((x) => x.recipientEmail === employee.email)) {
-      throw new CustomError("You are not allowed to view this email", 403);
-    }
+    // first get all content json and download them,
+    // then sign all the attachment and thumbnail urls
 
-    const abc = emailRecord.attachments.map((x) => {
-      return x.fileUrl;
+    return this.getProcessEmailRecords(
+      emailRecords.sort((a, b) =>
+        moment(b.sentAt || b.createdAt).diff(a.sentAt || a.createdAt)
+      )
+    );
+
+    // const abc = emailRecords.map(x => x.attachments?.flatMap())
+    // const downloadableContent: string[] = [
+    //   emailRecord.contentUrl,
+    //   ...attachments?.map((x) => x.fileUrl),
+    // ];
+
+    // const files =
+    //   await this.filePermissionsService.downloadFileFromS3WithPermissions(
+    //     employee,
+    //     downloadableContent
+    //   );
+  }
+
+  async getProcessEmailRecords(emailRecords: IEmailRecord[]) {
+    await this.filePermissionsService.initializeCloudFrontPrivateKey();
+    const newContentPromises = emailRecords.map(async (email, index) => {
+      let content: any = {};
+      if (email.contentUrl) {
+        const contentJson = await this.s3Service.getS3BufferFromUrl(
+          email.contentUrl
+        );
+        content = JSON.parse(JSON.parse(contentJson.toString("utf-8")));
+      }
+
+      return {
+        ...email,
+        html: content?.html,
+        headers: content?.headers,
+        body: email.isBodyUploaded ? content.text : email.body,
+        // contentUrl: undefined,
+        attachments: email.attachments.map((x) => ({
+          ...x,
+          fileUrl: x.fileUrl
+            ? this.filePermissionsService.getCloudFrontSignedUrl(
+                x.fileUrl,
+                process.env.CLOUDFRONT_PRIVATE_KEY
+              )
+            : null,
+          thumbnailUrl: x.thumbnailUrl
+            ? this.filePermissionsService.getCloudFrontSignedUrl(
+                x.thumbnailUrl,
+                process.env.CLOUDFRONT_PRIVATE_KEY
+              )
+            : null,
+          permissions: undefined,
+        })),
+      };
     });
-    const downloadableContent: string[] = [
-      emailRecord.contentUrl,
-      ...attachments?.map((x) => x.fileUrl),
-    ];
-
-    const files =
-      await this.filePermissionsService.downloadFileFromS3WithPermissions(
-        employee,
-        downloadableContent
-      );
-
-    console.log(files.length);
+    return Promise.all(newContentPromises);
   }
 
   async getCompleteEmailById(id: string): Promise<any> {

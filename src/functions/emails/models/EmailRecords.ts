@@ -79,10 +79,18 @@ export interface IEmailRecord {
   contentUrl: string;
   containsHtml: boolean;
   threadId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
 
 export interface IEmailRecordWithRecipients extends IEmailRecord {
   recipients: IRecipient[];
+}
+
+export interface IFullEmailRecord extends IEmailRecordWithRecipients {
+  html: string;
+  headers: string;
 }
 
 @singleton()

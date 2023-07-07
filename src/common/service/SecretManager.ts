@@ -8,7 +8,6 @@ import {
 export class SecretManager {
   secretManager: SecretsManagerClient;
   constructor() {
-    console.log("process.env.AWS_REGION", process.env.AWS_REGION);
     this.secretManager = new SecretsManagerClient({
       region: process.env.AWS_REGION,
     });
