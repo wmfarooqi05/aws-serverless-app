@@ -35,7 +35,7 @@ export class UtilService {
           key,
           originalFileName: filename,
           newFileName: newFileName,
-          urlAfterUpload: `${process.env.CLOUD_FRONT_URL}/${key}`,
+          urlAfterUpload: `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${key}`,
         };
       })
     );

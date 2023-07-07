@@ -1,25 +1,64 @@
 import {
+  GetObjectAclCommand,
+  GetObjectAclCommandInput,
+  GetObjectCommand,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { copyS3Object, copyS3ObjectAndGetSize } from "@functions/jobs/upload";
+import {
+  copyS3Object,
+  copyS3ObjectAndGetSize,
+  getKeysFromS3Url,
+} from "@functions/jobs/upload";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import {
   FilePermissionModel,
   FilePermissionsMap,
   IFilePermissions,
-  PermissionsMap,
 } from "@models/FilePermissions";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes from "@utils/bytes";
 import { checkThumbnailStatus, constructS3Url } from "@utils/s3";
 import { inject, injectable } from "tsyringe";
+import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
+import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
+import { SecretManager } from "@common/service/SecretManager";
+import { CustomError } from "@helpers/custom-error";
+import moment from "moment-timezone";
 
 @injectable()
 export class FilePermissionsService {
   s3Client: S3Client = null;
-  constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
+  cloudFrontClient: CloudFrontClient = null;
+  cloudFrontPrivateKeyInitializing = false;
+
+  constructor(
+    @inject(DatabaseService) private readonly _: DatabaseService,
+    @inject(SecretManager) private readonly secretManager: SecretManager
+  ) {
     this.s3Client = new S3Client({ region: process.env.REGION });
+    this.cloudFrontClient = new CloudFrontClient({
+      region: process.env.REGION,
+    });
+  }
+
+  async initializeCloudFrontPrivateKey() {
+    if (
+      !process.env.CLOUDFRONT_PRIVATE_KEY &&
+      !this.cloudFrontPrivateKeyInitializing
+    ) {
+      console.log("fetching CLOUDFRONT_PRIVATE_KEY");
+      this.cloudFrontPrivateKeyInitializing = true;
+      const privateKey = await this.secretManager.getValueFromSecretManager(
+        "cloudfront/dev/signing-private-key"
+      );
+      process.env.CLOUDFRONT_PRIVATE_KEY = Buffer.from(
+        privateKey,
+        "base64"
+      ).toString("utf8");
+      this.cloudFrontPrivateKeyInitializing = false;
+    }
   }
 
   async uploadFilesToBucketWithPermissions(
@@ -119,5 +158,71 @@ export class FilePermissionsService {
       dbEntries
     );
     return dbResp;
+  }
+
+  async downloadFileFromS3WithPermissions(
+    employee: IEmployeeJwt,
+    fileUrls: string[]
+  ): Promise<IFilePermissions[]> {
+    await this.initializeCloudFrontPrivateKey();
+    const filePermissionRecords: IFilePermissions[] =
+      await FilePermissionModel.query().whereIn("fileUrl", fileUrls);
+
+    const permittedFiles = filePermissionRecords.filter(
+      (x) => typeof x.permissions[employee.sub] !== undefined
+    );
+
+    const filePromises: Promise<{
+      signedUrl: string;
+      originalUrl: string;
+    }>[] = [];
+    const thumbPromises: Promise<{
+      signedUrl: string;
+      originalUrl: string;
+    }>[] = [];
+
+    permittedFiles.forEach(({ fileUrl, thumbnailUrl }) => {
+      fileUrl = this.getCloudFrontSignedUrl(
+        fileUrl,
+        process.env.CLOUDFRONT_PRIVATE_KEY
+      );
+      thumbnailUrl = this.getCloudFrontSignedUrl(
+        thumbnailUrl,
+        process.env.CLOUDFRONT_PRIVATE_KEY
+      );
+    });
+
+    const files = await Promise.all(filePromises);
+    const thumbnails = await Promise.all(thumbPromises);
+
+    // filePermissionRecords[0].
+    return permittedFiles.map((x, index) => {
+      const thumbUrl = thumbnails.find((t) => t.originalUrl === x.thumbnailUrl);
+      return {
+        ...x,
+        fileUrl: files[index].signedUrl,
+        thumbnailUrl: thumbUrl ? thumbUrl.signedUrl : x.thumbnailUrl,
+      };
+    });
+  }
+
+  getCloudFrontSignedUrl(
+    url: string,
+    privateKey: string,
+    dateLessThan = moment().add(7, "days").utc().format()
+  ): string {
+    const { fileKey } = getKeysFromS3Url(url);
+    if (!fileKey) {
+      throw new CustomError(`No valid s3 key in ${url}`, 400);
+    }
+    const cdnUrl = `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${fileKey}`;
+    const keyPairId = process.env.CLOUD_FRONT_PUBLIC_KEY_ID;
+    // new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toDateString()
+    return getSignedUrl({
+      url: cdnUrl,
+      keyPairId,
+      dateLessThan, //moment().add(7, "days").utc().format(),
+      privateKey,
+    });
   }
 }

@@ -49,6 +49,7 @@ export interface IATTACHMENT {
   fileSize: string;
 }
 
+
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
 
 export interface IEmailRecord {

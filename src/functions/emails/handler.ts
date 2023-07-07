@@ -48,8 +48,11 @@ const getEmailByIdHandler: ValidatedEventAPIGatewayProxyEvent<any> = async (
   event
 ) => {
   const { emailId } = event.params;
+  const { file } = event.query;
   try {
-    const email = await container.resolve(EmailService).getEmail(emailId);
+    const email = await container
+      .resolve(EmailService)
+      .getEmail(event.employee, emailId, file);
     return formatJSONResponse(email, 200);
   } catch (e) {
     return formatErrorResponse(e);

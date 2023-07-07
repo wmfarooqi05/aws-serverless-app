@@ -2,7 +2,7 @@ import "reflect-metadata";
 // import { DatabaseService } from "./models/database";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { inject, injectable } from "tsyringe";
+import { container, inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
@@ -35,6 +35,7 @@ import {
   IEmailRecord,
   IATTACHMENT,
   IEmailRecordModel,
+  IEmailRecordWithRecipients,
 } from "./models/EmailRecords";
 import * as stream from "stream";
 
@@ -110,6 +111,9 @@ import {
   FilePermissionsMap,
   IFilePermissions,
 } from "@models/FilePermissions";
+import bytes from "@utils/bytes";
+import { getSecretValueFromSecretManager } from "@utils/secretManager";
+import { SecretManager } from "@common/service/SecretManager";
 
 const s3Client = new S3Client({ region: "ca-central-1" });
 const s3UsClient = new S3Client({ region: "us-east-1" });
@@ -126,15 +130,94 @@ export class EmailService implements IEmailService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
-    private readonly filePermissionsService: FilePermissionsService
+    private readonly filePermissionsService: FilePermissionsService,
+    @inject(SecretManager) private readonly secretManager: SecretManager
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });
   }
 
   async getAllEmails(body: any): Promise<any> {}
 
-  async getEmail(id: string): Promise<any> {
-    return EmailRecordModel.query().findById(id);
+  async getEmail(employee: IEmployeeJwt, id: string, file): Promise<any> {
+    const emailRecords: IEmailRecordWithRecipients[] = [];
+    const baseEmailRecord: IEmailRecordWithRecipients =
+      await EmailRecordModel.query()
+        .findById(id)
+        .withGraphFetched(
+          "recipients.[recipientEmployeeDetails, recipientCompanyDetails]"
+        );
+
+    emailRecords.push(baseEmailRecord);
+    if (baseEmailRecord.threadId) {
+      const references = baseEmailRecord.references
+        .split(/\s+/)
+        .map((x) => x.slice(1, -1))
+        .filter((x) => x !== baseEmailRecord.messageId);
+
+      const threadEmails: IEmailRecordWithRecipients[] =
+        await EmailRecordModel.query()
+          .whereIn("messageId", references)
+          .withGraphFetched(
+            "recipients.[recipientEmployeeDetails, recipientCompanyDetails]"
+          );
+      emailRecords.push(...threadEmails);
+    }
+
+    emailRecords.forEach((x) => {
+      x.recipients?.forEach((r) => {
+        if (
+          r?.recipientEmployeeDetails?.employeeId &&
+          r.recipientEmployeeDetails.employeeId !== employee.sub
+        ) {
+          delete r.recipientEmployeeDetails;
+        }
+      });
+    });
+
+    /**
+     * content json [0] at 0th row
+     * attachments on 0+ rows, so length will be attachment.length + 1
+     */
+
+    const {
+      attachments,
+      contentUrl,
+      containsHtml,
+      isBodyUploaded,
+      recipients,
+    } = emailRecord;
+
+    if (!recipients.find((x) => x.recipientEmail === employee.email)) {
+      throw new CustomError("You are not allowed to view this email", 403);
+    }
+
+    const abc = emailRecord.attachments.map((x) => {
+      return x.fileUrl;
+    });
+    const downloadableContent: string[] = [
+      emailRecord.contentUrl,
+      ...attachments?.map((x) => x.fileUrl),
+    ];
+
+    const files =
+      await this.filePermissionsService.downloadFileFromS3WithPermissions(
+        employee,
+        downloadableContent
+      );
+
+    console.log(files.length);
+  }
+
+  async getCompleteEmailById(id: string): Promise<any> {
+    return EmailRecordModel.query()
+      .findById(id)
+      .joinRelated([
+        "recipients",
+        "recipients.recipientEmployeeDetails",
+        "recipients.recipientCompanyDetails",
+      ]);
+
+    // const contentJsonFile =
   }
 
   /**
@@ -542,7 +625,6 @@ export class EmailService implements IEmailService {
 
     const updatedParams = {
       attachments: fileMap.map((x) => {
-        x.fileSize;
         return {
           fileKey: x.fileKey,
           fileUrl: x.fileUrl,
@@ -863,8 +945,9 @@ export class EmailService implements IEmailService {
       // move the upper code here, because it is mutating record on L:831
       // @TODO uncomment this
       if (
-        emailRecord?.status === "RECEIVED_AND_PROCESSED" ||
-        emailRecord.status === "SENT"
+        process.env.STAGE !== "local" &&
+        (emailRecord?.status === "RECEIVED_AND_PROCESSED" ||
+          emailRecord.status === "SENT")
       ) {
         console.log("Email already processed");
         return;
@@ -919,7 +1002,7 @@ export class EmailService implements IEmailService {
 
       const { text: bodyText, html } = mailObject;
 
-      const recipients: IRecipient[] = await this.getReceiveEmailRecipients(
+      const { recipients, employees } = await this.getReceiveEmailRecipients(
         mailObject,
         threadId
       );
@@ -965,16 +1048,20 @@ export class EmailService implements IEmailService {
       }
       console.info("Entry has been added in DB, now upload attachments to S3");
 
-      const { contentUrl, attachmentsS3 } = await this.handleMailContents(
-        emailRecord.id,
-        mailObject
-      );
+      const { contentUrl, attachmentsS3 } =
+        await this.receivingEmailAttachmentsHelper(
+          emailRecord.id,
+          mailObject,
+          employees
+        );
       console.log("uploaded attachments and content to s3");
 
       attachmentsS3.forEach((x) => {
         s3CleanupFiles.push(x.fileUrl);
         s3CleanupFiles.push(x.thumbnailUrl);
       });
+
+      s3CleanupFiles.push(contentUrl);
 
       const emailUpdatedContent: Partial<IEmailRecord> = {
         contentUrl,
@@ -1015,7 +1102,11 @@ export class EmailService implements IEmailService {
   async getReceiveEmailRecipients(
     mailObject: ParsedMail,
     threadId: string | null
-  ): Promise<IRecipient[]> {
+  ): Promise<{
+    recipients: IRecipient[];
+    employees: IEmployee[];
+    contacts: IContact[];
+  }> {
     const combinedEmails: string[] = [
       ...getEmailsFromParsedEmails(mailObject?.from),
       ...getEmailsFromParsedEmails(mailObject?.to),
@@ -1034,17 +1125,21 @@ export class EmailService implements IEmailService {
       )
       .whereIn("value", combinedEmails);
 
-    return getRecipientsFromAddress(
-      [
-        { list: mailObject.to, type: "TO_LIST", folderName: "inbox" },
-        { list: mailObject.cc, type: "CC_LIST", folderName: "inbox" },
-        { list: mailObject.bcc, type: "BCC_LIST", folderName: "inbox" },
-        { list: mailObject.from, type: "FROM", folderName: "sent_items" },
-      ],
-      threadId,
-      employeeRecords,
-      contactRecords
-    );
+    return {
+      recipients: getRecipientsFromAddress(
+        [
+          { list: mailObject.to, type: "TO_LIST", folderName: "inbox" },
+          { list: mailObject.cc, type: "CC_LIST", folderName: "inbox" },
+          { list: mailObject.bcc, type: "BCC_LIST", folderName: "inbox" },
+          { list: mailObject.from, type: "FROM", folderName: "sent_items" },
+        ],
+        threadId,
+        employeeRecords,
+        contactRecords
+      ),
+      employees: employeeRecords,
+      contacts: contactRecords,
+    };
   }
 
   /**
@@ -1053,9 +1148,10 @@ export class EmailService implements IEmailService {
    * @param mailObject
    * @returns
    */
-  async handleMailContents(
+  async receivingEmailAttachmentsHelper(
     folderId: string,
-    mailObject: ParsedMail
+    mailObject: ParsedMail,
+    employees: IEmployee[]
   ): Promise<{
     contentUrl: string;
     attachmentsS3: {
@@ -1065,6 +1161,7 @@ export class EmailService implements IEmailService {
       s3FileName: string;
       cid?: string;
       thumbnailUrl: string;
+      fileSize: string;
     }[];
   }> {
     const { text, headers } = mailObject;
@@ -1087,31 +1184,36 @@ export class EmailService implements IEmailService {
       };
     });
 
-    const thumbnailBuffers = await generateThumbnailFromImageBuffers(
-      fileMap
-        .filter((x) => x.contentType.split("/")[0] === "image")
-        .map((x) => {
-          return { name: x.s3FileName, buffer: x.content };
-        })
-    );
+    const uploadFiles = fileMap.map((x) => {
+      return {
+        originalFilename: x.originalName,
+        contentType: x.contentType,
+        fileContent: x.content,
+        Key: `emails/${folderId}/attachments/${x.s3FileName}`,
+      } as {
+        originalFilename: string;
+        contentType: string;
+        Key: string;
+        fileContent: any;
+      };
+    });
 
-    // Creating promises array for uploading to S3
-    const attachmentPromises = fileMap.map((x) =>
-      uploadContentToS3(
-        `emails/${folderId}/attachments/${x.s3FileName}`,
-        x.content
-      )
-    );
+    const permissionMap = {};
 
-    const thumbnailPromises = thumbnailBuffers.map((x) =>
-      uploadContentToS3(
-        `emails/${folderId}/attachments/thumb_${x.name}`,
-        x.thumbnailBuffer
-      )
-    );
+    employees.forEach((x) => {
+      permissionMap[x.id] = {
+        email: x.email,
+        employeeId: x.id,
+        permissions: ["READ"],
+      };
+    });
 
-    const s3UploadedContent = await Promise.all(attachmentPromises);
-    const thumbnailUrls = await Promise.all(thumbnailPromises);
+    const s3UploadedContent =
+      await this.filePermissionsService.uploadFilesToBucketWithPermissions(
+        uploadFiles,
+        permissionMap
+      );
+
     const attachmentsS3: {
       fileUrl: string;
       fileKey: string;
@@ -1120,19 +1222,18 @@ export class EmailService implements IEmailService {
       cid?: string;
       thumbnailUrl: string;
       isEmbedded: boolean;
+      fileSize: string;
     }[] = s3UploadedContent.map((x) => {
       const { originalName, s3FileName, cid } = fileMap.find((f) =>
         x.fileKey.includes(`attachments/${f.s3FileName}`)
       );
-      const thumbnail = thumbnailUrls.find((x) =>
-        x.fileKey.includes(s3FileName.split(".")[0])
-      );
+
       return {
         ...x,
         originalName,
         s3FileName,
         cid,
-        thumbnailUrl: thumbnail ? thumbnail.fileUrl : null,
+        thumbnailUrl: null,
         isEmbedded: false,
       };
     });
@@ -1157,17 +1258,26 @@ export class EmailService implements IEmailService {
     for (const [key, value] of headers) {
       headerObject[key] = value;
     }
-    const contentS3 = await uploadContentToS3(
-      `emails/${folderId}/content.json`,
-      JSON.stringify({
-        text,
-        html: replacedHtml,
-        headers: headerObject,
-      }),
-      "public"
-    );
+
+    const contentS3 =
+      await this.filePermissionsService.uploadFilesToBucketWithPermissions(
+        [
+          {
+            contentType: "application/json",
+            fileContent: JSON.stringify({
+              text,
+              html: replacedHtml,
+              headers: headerObject,
+            }),
+            Key: `emails/${folderId}/content.json`,
+            originalFilename: "content.json",
+          },
+        ],
+        permissionMap
+      );
+
     return {
-      contentUrl: contentS3.fileUrl,
+      contentUrl: contentS3[0].fileUrl,
       attachmentsS3,
     };
   }
