@@ -8,7 +8,7 @@ var fs = require("fs");
 var contents = fs.readFileSync("package.json");
 const dependencies: string[] = Object.keys(
   JSON.parse(contents)["devDependencies"]
-).concat(...Object.keys(JSON.parse(contents)["dependencies"]));
+).concat(...Object.keys(JSON.parse(contents)["dependencies"])).concat(["html-to-text"]);
 
 dotenv.config({ path: __dirname + `/.env.${process.env.NODE_ENV}` });
 

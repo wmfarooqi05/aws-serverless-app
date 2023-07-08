@@ -33,7 +33,6 @@ import { unionAllResults } from "./queries";
 
 import { injectable, inject } from "tsyringe";
 import { GoogleCalendarService } from "@functions/google/calendar/service";
-import { GoogleGmailService } from "@functions/google/gmail/service";
 import {
   IEmployee,
   IEmployeeJwt,
@@ -42,7 +41,6 @@ import {
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import { GaxiosResponse } from "gaxios";
 import {
-  convertSnakeToCamelCaseObject,
   createKnexTransactionQueries,
   snakeToCamel,
 } from "@common/json_helpers";
@@ -59,7 +57,6 @@ import { checkManagerPermissions } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
-import { Knex } from "knex";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -88,8 +85,6 @@ export class ActivityService implements IActivityService {
     @inject(GoogleCalendarService)
     private readonly calendarService: GoogleCalendarService,
     // @TODO replace this with generic service (in case of adding multiple email service)
-    @inject(GoogleGmailService)
-    private readonly emailService: GoogleGmailService,
     @inject(ReminderService)
     private readonly reminderService: ReminderService
   ) {}

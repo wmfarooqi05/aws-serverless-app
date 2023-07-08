@@ -120,7 +120,6 @@ export class EmailService implements IEmailService {
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
     private readonly filePermissionsService: FilePermissionsService,
-    @inject(SecretManager) private readonly secretManager: SecretManager,
     @inject(S3Service) private readonly s3Service: S3Service
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });

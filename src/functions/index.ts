@@ -3,12 +3,12 @@ import { activitiesHandler } from "@functions/activities";
 
 import { pendingApprovalsHandler } from "@functions/pending_approvals";
 
-import { handleEBSchedulerLambdaInvoke } from "@functions/reminders";
+// import { handleEBSchedulerLambdaInvoke } from "@functions/reminders";
 
 import {
   webSocketHandler,
-  broadcastMessage,
-  getAllWebSocketConnections,
+  // broadcastMessage,
+  // getAllWebSocketConnections,
 } from "@functions/websocket";
 import { notificationHandler } from "@functions/notifications";
 import {
@@ -32,9 +32,9 @@ import {
 import { emailHandler } from "@functions/emails";
 
 import {
-  importData,
-  bulkCognitoSignup,
-  uploadSignupBulkJob,
+  // importData,
+  // bulkCognitoSignup,
+  // uploadSignupBulkJob,
   handleDynamoStreamRecords,
   // handleSESEmailToSNSEvent,
 } from "@functions/jobs";
@@ -59,55 +59,25 @@ const exportHandlers = {
   utilsHandler,
   pendingApprovalsHandler,
   // Jobs
-  importData,
-  bulkCognitoSignup,
-  // streamRecordHelper,
+  // importData,
+  // bulkCognitoSignup,
   handleDynamoStreamRecords,
-  // handleSESEmailToSNSEvent,
+  // uploadSignupBulkJob,
 
   // Reminders
-  handleEBSchedulerLambdaInvoke,
-  // createReminder,
-  // deleteReminder,
-  // dailyReminderCleanup,
-  // WebSocketapproveOrRejectRequest
+  // handleEBSchedulerLambdaInvoke,
   webSocketHandler,
-  broadcastMessage,
-  getAllWebSocketConnections,
+  // broadcastMessage,
+  // getAllWebSocketConnections,
 
   // google
   googleOauthHandler,
   googleOauthCallbackHandler,
-
-  // calendar
-  // getMeetings,
-  // getMeetingById,
   getAllCalendars,
   createMeeting,
-  // updateMeetingById,
-  // deleteMeetingById,
-
-  // createAndSendEmail,
-
-  /// emails
-  // sendEmail,
-  // sendBulkEmails,
-  // sendEmailText,
   receiveEmailHandler,
-
-  // employees
   employeeHandler,
-  //
   sqsJobQueueInvokeHandler,
-  // bulkImportUsersProcessHandler,
-  uploadSignupBulkJob,
-
-  // schedulers
-  // updateScheduleReminder,
-  // getSchedulerGroups,
-  // getSchedulers,
-  // deleteScheduleReminder,
-  // deleteAllReminders,
 };
 
 // if (process.env.NODE_ENV === "local") {
