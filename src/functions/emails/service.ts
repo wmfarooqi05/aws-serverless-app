@@ -17,11 +17,7 @@ import {
 } from "./schema";
 import { SQSRecord } from "aws-lambda";
 import * as fs from "fs";
-import {
-  simpleParser,
-  Attachment,
-  ParsedMail,
-} from "mailparser";
+import { simpleParser, Attachment, ParsedMail } from "mailparser";
 import {
   getKeysFromS3Url,
   uploadContentToS3,
@@ -98,12 +94,11 @@ import {
   generalFolders,
 } from "./models/RecipientEmployeeDetails";
 import { FilePermissionsService } from "@functions/filePermissions/service";
-import {
-  FilePermissionsMap,
-  IFilePermissions,
-} from "@models/FilePermissions";
-import { SecretManager } from "@common/service/SecretManager";
+import { FilePermissionsMap, IFilePermissions } from "@models/FilePermissions";
 import { S3Service } from "@common/service/S3Service";
+import { NotificationService } from "@functions/notifications/service";
+import CompanyModel from "@models/Company";
+import { ICompany } from "@models/interfaces/Company";
 
 const s3UsClient = new S3Client({ region: "us-east-1" });
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -120,7 +115,9 @@ export class EmailService implements IEmailService {
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
     private readonly filePermissionsService: FilePermissionsService,
-    @inject(S3Service) private readonly s3Service: S3Service
+    @inject(S3Service) private readonly s3Service: S3Service,
+    @inject(NotificationService)
+    private readonly notificationService: NotificationService
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });
   }
@@ -1099,7 +1096,33 @@ export class EmailService implements IEmailService {
         .findById(emailRecord.id)
         .patch(emailUpdatedContent);
 
-      console.log("Job processed");
+      const fromRecipient = recipients.find((r) => r.recipientType === "FROM");
+
+      const avatar = await this.getAvatar(fromRecipient, employees);
+
+      const notifPromises = employees
+        .filter((e) => e.email !== fromRecipient.recipientEmail)
+        .map((e) =>
+          this.notificationService.createNotification({
+            isScheduled: false,
+            notificationType: "INFO_NOTIFICATION",
+            readStatus: false,
+            receiverEmployee: e.id,
+            senderEmployee: null,
+            title: `You have received a new email from ${
+              fromRecipient.recipientName || fromRecipient.recipientEmail
+            }`,
+            subtitle: emailRecord.subject,
+            extraData: {
+              module: "EMAILS",
+              rowId: emailRecord.id,
+              senderEmployeeName:
+                fromRecipient.recipientName || fromRecipient.recipientEmail,
+              avatar,
+            },
+          })
+        );
+      await Promise.all(notifPromises);
     } catch (e) {
       error.push(e);
       if (s3CleanupFiles.length) {
@@ -1118,6 +1141,32 @@ export class EmailService implements IEmailService {
       console.log("errors", error);
       throw new CustomError(error.map((x) => x.message).join(", \n"), 500);
     }
+  }
+
+  async getAvatar(
+    recipient: IRecipient,
+    employees: IEmployee[]
+  ): Promise<string | null> {
+    let avatar = null;
+    if (recipient.recipientCategory === "COMPANY_CONTACT") {
+      const contact: IContact = await ContactModel.query().findById(
+        recipient.recipientCompanyDetails.contactId
+      );
+      if (contact.avatar) {
+        avatar = contact.avatar;
+      } else {
+        const company: ICompany = await CompanyModel.query().findById(
+          recipient.recipientCompanyDetails.companyId
+        );
+        avatar = company.avatar;
+      }
+    } else if (recipient.recipientCategory === "EMPLOYEE") {
+      avatar = employees.find(
+        (x) => x.email === recipient.recipientEmail
+      ).avatar;
+    }
+
+    return avatar;
   }
 
   async getReceiveEmailRecipients(
@@ -1186,56 +1235,7 @@ export class EmailService implements IEmailService {
     }[];
   }> {
     const { text, headers } = mailObject;
-
-    // FileMap with original and s3 filenames record
-    const fileMap: {
-      originalName: string;
-      s3FileName: string;
-      content: any;
-      cid?: string;
-      contentType: string;
-    }[] = mailObject.attachments.map((x) => {
-      const fileType = x.contentType ? `.${x.contentType.split("/")[1]}` : "";
-      return {
-        originalName: `${x.filename}${fileType}`,
-        s3FileName: `${randomUUID()}${fileType}`,
-        content: x.content,
-        cid: x.cid,
-        contentType: x.contentType,
-      };
-    });
-
-    const uploadFiles = fileMap.map((x) => {
-      return {
-        originalFilename: x.originalName,
-        contentType: x.contentType,
-        fileContent: x.content,
-        Key: `emails/${folderId}/attachments/${x.s3FileName}`,
-      } as {
-        originalFilename: string;
-        contentType: string;
-        Key: string;
-        fileContent: any;
-      };
-    });
-
-    const permissionMap = {};
-
-    employees.forEach((x) => {
-      permissionMap[x.id] = {
-        email: x.email,
-        employeeId: x.id,
-        permissions: ["READ"],
-      };
-    });
-
-    const s3UploadedContent =
-      await this.filePermissionsService.uploadFilesToBucketWithPermissions(
-        uploadFiles,
-        permissionMap
-      );
-
-    const attachmentsS3: {
+    let attachmentsS3: {
       fileUrl: string;
       fileKey: string;
       originalName: string;
@@ -1244,37 +1244,91 @@ export class EmailService implements IEmailService {
       thumbnailUrl: string;
       isEmbedded: boolean;
       fileSize: string;
-    }[] = s3UploadedContent.map((x) => {
-      const { originalName, s3FileName, cid } = fileMap.find((f) =>
-        x.fileKey.includes(`attachments/${f.s3FileName}`)
-      );
+    }[] = [];
 
-      return {
-        ...x,
-        originalName,
-        s3FileName,
-        cid,
-        thumbnailUrl: null,
-        isEmbedded: false,
+    const permissionMap = {};
+
+    employees?.forEach((x) => {
+      permissionMap[x.id] = {
+        email: x.email,
+        employeeId: x.id,
+        permissions: ["READ"],
       };
     });
-
-    // Replace embedded links with S3 URLs
     let replacedHtml = mailObject.html;
-    if (replacedHtml) {
-      const cidRegex = /cid:(\S+?)(?=")/g;
-      let match;
-      while ((match = cidRegex.exec(replacedHtml)) !== null) {
-        const cid = match[1];
-        const index = attachmentsS3.findIndex((x) => x.cid === cid);
-        attachmentsS3[index].isEmbedded = true;
-        replacedHtml = replacedHtml.replace(
-          `cid:${cid}`,
-          attachmentsS3[index].fileUrl
+
+    if (mailObject.attachments?.length) {
+      // FileMap with original and s3 filenames record
+      const fileMap: {
+        originalName: string;
+        s3FileName: string;
+        content: any;
+        cid?: string;
+        contentType: string;
+      }[] = mailObject?.attachments?.map((x) => {
+        const fileType = x.contentType ? `.${x.contentType.split("/")[1]}` : "";
+        return {
+          originalName: `${x.filename}${fileType}`,
+          s3FileName: `${randomUUID()}${fileType}`,
+          content: x.content,
+          cid: x.cid,
+          contentType: x.contentType,
+        };
+      });
+
+      const uploadFiles = fileMap?.map((x) => {
+        return {
+          originalFilename: x.originalName,
+          contentType: x.contentType,
+          fileContent: x.content,
+          Key: `emails/${folderId}/attachments/${x.s3FileName}`,
+        } as {
+          originalFilename: string;
+          contentType: string;
+          Key: string;
+          fileContent: any;
+        };
+      });
+
+      const s3UploadedContent =
+        await this.filePermissionsService.uploadFilesToBucketWithPermissions(
+          uploadFiles,
+          permissionMap
         );
+
+      s3UploadedContent.forEach((x) => {
+        const { originalName, s3FileName, cid } = fileMap.find((f) =>
+          x.fileKey.includes(`attachments/${f.s3FileName}`)
+        );
+
+        attachmentsS3.push({
+          ...x,
+          originalName,
+          s3FileName,
+          cid,
+          thumbnailUrl: null,
+          isEmbedded: false,
+          fileSize: x.fileSize,
+        });
+      });
+
+      // Replace embedded links with S3 URLs
+      if (replacedHtml) {
+        const cidRegex = /cid:(\S+?)(?=")/g;
+        let match;
+        while ((match = cidRegex.exec(replacedHtml)) !== null) {
+          const cid = match[1];
+          const index = attachmentsS3.findIndex((x) => x.cid === cid);
+          attachmentsS3[index].isEmbedded = true;
+          replacedHtml = replacedHtml.replace(
+            `cid:${cid}`,
+            attachmentsS3[index].fileUrl
+          );
+        }
       }
     }
 
+    // Content.JSON handling
     const headerObject = {};
     for (const [key, value] of headers) {
       headerObject[key] = value;
@@ -1296,6 +1350,7 @@ export class EmailService implements IEmailService {
         ],
         permissionMap
       );
+    // End Content.JSON handling
 
     return {
       contentUrl: contentS3[0].fileUrl,

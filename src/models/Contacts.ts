@@ -18,6 +18,7 @@ export const validPlaceHolders = [
 export interface IContact {
   id: string;
   name: string;
+  avatar?: string;
   designation: string;
   phoneNumbers: string[];
   timezone: string;
@@ -45,6 +46,7 @@ export default class ContactModel extends Model {
       properties: {
         id: { type: "string" },
         name: { type: "string" },
+        avatar: { type: "string" },
         designation: { type: "string" },
         phoneNumbers: { type: "array" },
         emails: { type: "array" },

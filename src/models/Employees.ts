@@ -31,7 +31,7 @@ export default class EmployeeModel extends Model {
           minLength: 1,
           maxLength: 70,
         },
-        picture: { type: "string" },
+        avatar: { type: "string" },
         jobTitle: { type: "string" },
         role: {
           type: "string",

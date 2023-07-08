@@ -20,13 +20,14 @@ import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 import { container } from "@common/container";
 import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
 
+/** @DEV */
 export const createNotificationHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
     const newNotification = await container
       .resolve(NotificationService)
-      .createNotification(event.body);
+      .createNotification(JSON.parse(event.body));
     return formatJSONResponse(newNotification, 201);
   } catch (e) {
     return formatErrorResponse(e);

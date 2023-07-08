@@ -31,7 +31,7 @@ export const validateGetEmployeesSummary = async (obj: any) => {
 export const validateUpdateProfile = async (obj: any) => {
   await Joi.object({
     name: Joi.string(),
-    picture: Joi.string().uri(),
+    avatar: Joi.string().uri(),
     gender: Joi.string().valid(...GenderArray),
     addresses: Joi.array().items({
       title: Joi.string().required(),

@@ -1,6 +1,10 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
-import NotificationModel, { INotification } from "@models/Notification";
+import NotificationModel, {
+  INotifExtraData,
+  INotification,
+  NotificationType,
+} from "@models/Notification";
 import { CustomError } from "@helpers/custom-error";
 import { WebSocketService } from "@functions/websocket/service";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
@@ -30,11 +34,7 @@ export class NotificationService implements INotificationService {
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(WebSocketService)
     private readonly webSocketService: WebSocketService // private scheduler: AWS.Scheduler
-  ) {
-    //   this.scheduler = new AWS.Scheduler({
-    //     region: process.env.AWS_SCHEDULER_REGION,
-    //   });
-  }
+  ) {}
 
   /**
    * Here, employee will request for a creating a notification
@@ -51,7 +51,15 @@ export class NotificationService implements INotificationService {
    *
    * @returns
    */
-  async createNotification(body: string) {
+  async createNotification(body: {
+    title: string;
+    notificationType: NotificationType;
+    isScheduled: boolean;
+    extraData: INotifExtraData;
+    senderEmployee: string;
+    receiverEmployee: string;
+    subtitle: string;
+  }) {
     // const payload = JSON.parse(body);
     // validateNotifPayload
     const {
@@ -62,7 +70,7 @@ export class NotificationService implements INotificationService {
       senderEmployee,
       receiverEmployee,
       subtitle,
-    } = JSON.parse(body);
+    } = body;
     // maybe we will take receive employee by running a loop on DB? here or maybe in parent service
     // for multiple receiver we will create an entry for each of them to tackle `read` status issue
     const notificationPayload: INotification = {
@@ -88,6 +96,7 @@ export class NotificationService implements INotificationService {
     return notifItem;
   }
 
+  /** @deprecated */
   async createNotifications(notifications: INotification[]) {
     return NotificationModel.query().insert(notifications);
   }
@@ -149,108 +158,4 @@ export class NotificationService implements INotificationService {
     // @TODO add Joi validation
     return this.webSocketService.sendNotifications(notifications);
   }
-
-  // async ScheduleNotification() {
-  //   const params: NotificationEBSchedulerPayload = {
-  //     notificationTime: momentTz().utc().format(),
-  //     name: `Notification-${randomUUID()}`,
-  //     eventType: "NotificationType.Notification_24H_Before",
-  //   };
-
-  //   const response = await this.createSchedulerHelper(params);
-
-  //   if (response.statusCode == 200) {
-  //     // db update row
-  //     return { status: "Success" };
-  //   } else {
-  //     // db update
-  //     return {
-  //       status: "Error",
-  //       details: {
-  //         statusMessage: response.statusMessage,
-  //         statusCode: response.statusCode,
-  //       },
-  //     };
-  //   }
-  // }
-
-  // async CancelNotification() {}
-
-  // async SendNotificationEmail() {}
-
-  // async SendNotificationSMS() {}
-
-  // async SendNotificationWebPushNotification() {}
-
-  // // Delete all notifications
-  // async dailyNotificationCleanup() {}
-
-  // async deleteScheduledNotification(Name: string) {
-  //   const schedulerInput: AWS.Scheduler.DeleteScheduleInput = {
-  //     Name,
-  //     GroupName: process.env.NOTIFICATION_SCHEDULER_GROUP_NAME!,
-  //   };
-
-  //   console.log("Deleting notification");
-
-  //   const res = await this.scheduler.deleteSchedule(schedulerInput).promise();
-
-  //   console.log(res.$response);
-  // }
-
-  // async enqueueJobsForNotifications() {
-  //   /**
-  //    * We have to enqueue jobs
-  //    * tasks, phone calls, email, meetings, cleanup
-  //    *
-  //    */
-  // }
-
-  // private async createSchedulerHelper(
-  //   params: NotificationEBSchedulerPayload
-  // ): Promise<AWS.HttpResponse> {
-  //   const target: AWS.Scheduler.Target = {
-  //     RoleArn: process.env.NOTIFICATION_TARGET_ROLE_ARN!,
-  //     Arn: process.env.NOTIFICATION_TARGET_ARN!,
-  //     Input: JSON.stringify(params),
-  //   };
-
-  //   const schedulerInput: AWS.Scheduler.CreateScheduleInput = {
-  //     Name: params.name,
-  //     FlexibleTimeWindow: {
-  //       Mode: "OFF",
-  //     },
-  //     Target: target,
-  //     ScheduleExpression: `at(${params.notificationTime})`,
-  //     GroupName: process.env.NOTIFICATION_SCHEDULER_GROUP_NAME!,
-  //     ClientToken: randomUUID(),
-  //   };
-
-  //   const result = await this.scheduler
-  //     .createSchedule(schedulerInput)
-  //     .promise();
-
-  //   return result.$response.httpResponse;
-  // }
-
-  // private async stopExecution(
-  //   Name: string,
-  //   GroupName: string,
-  //   ClientToken: string
-  // ) {
-  //   const ebScheduler = new AWS.Scheduler({
-  //     region: process.env.AWS_SCHEDULER_REGION,
-  //   });
-  //   return ebScheduler
-  //     .deleteSchedule({ Name, GroupName, ClientToken })
-  //     .promise();
-  // }
-
-  // private getRegionFromArn(arn: string) {
-  //   try {
-  //     return arn.split(":")[3];
-  //   } catch (e) {
-  //     console.log("Could not get region from ARN. ", e);
-  //   }
-  // }
 }

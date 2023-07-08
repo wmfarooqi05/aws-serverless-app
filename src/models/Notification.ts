@@ -1,10 +1,10 @@
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { ModuleType, NOTIFICATIONS_TABLE_NAME } from "./commons";
+import { NOTIFICATIONS_TABLE_NAME } from "./commons";
 
 export type INFO_TYPE = "CREATE_COMPANY" | "UPDATE_COMPANY" | "DELETE_COMPANY";
 
-interface IExtraData {
+export interface INotifExtraData {
   // infoType: INFO_TYPE;
   infoType: string; // @TODO it is same as title for now
   senderEmployeeName: string;
@@ -26,7 +26,7 @@ export interface INotification {
   subtitle: string;
   senderEmployee: string;
   receiverEmployee: string;
-  extraData: IExtraData;
+  extraData: INotifExtraData;
   notificationType: NotificationType;
   readStatus: boolean;
   isScheduled: boolean;
@@ -51,7 +51,7 @@ export default class NotificationModel extends Model {
         id: { type: "string" },
         title: { type: "string" },
         subtitle: { type: "string" },
-        senderEmployee: { type: "string" },
+        senderEmployee: { type: ["string", "null"] },
         // comma separated items
         receiverEmployee: { type: "string" },
         extraData: { type: "object" }, // object
@@ -63,8 +63,6 @@ export default class NotificationModel extends Model {
       },
       required: [
         "title",
-        "senderEmployee",
-        "receiverEmployee",
         "receiverEmployee",
       ],
       additionalProperties: false,

@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
-import { DynamoCacheService } from "./DynamoCacheService";
 import { ElasticCacheService } from "./ElasticCache";
 import moment from "moment-timezone";
 import WebsocketConnectionModel, {

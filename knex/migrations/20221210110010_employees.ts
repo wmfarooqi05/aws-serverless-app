@@ -20,7 +20,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("username").unique().notNullable();
       table.string("email").unique().notNullable();
       table.string("name").notNullable();
-      table.string("picture");
+      table.string("avatar");
       table.string("job_title").defaultTo(RolesArray[0]);
       table
         .enum("role", EmployeeRolesMigrate)

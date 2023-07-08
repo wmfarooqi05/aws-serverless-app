@@ -17,18 +17,6 @@ import { INotification } from "@models/Notification";
 
 export interface IWebSocketService {}
 
-// let endpoint = "http://localhost:3001";
-// if (process.env.STAGE !== "local") {
-console.log("APIG_WS_ENDPOINT", process.env.APIG_WS_ENDPOINT);
-const endpoint = process.env.APIG_WS_ENDPOINT;
-//`https://${process.env.APIG_WS_ENDPOINT}.execute-api.${process.env.REGION}.amazonaws.com/${process.env.STAGE}`;
-// }
-
-const config: ApiGatewayManagementApiClientConfig = {
-  region: process.env.REGION,
-  endpoint,
-};
-
 @injectable()
 export class WebSocketService implements IWebSocketService {
   tableName: string = process.env.ConnectionTableName;
@@ -38,6 +26,19 @@ export class WebSocketService implements IWebSocketService {
     @inject(CacheService)
     private readonly cacheService: CacheService
   ) {
+    console.log("APIG_WS_ENDPOINT", process.env.APIG_WS_ENDPOINT);
+    let endpoint = null;
+    if (process.env.STAGE === "local") {
+      endpoint =
+        "https://2tcizg95hl.execute-api.ca-central-1.amazonaws.com/dev";
+    } else {
+      endpoint = process.env.APIG_WS_ENDPOINT;
+    }
+    const config: ApiGatewayManagementApiClientConfig = {
+      region: process.env.REGION,
+      endpoint,
+    };
+
     this.apiGateway = new ApiGatewayManagementApiClient(config);
   }
 
@@ -48,7 +49,6 @@ export class WebSocketService implements IWebSocketService {
     routeKey: string
   ) {
     try {
-      console.log("[websocket] handle: ", employeeId, connectionId, routeKey);
       const payload = {
         message: `Received on ${routeKey}: ${body}`,
         employeeId,
@@ -135,8 +135,12 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  async sendSimpleMessage(connectionId: string, payload: Object) {
+  async sendSimpleMessage(connectionId: string | null, payload: Object) {
     console.log("[Websocket] sendSimpleMessage", connectionId, payload);
+    if (!connectionId) {
+      console.log("no connectionId");
+      return;
+    }
     const encodingPayload = JSON.stringify({
       ...payload,
       connectionId,
@@ -152,19 +156,11 @@ export class WebSocketService implements IWebSocketService {
     const command = new PostToConnectionCommand(requestParams);
 
     try {
-      if (process.env.STAGE === "local") {
-        return {
-          messsage: "[websocket] local connection",
-          connectionId,
-          encodingPayload: JSON.parse(encodingPayload),
-        };
-      }
-      // @TODO remove on Prod
       const resp = await this.apiGateway.send(command);
       console.log("resp?.$metadata", resp?.$metadata);
       return { ...resp.$metadata, connectionId };
     } catch (error) {
-      console.error("error", error);
+      console.error("websocket sendSimpleMessage error", error);
       return {
         ...error,
         _stack: error.stack,
@@ -172,19 +168,21 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  private async getConnectionId(employeeId: string): Promise<string> {
+  private async getConnectionId(employeeId: string): Promise<string | null> {
     try {
       const payloadString = await this.cacheService.getItem(employeeId);
-      const connectionPayload = JSON.parse(payloadString);
-      if (!connectionPayload?.connectionId) {
-        throw new CustomError("Connection Id not found", 404);
-      }
+      if (payloadString) {
+        const connectionPayload = JSON.parse(payloadString);
+        if (!connectionPayload?.connectionId) {
+          throw new CustomError("Connection Id not found", 404);
+        }
 
-      console.log(
-        "[Websocket], getConnectionId, connectionId",
-        connectionPayload?.connectionId
-      );
-      return connectionPayload.connectionId;
+        console.log(
+          "[Websocket], getConnectionId, connectionId",
+          connectionPayload?.connectionId
+        );
+        return connectionPayload.connectionId;
+      }
     } catch (e) {
       console.error("getConnectionId, employeeId", employeeId, e);
     }

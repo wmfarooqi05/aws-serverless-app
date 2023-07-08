@@ -19,7 +19,7 @@ export async function seed(knex: Knex): Promise<void> {
   const employeeObjects: IEmployee[] = [
     {
       id: "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
-      picture: null,
+      avatar: null,
       username: "wmfarooqi70",
       email: "wmfarooqi70@gmail.com",
       name: "Waleed Farooqi",
@@ -41,7 +41,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: "d4dfb117-6c1e-4e25-95d4-95f0b8879ded",
-      picture: null,
+      avatar: null,
       username:"hazyhassan888",
       email: "hazyhassan888@gmail.com",
       name: "hassan\t",
@@ -63,7 +63,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: "28758dac-a6a2-4f90-96ed-0a42a37d3fb3",
-      picture: null,
+      avatar: null,
       username:"adminelywork",
       email: "admin@elywork.com",
       name: "Admin Elywork",
@@ -85,7 +85,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: "4d16b24f-e0ff-44e7-bbd0-de79fc9b849b",
-      picture:
+      avatar:
         "https://w7.pngwing.com/pngs/129/292/png-transparent-female-avatar-girl-face-woman-user-flat-classy-users-icon.png",
       email: "wmfarooqi05@gmail.com",
       username:"wmfarooqi05",

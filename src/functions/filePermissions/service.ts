@@ -99,9 +99,10 @@ export class FilePermissionsService {
       } as IFilePermissions;
     });
 
-    const dbResp: IFilePermissions[] = await FilePermissionModel.query().insert(
-      dbEntries
-    );
+    const dbResp: IFilePermissions[] = await FilePermissionModel.query()
+      .insert(dbEntries)
+      .onConflict()
+      .ignore();
     return dbResp;
   }
 

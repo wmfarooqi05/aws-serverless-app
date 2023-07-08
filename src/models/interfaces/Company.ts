@@ -43,6 +43,7 @@ export interface ICompany {
   addresses?: IAddress[];
   assignedTo?: string;
   assignedBy?: string;
+  avatar?: string;
   // assignmentHistory?: JSON;
   // priority: COMPANY_PRIORITY;
   // taskStatus: COMPANY_STATUS;

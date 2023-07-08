@@ -66,7 +66,7 @@ export interface IEmployee {
   username?: string;
   email: string;
   name: string;
-  picture?: string | null;
+  avatar?: string | null;
   jobTitle?: string;
   role: IRoles;
   gender?: GenderType;

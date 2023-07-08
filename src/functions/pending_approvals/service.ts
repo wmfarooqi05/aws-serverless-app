@@ -297,7 +297,7 @@ export class PendingApprovalService implements IPendingApprovalService {
           module: "PENDING_APPROVALS",
           rowId: pendingApprovalItem["id"],
           senderEmployeeName: employee.name,
-          avatar: employee.picture,
+          avatar: employee.avatar,
         },
       };
 
