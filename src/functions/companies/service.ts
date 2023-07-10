@@ -143,15 +143,15 @@ export class CompanyService implements ICompanyService {
       .where(whereClause)
       .modify((builder) => {
         if (status) {
-          builder.whereRaw(`ec.'status' IN (${convertToWhereInValue(status)})`);
+          builder.whereRaw(`ec.status IN (${convertToWhereInValue(status)})`);
         }
         if (priority) {
           builder.whereRaw(
-            `ec.'priority' = (${convertToWhereInValue(priority)})`
+            `ec.priority = (${convertToWhereInValue(priority)})`
           );
         }
         if (stage) {
-          builder.whereRaw(`tc.'stage' IN (${convertToWhereInValue(stage)})`);
+          builder.whereRaw(`tc.stage IN (${convertToWhereInValue(stage)})`);
         }
       })
       .orderBy(...getOrderByItems(body, "c"))
@@ -199,6 +199,7 @@ export class CompanyService implements ICompanyService {
     const contactsPayload = payload.contacts;
     delete payload.contacts;
 
+    // remove the pending approval thing maybe
     const { permitted, createPendingApproval } = employee;
     if (!permitted && createPendingApproval) {
       return this.pendingApprovalService.createPendingApprovalRequest(
@@ -215,30 +216,53 @@ export class CompanyService implements ICompanyService {
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         const history: IUpdateHistory[] = [];
-        company = await CompanyModel.query(trx).insert(payload);
-        history.push({
-          actionType: PendingApprovalType.CREATE,
-          tableName: COMPANIES_TABLE_NAME,
-          newValue: JSON.stringify(company),
-          updatedBy: employee.sub,
-        });
-        const contactEmailsPromises = contactsPayload.map((x: any) =>
-          CompanyModel.relatedQuery("contacts", trx)
-            .for(company.id)
-            .insert({ ...x, companyId: company.id, createdBy: employee.sub })
-        );
-        const contacts = await Promise.all(contactEmailsPromises);
-        contacts.forEach((x) => {
-          history.push({
-            actionType: PendingApprovalType.CREATE,
-            tableName: CONTACTS_TABLE,
-            newValue: JSON.stringify(x),
-            updatedBy: employee.sub,
-          });
+        // company = await CompanyModel.query(trx).insert(payload);
+
+        company = await CompanyModel.query().insertGraph({
+          ...payload,
+          contacts: contactsPayload.map((x) => ({
+            ...x,
+            createdBy: employee.sub,
+          })),
+          teamInteractions: employee.teamId.map(
+            (t) =>
+              ({
+                stage: COMPANY_STAGES.LEAD,
+                teamId: t,
+                teamInteractionDetails: {},
+              } as ITeamCompanyInteraction)
+          ),
+          employeeInteractions: [
+            {
+              ...defaultInteractionItem,
+              employeeId: employee.sub,
+            } as IEmployeeCompanyInteraction,
+          ],
         });
 
-        company["contacts"] = contacts;
-        await UpdateHistoryModel.query(trx).insert(history);
+        // history.push({
+        //   actionType: PendingApprovalType.CREATE,
+        //   tableName: COMPANIES_TABLE_NAME,
+        //   newValue: JSON.stringify(company),
+        //   updatedBy: employee.sub,
+        // });
+        // const contactEmailsPromises = contactsPayload.map((x: any) =>
+        //   CompanyModel.relatedQuery("contacts", trx)
+        //     .for(company.id)
+        //     .insert({ ...x, companyId: company.id, createdBy: employee.sub })
+        // );
+        // const contacts = await Promise.all(contactEmailsPromises);
+        // contacts.forEach((x) => {
+        //   history.push({
+        //     actionType: PendingApprovalType.CREATE,
+        //     tableName: CONTACTS_TABLE,
+        //     newValue: JSON.stringify(x),
+        //     updatedBy: employee.sub,
+        //   });
+        // });
+
+        // company["contacts"] = contacts;
+        // await UpdateHistoryModel.query(trx).insert(history);
 
         await trx.commit();
       } catch (e) {
