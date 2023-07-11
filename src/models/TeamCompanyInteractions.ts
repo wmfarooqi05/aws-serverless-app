@@ -26,7 +26,6 @@ export const getDefaultTeamInteractionItem = (
   };
 };
 
-
 export interface ITeamCompanyInteraction {
   id?: string;
   companyId: string;
@@ -90,6 +89,13 @@ export default class TeamCompanyInteractionsModel extends Model {
   static get jsonAttributes() {
     return ["teamInteractionDetails"];
   }
+
+  static modifiers = {
+    filterByMyTeam(query, teamId) {
+      query.where("teamId", teamId);
+    },
+  };
+
   // $beforeInsert() {
   //   this.createdAt = new Date();
   // }

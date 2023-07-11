@@ -134,12 +134,14 @@ export class CompanyService implements ICompanyService {
     )
       .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
         join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
+        join.on("ec.company_id", '=', "c.id")
       })
       .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
         // @TODO FIX_TEAM_ID
-        join.on("tc.team_id", "=", knex.raw("?", [employee.teamId]));
+        join.on("tc.team_id", "=", knex.raw("?", [employee.currentTeamId]));
+        join.on("tc.company_id", '=', "c.id")
       })
-      .select(returningKeys)
+      .select("c.id")
       .where(whereClause)
       .modify((builder) => {
         if (status) {
@@ -154,19 +156,28 @@ export class CompanyService implements ICompanyService {
           builder.whereRaw(`tc.stage IN (${convertToWhereInValue(stage)})`);
         }
       })
+      .groupBy("c.id")
       .orderBy(...getOrderByItems(body, "c"))
       .paginate(getPaginateClauseObject(body));
 
-    const companyIds = [...new Set(companies.data.map((x) => x.id))];
-    const contacts: IContact[] = await CompanyModel.relatedQuery(
-      "contacts"
-    ).for(companyIds);
+    let companiesWithContacts = [];
+    if (companies.data.length) {
+      companiesWithContacts = await CompanyModel.query()
+        .findByIds([...new Set(companies.data.map((x) => x.id))])
+        .withGraphFetched(
+          "[contacts, teamInteractions(filterByMyTeamModifier), employeeInteractions(filterByMyIdModifier)]"
+        )
+        .modifiers({
+          filterByMyTeamModifier: (query) =>
+            query.modify("filterByMyTeam", employee.currentTeamId),
+          filterByMyIdModifier: (query) =>
+            query.modify("filterByMyId", employee.sub),
+        })
+        .returning(returningKeys);
+    }
 
     return {
-      data: companies?.data?.map((x) => {
-        x["contacts"] = contacts.filter((y) => y.companyId === x.id);
-        return this.validateCompanyWithInteractions(x);
-      }),
+      data: companiesWithContacts,
       pagination: companies?.pagination,
     };
   }

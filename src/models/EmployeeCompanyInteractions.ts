@@ -55,7 +55,10 @@ export default class EmployeeCompanyInteractionsModel extends Model {
         employeeId: { type: "string" },
         priority: { type: "string", default: COMPANY_PRIORITY.NO_PRIORITY },
         status: { type: "string", default: COMPANY_STATUS.NONE },
-        employeeInteractionDetails: { type: "object", default: JSON.stringify({}) },
+        employeeInteractionDetails: {
+          type: "object",
+          default: JSON.stringify({}),
+        },
         notes: { type: "array" },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
@@ -93,6 +96,13 @@ export default class EmployeeCompanyInteractionsModel extends Model {
   static get jsonAttributes() {
     return ["employeeInteractionDetails", "notes"];
   }
+
+  static modifiers = {
+    filterByMyId(query, employeeId) {
+      query.where("employeeId", employeeId);
+    },
+  };
+
   // $beforeInsert() {
   //   this.createdAt = new Date();
   // }
