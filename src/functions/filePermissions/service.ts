@@ -2,6 +2,7 @@ import {
   GetObjectAclCommand,
   GetObjectAclCommandInput,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
@@ -201,5 +202,38 @@ export class FilePermissionsService {
       dateLessThan, //moment().add(7, "days").utc().format(),
       privateKey,
     });
+  }
+
+  async getFileProperties(
+    objectKey: string,
+    bucketName: string = process.env.DEPLOYMENT_BUCKET,
+    region: string = process.env.AWS_REGION
+  ) {
+    const client = this.getS3Clients(region);
+    const command = new HeadObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+    });
+
+    try {
+      const response = await client.send(command);
+      const { ContentType, ContentLength } = response;
+
+      return {
+        contentType: ContentType,
+        contentLength: ContentLength,
+        size: bytes(ContentLength),
+      };
+    } catch (error) {
+      console.error("Error retrieving file properties:", error);
+    }
+  }
+
+  getS3Clients(region: string = process.env.AWS_REGION): S3Client {
+    if (region === process.env.AWS_REGION) {
+      return this.s3Client;
+    } else {
+      return new S3Client({ region });
+    }
   }
 }

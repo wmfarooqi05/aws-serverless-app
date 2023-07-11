@@ -28,6 +28,33 @@ export const validateGetEmployeesSummary = async (obj: any) => {
     });
 };
 
+export const validateCreateProfile = async (obj: any) => {
+  await Joi.object({
+    name: Joi.string().required(),
+    username: Joi.string().required(),
+    email: Joi.string().email().required(),
+    avatar: Joi.string().uri(),
+    gender: Joi.string().valid(...GenderArray),
+    addresses: Joi.array().items({
+      title: Joi.string().required(),
+      city: Joi.string().required(),
+      state: Joi.string(),
+      country: Joi.string(),
+      postalCode: Joi.string(),
+      address: Joi.string().required(),
+      defaultAddress: Joi.bool().required(),
+    }),
+    birthdate: Joi.string().isoDate(),
+    secondaryPhoneNumbers: Joi.array().items({
+      title: Joi.string().required(),
+      phoneNumber: Joi.string(),
+    }),
+    timezone: Joi.string().valid(...moment.tz.names()),
+    dateFormat: Joi.string().valid(...DATE_FORMATS),
+    reportingManager: Joi.string().guid().required(),
+  }).validateAsync(obj);
+};
+
 export const validateUpdateProfile = async (obj: any) => {
   await Joi.object({
     name: Joi.string(),
@@ -48,7 +75,6 @@ export const validateUpdateProfile = async (obj: any) => {
       phoneNumber: Joi.string(),
     }),
     timezone: Joi.string().valid(...moment.tz.names()),
-    dateFormat: Joi.string()
-      .valid(...DATE_FORMATS)
+    dateFormat: Joi.string().valid(...DATE_FORMATS),
   }).validateAsync(obj);
 };

@@ -9,6 +9,7 @@ import {
 } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 import {
+  validateCreateProfile,
   validateGetEmployees,
   validateGetEmployeesSummary,
   validateUpdateProfile,
@@ -17,6 +18,10 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { getEmployeeFilter } from "./helpers";
+import { COMPANY_STAGES } from "@models/interfaces/Company";
+import { FilePermissionsService } from "@functions/filePermissions/service";
+import { getKeysFromS3Url } from "@utils/s3";
+import { getFileExtension } from "@utils/file";
 
 export interface IEmployeeService {}
 
@@ -30,7 +35,9 @@ export interface EmployeeEBSchedulerPayload {
 @injectable()
 export class EmployeeService implements IEmployeeService {
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService
+    @inject(DatabaseService) private readonly docClient: DatabaseService,
+    @inject(FilePermissionsService)
+    private readonly filePermissionsService: FilePermissionsService
   ) {}
 
   /**
@@ -114,6 +121,70 @@ export class EmployeeService implements IEmployeeService {
     return EmployeeModel.query()
       .findById(employee.sub)
       .withGraphFetched("teams");
+  }
+
+  async createProfile(employee: IEmployeeJwt, body: any) {
+    const payload = JSON.parse(body);
+    await validateCreateProfile(payload);
+
+    if (payload.addresses) {
+      let defaultAddressCount = 0;
+      payload.addresses.forEach(
+        (address) => address.defaultAddress && defaultAddressCount++
+      );
+      if (defaultAddressCount > 1) {
+        throw new CustomError("Default address cannot be more than 1", 400);
+      }
+    }
+
+    let newEmployee: IEmployee = await EmployeeModel.query().insert({
+      ...payload,
+      reportingManager: payload.reportingManager || employee.sub,
+    });
+
+    if (payload.avatar) {
+      const keys = getKeysFromS3Url(payload.avatar);
+      const { contentType } =
+        await this.filePermissionsService.getFileProperties(
+          keys.fileKey,
+          keys.bucketName
+        );
+
+      const fileName = `${newEmployee.id}.${getFileExtension(contentType)}`;
+      const files =
+        await this.filePermissionsService.copyFilesToBucketWithPermissions(
+          [
+            {
+              contentType,
+              destinationKey: `media/avatars/employees/${fileName}`,
+              originalFilename: fileName,
+              sourceBucket: keys.bucketName,
+              sourceKey: keys.fileKey,
+              sourceRegion: keys.region,
+            },
+          ],
+          {
+            ["*"]: { employeeId: "*", permissions: ["READ"] },
+            [employee.sub]: {
+              email: employee.email,
+              employeeId: employee.sub,
+              permissions: ["OWNER"],
+            },
+          }
+        );
+      await EmployeeModel.query().patchAndFetchById(newEmployee.id, {
+        avatar: files[0].fileUrl,
+      });
+
+      newEmployee.avatar = files[0].fileUrl;
+    }
+
+    await newEmployee
+      .$relatedQuery("teams")
+      .for(newEmployee.id)
+      .relate(employee.currentTeamId);
+
+    return newEmployee;
   }
 
   async updateMyProfile(employee: IEmployeeJwt, body: any) {

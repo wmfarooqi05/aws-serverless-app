@@ -74,7 +74,7 @@ export default class EmployeeModel extends Model {
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: ["name", "email", "role"],
+      required: ["name", "username", "email", "role"],
       additionalProperties: false,
     };
   }

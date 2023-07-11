@@ -53,6 +53,17 @@ const getProfileHandler = async (event) => {
   }
 };
 
+const createProfileHandler = async (event) => {
+  try {
+    const employees = await container
+      .resolve(EmployeeService)
+      .createProfile(event.employee, event.body);
+    return formatJSONResponse(employees, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 const updateMyProfileHandler = async (event) => {
   try {
     const employees = await container
@@ -76,6 +87,11 @@ export const getEmployeesWorkSummary = checkRolePermission(
 
 export const getProfile = checkRolePermission(
   getProfileHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const createProfile = checkRolePermission(
+  createProfileHandler,
   "COMPANY_READ_ALL"
 );
 

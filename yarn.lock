@@ -3813,6 +3813,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mime-types@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@types/mime-types@npm:2.1.1"
+  checksum: 106b5d556add46446a579ad25ff15d6b421851790d887edcad558c90c1e64b1defc72bfbaf4b08f208916e21d9cc45cdb951d77be51268b18221544cfe054a3c
+  languageName: node
+  linkType: hard
+
 "@types/mime@npm:*":
   version: 3.0.1
   resolution: "@types/mime@npm:3.0.1"
@@ -6750,6 +6757,7 @@ __metadata:
     "@types/jsdom": ^21.1.1
     "@types/jsonwebtoken": ^9.0.1
     "@types/mailparser": ^3.4.0
+    "@types/mime-types": ^2.1.1
     "@types/node": ^18.13.0
     "@types/pg": ^8.6.6
     "@types/puppeteer": ^7.0.4
@@ -6778,6 +6786,7 @@ __metadata:
     lodash: ^4.17.21
     mailparser: ^3.6.4
     middy: ^0.36.0
+    mime-types: ^2.1.35
     moment-timezone: ^0.5.40
     nodemailer: ^6.9.2
     nodemon: ^2.0.20
@@ -8547,7 +8556,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mime-types@npm:^2.1.12, mime-types@npm:~2.1.24, mime-types@npm:~2.1.34":
+"mime-types@npm:^2.1.12, mime-types@npm:^2.1.35, mime-types@npm:~2.1.24, mime-types@npm:~2.1.34":
   version: 2.1.35
   resolution: "mime-types@npm:2.1.35"
   dependencies:

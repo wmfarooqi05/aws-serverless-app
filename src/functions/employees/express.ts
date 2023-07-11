@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createProfile,
   getEmployees,
   getEmployeesWorkSummary,
   getProfile,
@@ -26,6 +27,11 @@ app.get("/employees-summary", async (req, res) => {
 
 app.get("/employees", async (req, res) => {
   const resp = await getEmployees(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/employee/profile", async (req, res) => {
+  const resp = await createProfile(req, {} as any);
   resHelper(res, resp);
 });
 
