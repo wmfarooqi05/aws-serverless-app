@@ -1,12 +1,7 @@
 import "reflect-metadata";
 import { CustomError } from "@helpers/custom-error";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
-import {
-  getS3BufferFromKey,
-  fileExists,
-  uploadContentToS3,
-  uploadJsonAsXlsx,
-} from "./upload";
+import { getS3BufferFromKey, fileExists, uploadContentToS3 } from "./upload";
 import { container } from "tsyringe";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import xlsx from "xlsx";
@@ -27,6 +22,7 @@ import {
   CognitoIdentityProviderClient,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { chunk } from "lodash";
+import { uploadJsonAsXlsx } from "./xlsx";
 
 const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   {
