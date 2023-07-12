@@ -20,13 +20,15 @@ import {
 } from "@models/FilePermissions";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes from "@utils/bytes";
-import { checkThumbnailStatus, constructS3Url } from "@utils/s3";
+import { checkVariationStatus, constructS3Url } from "@utils/s3";
 import { inject, injectable } from "tsyringe";
 import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
 import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 import { SecretManager } from "@common/service/SecretManager";
 import { CustomError } from "@helpers/custom-error";
 import moment from "moment-timezone";
+import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
+import { randomUUID } from "crypto";
 
 @injectable()
 export class FilePermissionsService {
@@ -93,10 +95,11 @@ export class FilePermissionsService {
         contentType,
         originalFilename,
         permissions: permissionMap,
-        thumbnailStatus: checkThumbnailStatus(contentType),
-        uploadStatus: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
-        error: x.status === "rejected" ? x.reason : null,
+        status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
+        details: x.status === "rejected" ? { error: x.reason } : {},
         fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
+        variationStatus: checkVariationStatus(contentType),
+        variations: [],
       } as IFilePermissions;
     });
 
@@ -104,6 +107,8 @@ export class FilePermissionsService {
       .insert(dbEntries)
       .onConflict()
       .ignore();
+    await this.prepareImageVariationJob(dbResp);
+
     return dbResp;
   }
 
@@ -148,20 +153,44 @@ export class FilePermissionsService {
         contentType,
         originalFilename,
         permissions: permissionMap,
-        thumbnailStatus: checkThumbnailStatus(contentType),
+        variationStatus: checkVariationStatus(contentType),
         uploadStatus: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
-        error: x.status === "rejected" ? x.reason : null,
         fileSize: x.status === "fulfilled" ? x.value.size : 0,
+        details: x.status === "rejected" ? { error: x.reason } : {},
+        variations: [],
       };
     });
 
     const dbResp: IFilePermissions[] = await FilePermissionModel.query().insert(
       dbEntries
     );
+    await this.prepareImageVariationJob(dbResp);
+
     return dbResp;
   }
 
-  async downloadFileFromS3WithPermissions(
+  async prepareImageVariationJob(entries: IFilePermissions[]) {
+    // We are not handling it for now;
+    return [];
+    // this is working code of job which has to be created
+    const variationRequired = entries.filter(
+      (x) => x.variationStatus === "REQUIRED"
+    );
+
+    if (variationRequired.length) {
+      const jobItem = new JobsModel({
+        jobId: randomUUID(),
+        uploadedBy: "SYSTEM",
+        jobType: "CREATE_MEDIA_FILE_VARIATIONS",
+        details: { files: variationRequired.map((x) => x.id) },
+        jobStatus: "PENDING",
+      });
+
+      await jobItem.save();
+    }
+  }
+
+  async getCDNPublicUrlWithPermissions(
     employee: IEmployeeJwt,
     fileUrls: string[]
   ): Promise<IFilePermissions[]> {
@@ -177,10 +206,14 @@ export class FilePermissionsService {
           x.fileUrl,
           process.env.CLOUDFRONT_PRIVATE_KEY
         ),
-        thumbnailUrl: this.getCloudFrontSignedUrl(
-          x.thumbnailUrl,
-          process.env.CLOUDFRONT_PRIVATE_KEY
-        ),
+        variations:
+          x.variations?.map((v) => ({
+            ...v,
+            fileUrl: this.getCloudFrontSignedUrl(
+              v.fileUrl,
+              process.env.CLOUDFRONT_PRIVATE_KEY
+            ),
+          })) || [],
       }));
   }
 

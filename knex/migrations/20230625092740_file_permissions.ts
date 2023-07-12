@@ -18,11 +18,11 @@ export async function up(knex: Knex): Promise<void> {
       table.string("content_type");
       table.string("file_size");
       table.string("original_filename");
-      table.string("thumbnail_status");
-      table.string("thumbnail_url");
+      table.jsonb("details");
       table.jsonb("permissions");
-      table.string("upload_status");
-      table.jsonb("error");
+      table.string("status");
+      table.string("variations_status", 30);
+      table.jsonb("variation");
 
       table
         .timestamp("created_at", { useTz: true })

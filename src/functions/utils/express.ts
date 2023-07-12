@@ -4,7 +4,7 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
-import { generateSignedUrl } from "./handler";
+import { generateSignedUrl, getPublicUrls } from "./handler";
 
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -29,4 +29,8 @@ app.post("/generate-signed-url", async (req, res) => {
   resHelper(res, resp);
 });
 
+app.post("/get-public-urls", async (req, res) => {
+  const resp = await getPublicUrls(req, {} as any);
+  resHelper(res, resp);
+});
 exports.handler = awsSlsExpress({ app });

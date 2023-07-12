@@ -1,5 +1,5 @@
 import { CustomError } from "@helpers/custom-error";
-import { THUMBNAIL_STATUS } from "@models/FilePermissions";
+import { VARIATION_STATUS } from "@models/FilePermissions";
 
 export const constructS3Url = (
   bucketName: string,
@@ -7,13 +7,13 @@ export const constructS3Url = (
   fileKey: string
 ) => `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
 
-export const checkThumbnailStatus = (
+export const checkVariationStatus = (
   fileType: string | null | undefined
-): THUMBNAIL_STATUS => {
+): VARIATION_STATUS => {
   if (fileType?.split("/")?.[0] === "image") {
     return "REQUIRED";
   } else {
-    return "NOT_SUPPORTED";
+    return "NOT_REQUIRED";
   }
 };
 

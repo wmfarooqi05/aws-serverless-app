@@ -6,10 +6,18 @@ import { FILE_PERMISSIONS } from "./commons";
 export type FILE_PERMISSION_TYPE = "OWNER" | "READ" | "WRITE";
 export type THUMBNAIL_STATUS =
   | "COMPLETED"
+  | "PENDING"
   | "REQUIRED"
   | "NOT_SUPPORTED"
   | "ERROR";
-export type UPLOAD_STATUS = "UPLOADED" | "ERROR";
+export type FILE_STATUS =
+  | "PENDING"
+  | "UPLOADING"
+  | "UPLOADED"
+  | "ERROR"
+  | "TO_BE_DELETED"
+  | "DELETE_IN_PROGRESS"
+  | "DELETE_ERROR";
 
 export interface FilePermissionsMap {
   [employeeId: string]: {
@@ -18,6 +26,24 @@ export interface FilePermissionsMap {
     permissions: FILE_PERMISSION_TYPE[];
   };
 }
+
+export interface FILE_VARIATION {
+  fileSize: string;
+  fileUrl: string;
+  fileKey: string;
+  /** in case original file is video or pdf, so thumbnail will be image */
+  contentType: string;
+  /**
+   * can be `800x800`, `600x600` or similar
+   */
+  dimensions: string;
+  /**
+   * can be `THUMBNAIL`, `MEDIUM`, `LARGE`, `SMALL` or similar
+   */
+  fileType: string;
+}
+
+export type VARIATION_STATUS = "REQUIRED" | "NOT_REQUIRED";
 
 export interface IFilePermissions {
   id?: string;
@@ -28,13 +54,13 @@ export interface IFilePermissions {
   contentType: string;
   fileSize?: string;
   originalFilename: string;
-  thumbnailStatus: THUMBNAIL_STATUS;
-  thumbnailUrl?: string;
   permissions: FilePermissionsMap;
   createdAt?: string;
   updatedAt?: string;
-  uploadStatus: UPLOAD_STATUS;
-  error: string;
+  status: FILE_STATUS;
+  details: any;
+  variationStatus: VARIATION_STATUS;
+  variations: FILE_VARIATION[];
 }
 
 @singleton()
@@ -58,16 +84,29 @@ export class FilePermissionModel extends Model {
         region: { type: ["string", "null"] },
         contentType: { type: ["string", "null"] },
         fileSize: { type: ["string", "null"] },
-        originalFilename: { type: ["string", "null"], default: {} },
-        thumbnailStatus: { type: ["string", "null"] },
-        thumbnailUrl: { type: ["string", "null"] },
+        originalFilename: { type: ["string", "null"], default: "" },
         permissions: { type: ["object", "null"] },
-        uploadStatus: { type: ["string", "null"] },
-        error: { type: ["string", "null"] },
+        status: { type: ["string", "null"] },
+        variationStatus: { type: ["string", "null"] },
+        variations: { type: "array", default: [] },
+        details: { type: "object", default: {} },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
     };
+  }
+
+  static get jsonAttributes() {
+    return ["permissions", "details", "variations"];
+  }
+
+  static $beforeInsert(queryContext) {
+    console.log("beforeInsert queryContext", queryContext);
+    if (queryContext?.contentType?.includes("image")) {
+      queryContext.variationStatus = "PENDING";
+    } else {
+      queryContext.variationStatus = "NOT_REQUIRED";
+    }
   }
 }
 

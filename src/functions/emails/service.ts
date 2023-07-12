@@ -182,7 +182,7 @@ export class EmailService implements IEmailService {
     // ];
 
     // const files =
-    //   await this.filePermissionsService.downloadFileFromS3WithPermissions(
+    //   await this.filePermissionsService.getCDNPublicUrlWithPermissions(
     //     employee,
     //     downloadableContent
     //   );

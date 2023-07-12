@@ -22,6 +22,7 @@ import { COMPANY_STAGES } from "@models/interfaces/Company";
 import { FilePermissionsService } from "@functions/filePermissions/service";
 import { getKeysFromS3Url } from "@utils/s3";
 import { getFileExtension } from "@utils/file";
+import { randomUUID } from "crypto";
 
 export interface IEmployeeService {}
 
@@ -150,7 +151,10 @@ export class EmployeeService implements IEmployeeService {
           keys.bucketName
         );
 
-      const fileName = `${newEmployee.id}.${getFileExtension(contentType)}`;
+      // We are not storing profile pic name as employee id
+      // because in case of update, we have to delete these files
+      // and maybe mark this record as to be deleted
+      const fileName = `${randomUUID()}.${getFileExtension(contentType)}`;
       const files =
         await this.filePermissionsService.copyFilesToBucketWithPermissions(
           [

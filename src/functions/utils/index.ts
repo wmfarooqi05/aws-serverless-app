@@ -11,6 +11,13 @@ const utilsHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "post",
+        path: "get-public-urls",
+        cors: true,
+      },
+    },
   ],
   layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
 };

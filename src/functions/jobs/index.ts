@@ -65,19 +65,19 @@ const bulkCognitoSignup = {
 };
 
 // @DEV i guess not in use now
-const streamRecordHelper = {
-  handler: `${handlerPath(__dirname)}/dynamoDbStreamHandler.streamRecordHelper`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "/dynamo-stream",
-        cors: true,
-      },
-    },
-  ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
-};
+// const streamRecordHelper = {
+//   handler: `${handlerPath(__dirname)}/dynamoDbStreamHandler.streamRecordHelper`,
+//   events: [
+//     {
+//       http: {
+//         method: "post",
+//         path: "/dynamo-stream",
+//         cors: true,
+//       },
+//     },
+//   ],
+//   layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+// };
 
 const uploadSignupBulkJob = {
   handler: `${handlerPath(__dirname)}/bulkSignupProcess.uploadSignupBulkJob`,
@@ -146,6 +146,6 @@ export {
   bulkImportUsersProcessHandler,
   handleDynamoStreamRecords,
   uploadSignupBulkJob,
-  streamRecordHelper,
+  // streamRecordHelper,
   // handleSESEmailToSNSEvent,
 };

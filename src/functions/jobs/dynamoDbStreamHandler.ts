@@ -52,7 +52,11 @@ export const addJobToQueue = async (jobId: string, eventType: SQSEventType) => {
     ) {
       queueUrl =
         "https://sqs.ca-central-1.amazonaws.com/524073432557/EmailQueue";
-    }
+    } 
+    // else if (eventType === "CREATE_MEDIA_FILE_VARIATIONS") {
+    //   queueUrl =
+    //     "https://sqs.ca-central-1.amazonaws.com/524073432557/media_queue_dev";
+    // }
 
     const command = new SendMessageCommand({
       QueueUrl: queueUrl,

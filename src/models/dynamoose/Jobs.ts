@@ -6,8 +6,8 @@ import moment from "moment-timezone";
 
 export type JOB_STATUS = "SUCCESSFUL" | "QUEUED" | "FAILED" | "PENDING";
 export interface IJobData extends AnyItem {
-  jobId: string;
-  uploadedBy: string;
+  jobId?: string;
+  uploadedBy?: string;
   jobType: SQSEventType;
   details: Object;
   result?: string;

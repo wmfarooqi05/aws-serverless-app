@@ -1,5 +1,3 @@
-import { ReminderTimeType } from "@models/Reminders";
-
 export type SQSEventType =
   | "BULK_SIGNUP"
   // | "BULK_SIGNUP_PREPARE"
@@ -10,7 +8,8 @@ export type SQSEventType =
   | "ADD_GOOGLE_MEETING"
   | "DELETE_GOOGLE_MEETING"
   | "CREATE_EB_SCHEDULER"
-  | "DELETE_EB_SCHEDULER";
+  | "DELETE_EB_SCHEDULER"
+  | "CREATE_MEDIA_FILE_VARIATIONS";
 
 export interface I_SQS_EVENT_INPUT {
   jobId?: string;
