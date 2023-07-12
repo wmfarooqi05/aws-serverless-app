@@ -40,7 +40,6 @@ const getAllActivitiesByCompanyHandler = async (event) => {
       .getAllActivitiesByCompany(
         event?.employee?.sub,
         companyId,
-        // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
         event.query || {}
       );
     return formatJSONResponse(activities, 200);
@@ -53,11 +52,9 @@ const getMyActivitiesHandler: ValidatedEventAPIGatewayProxyEvent<
   IActivity
 > = async (event) => {
   try {
-    const activities = await container.resolve(ActivityService).getMyActivities(
-      event?.employee?.sub,
-      // "0d2ce8e1-bc5f-4319-9aef-19c5e999ccf3",
-      event.query || {}
-    );
+    const activities = await container
+      .resolve(ActivityService)
+      .getMyActivities(event?.employee, event.query || {});
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -107,10 +104,7 @@ const getEmployeeStaleActivityByStatusHandler = async (event) => {
   try {
     const activities = await container
       .resolve(ActivityService)
-      .getEmployeeStaleActivityByStatus(
-        event?.employee,
-        event.query || {}
-      );
+      .getEmployeeStaleActivityByStatus(event?.employee, event.query || {});
     return formatJSONResponse(activities, 200);
   } catch (e) {
     return formatErrorResponse(e);

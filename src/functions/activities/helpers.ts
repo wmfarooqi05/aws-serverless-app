@@ -133,7 +133,8 @@ export const sortedTags = (tags: string[]): string[] => {
 };
 
 export const addFiltersToQueryBuilder = (queryBuilder, body) => {
-  const { status, dateFrom, dateTo, type, returningFields, tags } = body;
+  const { status, dateFrom, dateTo, type, returningFields, tags, createdBy } =
+    body;
 
   queryBuilder.select(
     sanitizeColumnNames(ActivityModel.columnNames, returningFields)
@@ -159,6 +160,9 @@ export const addFiltersToQueryBuilder = (queryBuilder, body) => {
     queryBuilder.where("dueDate", ">=", dateFrom);
   } else if (dateTo) {
     queryBuilder.where("dueDate", "<=", dateTo);
+  }
+  if (createdBy) {
+    queryBuilder.where("createdBy", "=", createdBy);
   }
 
   queryBuilder.orderBy(...getOrderByItems(body));

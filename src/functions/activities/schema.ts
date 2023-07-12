@@ -18,16 +18,16 @@ import moment from "moment-timezone";
 const schemaKeys = Object.keys(ActivityModel?.jsonSchema?.properties || {});
 
 export const validateGetActivitiesByCompany = async (
-  companyId: string,
+  employeeId: string,
   obj: any
 ) => {
   await Joi.object({
-    companyId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
   })
     .concat(getActivitiesJoiKey())
     .concat(getPaginatedJoiKeys(schemaKeys))
     .validateAsync(
-      { ...getActivityJoiObject(obj), companyId },
+      { ...getActivityJoiObject(obj), employeeId },
       {
         abortEarly: true,
       }
@@ -146,7 +146,7 @@ export const validateUpdateActivity = async (
     priority: Joi.string().valid(...Object.keys(ACTIVITY_PRIORITY)),
     activityId: Joi.string().guid().required(),
     employeeId: Joi.string().guid().required(),
-    dueDate: Joi.date().greater('now'),
+    dueDate: Joi.date().greater("now"),
     details: Joi.object(),
     title: Joi.string(),
 

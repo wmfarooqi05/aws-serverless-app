@@ -90,7 +90,7 @@ export class ActivityService implements IActivityService {
   ) {}
 
   async getMyActivities(
-    createdBy: string, // jwt payload
+    employee: IEmployeeJwt, // jwt payload
     body: any
   ): Promise<IActivityPaginated> {
     /**
@@ -102,12 +102,15 @@ export class ActivityService implements IActivityService {
      * My Overdue Tasks
      * My Today + Overdue Tasks
      */
-    await validateGetActivitiesByCompany(createdBy, body);
+    await validateGetActivitiesByCompany(employee.sub, body);
 
     return this.docClient
       .get(this.TableName)
       .modify(function (queryBuilder) {
-        queryBuilder = addFiltersToQueryBuilder(queryBuilder, body);
+        queryBuilder = addFiltersToQueryBuilder(queryBuilder, {
+          ...body,
+          createdBy: employee.sub,
+        });
         if (body.createdByIds)
           queryBuilder.whereIn("createdBy", body?.createdByIds?.split(","));
       })
