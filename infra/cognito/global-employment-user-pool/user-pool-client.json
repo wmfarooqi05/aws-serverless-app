@@ -1,0 +1,84 @@
+{
+    "UserPoolClient": {
+        "UserPoolId": "ca-central-1_0BjGZxtC1",
+        "ClientName": "global-employment-pool",
+        "ClientId": "2abd3pabbdnhknm2m6l238cp82",
+        "LastModifiedDate": "2023-07-11T20:27:47.532000+05:00",
+        "CreationDate": "2023-03-06T01:18:29.895000+05:00",
+        "RefreshTokenValidity": 30,
+        "AccessTokenValidity": 60,
+        "IdTokenValidity": 60,
+        "TokenValidityUnits": {
+            "AccessToken": "minutes",
+            "IdToken": "minutes",
+            "RefreshToken": "days"
+        },
+        "ReadAttributes": [
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "updated_at",
+            "website",
+            "zoneinfo"
+        ],
+        "WriteAttributes": [
+            "address",
+            "birthdate",
+            "email",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "picture",
+            "preferred_username",
+            "profile",
+            "updated_at",
+            "website",
+            "zoneinfo"
+        ],
+        "ExplicitAuthFlows": [
+            "ALLOW_CUSTOM_AUTH",
+            "ALLOW_REFRESH_TOKEN_AUTH",
+            "ALLOW_USER_SRP_AUTH"
+        ],
+        "SupportedIdentityProviders": [
+            "COGNITO"
+        ],
+        "CallbackURLs": [
+            "http://localhost:3000/congito-success",
+            "http://localhost:3003/congito-success",
+            "https://global-employment-marketing-dashboard.vercel.app/cognito-success",
+            "https://global-employment-marketing-dashboard.vercel.app/congito-success"
+        ],
+        "AllowedOAuthFlows": [
+            "implicit"
+        ],
+        "AllowedOAuthScopes": [
+            "email",
+            "openid",
+            "phone"
+        ],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "PreventUserExistenceErrors": "ENABLED",
+        "EnableTokenRevocation": true,
+        "EnablePropagateAdditionalUserContextData": false,
+        "AuthSessionValidity": 3
+    }
+}

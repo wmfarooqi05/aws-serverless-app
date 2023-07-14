@@ -33,4 +33,5 @@ app.post("/get-public-urls", async (req, res) => {
   const resp = await getPublicUrls(req, {} as any);
   resHelper(res, resp);
 });
+
 exports.handler = awsSlsExpress({ app });
