@@ -123,7 +123,7 @@ export const extractTextFromHTML = (htmlContent) => {
   return tempElement.innerText;
 };
 
-export const constructFileContent = (
+export const getContentFromHtml = (
   emailBody: string
 ): {
   containsHtml: boolean;

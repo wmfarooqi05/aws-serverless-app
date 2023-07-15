@@ -175,7 +175,6 @@ export const emailsByContactHandler = async (event) => {
 
 const getMyEmailsHandler = async (event) => {
   try {
-    console.log("env", process.env);
     const emails = await container
       .resolve(EmailService)
       .getMyEmails(event.employee, event.query);

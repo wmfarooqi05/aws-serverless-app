@@ -26,7 +26,6 @@ export class WebSocketService implements IWebSocketService {
     @inject(CacheService)
     private readonly cacheService: CacheService
   ) {
-    console.log("APIG_WS_ENDPOINT", process.env.APIG_WS_ENDPOINT);
     let endpoint = null;
     if (process.env.STAGE === "local") {
       endpoint =

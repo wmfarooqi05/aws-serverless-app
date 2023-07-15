@@ -224,12 +224,13 @@ export class CompanyService implements ICompanyService {
 
     let company = null;
     let error = null;
+    // @TODO we dont need this transaction
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         const history: IUpdateHistory[] = [];
         // company = await CompanyModel.query(trx).insert(payload);
 
-        company = await CompanyModel.query().insertGraph({
+        company = await CompanyModel.query(trx).insertGraph({
           ...payload,
           contacts: contactsPayload.map((x) => ({
             ...x,

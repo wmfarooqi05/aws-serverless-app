@@ -154,7 +154,7 @@ export class FilePermissionsService {
         originalFilename,
         permissions: permissionMap,
         variationStatus: checkVariationStatus(contentType),
-        uploadStatus: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
+        status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
         fileSize: x.status === "fulfilled" ? x.value.size : 0,
         details: x.status === "rejected" ? { error: x.reason } : {},
         variations: [],

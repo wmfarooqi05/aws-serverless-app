@@ -57,7 +57,7 @@ import { formatErrorResponse } from "@libs/api-gateway";
 import MailComposer from "nodemailer/lib/mail-composer";
 import { isValidUrl } from "@utils/index";
 import {
-  constructFileContent,
+  getContentFromHtml,
   mergeEmailAndName,
   mergeEmailAndNameList,
   splitEmailAndName,
@@ -132,9 +132,12 @@ export class EmailService implements IEmailService {
         .withGraphFetched(
           "recipients.[recipientEmployeeDetails, recipientCompanyDetails]"
         );
+    if (!baseEmailRecord) {
+      throw new CustomError("Email not found", 400);
+    }
 
     emailRecords.push(baseEmailRecord);
-    if (baseEmailRecord.threadId) {
+    if (baseEmailRecord?.threadId) {
       const references = baseEmailRecord.references
         .split(/\s+/)
         .map((x) => x.slice(1, -1))
@@ -196,7 +199,7 @@ export class EmailService implements IEmailService {
         const contentJson = await this.s3Service.getS3BufferFromUrl(
           email.contentUrl
         );
-        content = JSON.parse(JSON.parse(contentJson.toString("utf-8")));
+        content = JSON.parse(contentJson.toString("utf-8"));
       }
 
       return {
@@ -282,23 +285,25 @@ export class EmailService implements IEmailService {
           messageId: inReplyTo,
         });
 
-      if (previousEmail?.subject) {
-        subject = previousEmail?.subject;
-      }
-      // in case 1 i.e. threadId !== null, attach to email
-      if (previousEmail?.threadId) {
-        threadId = previousEmail?.threadId;
-      } else {
-        // in case2, create a threadId, append and also update to replied email
-        threadId = randomUUID();
-        await EmailRecordModel.query().findById(previousEmail.id).patch({
-          threadId,
-        });
-        await RecipientModel.query()
-          .patch({ threadId })
-          .where({
-            emailId: previousEmail.id,
-          } as Partial<IRecipient>);
+      if (previousEmail) {
+        if (previousEmail?.subject) {
+          subject = previousEmail?.subject;
+        }
+        // in case 1 i.e. threadId !== null, attach to email
+        if (previousEmail?.threadId) {
+          threadId = previousEmail?.threadId;
+        } else {
+          // in case2, create a threadId, append and also update to replied email
+          threadId = randomUUID();
+          await EmailRecordModel.query().findById(previousEmail?.id).patch({
+            threadId,
+          });
+          await RecipientModel.query()
+            .patch({ threadId })
+            .where({
+              emailId: previousEmail.id,
+            } as Partial<IRecipient>);
+        }
       }
     }
 
@@ -373,7 +378,7 @@ export class EmailService implements IEmailService {
     } catch (e) {
       // delete the copied items maybe
       // we will not delete anything from tmp till mail is sent
-      console.log("e");
+      console.log("error", e);
       return formatErrorResponse(e);
     }
   }
@@ -445,14 +450,18 @@ export class EmailService implements IEmailService {
       contactRecords
     );
 
+    console.log("final recipients", recipients);
+
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
         emailEntity = await EmailRecordModel.query(trx).insert(email);
 
+        console.log("emailEntity", emailEntity);
         recipients.forEach((x) => (x.emailId = emailEntity.id));
         emailEntity["recipients"] = await RecipientModel.query(trx).insertGraph(
           recipients
         );
+        console.log("recipients added", emailEntity["recipients"]);
       } catch (e) {
         error = e;
         await trx.rollback();
@@ -505,7 +514,8 @@ export class EmailService implements IEmailService {
   }> {
     let emailBody: any = body;
     if (isBodyUploaded && isValidUrl(emailBody)) {
-      emailBody = await getS3ReadableFromUrl(emailBody);
+      const readableBody = await getS3ReadableFromUrl(emailBody);
+      emailBody = await readableBody.transformToString();
       // @TODO bring back this array
       // deleteS3Items.push(emailBody);
     }
@@ -541,13 +551,12 @@ export class EmailService implements IEmailService {
       ] as string[]
     );
 
-    const { fileContent, containsHtml } = constructFileContent(emailBody);
+    const { fileContent, containsHtml } = getContentFromHtml(emailBody);
     // Add email sender id, and use sendername and sender email from JWT
-    const isTextLonger = fileContent.text.length > 1000;
 
     const email: IEmailRecord = {
       body: fileContent.text.slice(0, 1000),
-      isBodyUploaded: isTextLonger,
+      isBodyUploaded: fileContent.text.length > 1000,
       direction: "SENT",
       status: "SENDING",
       subject,
@@ -623,7 +632,7 @@ export class EmailService implements IEmailService {
             permissionMap
           );
       } catch (e) {
-        console.log(e);
+        console.log("error", e);
         return e;
       }
     }
@@ -777,16 +786,19 @@ export class EmailService implements IEmailService {
   }
 
   async emailQueueInvokeHandler(Records: SQSRecord[]) {
-    console.log("[receiveEmailHelper] records", Records);
+    console.log("[receiveEmailHelper] records", Records.length);
     for (const record of Records) {
       try {
         const payload = JSON.parse(record.body);
-        console.log("payload", payload?.notificationType, payload.eventType);
+        console.log("Record payload", payload);
         if (payload?.notificationType === "Received") {
+          console.log("notificationType", payload?.notificationType);
           await this.receiveEmailHelper(record);
         } else if (payload.eventType && !payload.jobId) {
+          console.log("payload.eventType", payload.eventType);
           await this.processMetricsEvent(record);
         } else if (payload.jobId) {
+          console.log("payload.jobId", payload.jobId);
           const jobItem: IJobData = await JobsModel.get({
             jobId: payload.jobId,
           });
@@ -830,7 +842,7 @@ export class EmailService implements IEmailService {
           }
           const key = `emails/unprocessed-events/${randomUUID()}`;
           const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
-          console.log("uploaded to s3", s3Resp);
+          console.log("Unprocessed Events, adding to S3", s3Resp);
         }
         await deleteMessageFromSQS(
           this.sqsClient,
@@ -842,7 +854,10 @@ export class EmailService implements IEmailService {
           console.log("error", e);
           const key = `emails/unprocessed-events/catch/${randomUUID()}`;
           const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
-          console.log("uploaded to s3", s3Resp);
+          console.log(
+            "Unprocessed Events due to error, adding to S3uploaded to s3",
+            s3Resp
+          );
         }
       }
     }
@@ -854,7 +869,6 @@ export class EmailService implements IEmailService {
     const eventType: string = payload.eventType;
     const sender = splitEmailAndName(payload?.mail?.source);
     const details = payload;
-    console.log("details", details);
     delete details?.mail?.headers;
     delete details?.mail?.commonHeaders;
 
@@ -862,6 +876,7 @@ export class EmailService implements IEmailService {
       payload?.mail?.recipients || payload?.mail.destination;
     const finalRecipientEmails: { email: string; emailId: string }[] = [];
 
+    console.log("recipients ");
     if (recipientPayload.length > 0) {
       recipientPayload = recipientPayload.map(
         (x) => splitEmailAndName(x).email
@@ -885,9 +900,12 @@ export class EmailService implements IEmailService {
       });
     }
     let error = null;
-    const emailRecord: IEmailRecord = await EmailRecordModel.query().where({
-      messageId: payload?.mail?.messageId,
-    });
+    const emailRecord: IEmailRecord = await EmailRecordModel.query().where(
+      "messageId",
+      "like",
+      `${payload?.mail?.messageId}%`
+    );
+
     await EmailMetricsModel.transaction(async (trx) => {
       try {
         const metricsRecord: IEmailMetrics = await EmailMetricsModel.query(
@@ -931,10 +949,10 @@ export class EmailService implements IEmailService {
 
   async receiveEmailHelper(record: SQSRecord) {
     const messagePayload = JSON.parse(record.body);
-    console.log("[receiveEmailHelper], messagePayload", messagePayload);
+    console.log("[receiveEmailHelper], SQSRecord body", messagePayload);
 
     /** Array containing S3 URLs of files to be cleanup in case error in job */
-    const s3CleanupFiles: string[] = [];
+    const onErrorS3CleanupUrls: string[] = [];
 
     let error = [];
     try {
@@ -953,6 +971,7 @@ export class EmailService implements IEmailService {
       });
 
       const messageId = mailObject.messageId?.replace(/[<>]/g, "");
+      console.info("messageId", messageId);
 
       let emailRecord: IEmailRecord = await EmailRecordModel.query()
         .where({
@@ -960,17 +979,31 @@ export class EmailService implements IEmailService {
         })
         .first();
 
+      console.info("emailRecord against messageId", emailRecord);
       // move the upper code here, because it is mutating record on L:831
       // @TODO uncomment this
       if (
         process.env.STAGE !== "local" &&
         (emailRecord?.status === "RECEIVED_AND_PROCESSED" ||
-          emailRecord.status === "SENT")
+          emailRecord?.status === "SENT")
       ) {
-        console.log("Email already processed");
+        console.info(
+          "Email already processed",
+          "messageId: ",
+          mailObject?.messageId,
+          "subject:",
+          mailObject?.subject,
+          ", from: ",
+          mailObject?.from,
+          ",to: ",
+          mailObject?.to,
+          ", cc: ",
+          mailObject?.cc
+        );
         return;
       }
 
+      console.info("no record found, new email");
       /** THREAD AND REPLIES HANDLING */
       const {
         inReplyTo: _inReplyTo,
@@ -987,6 +1020,14 @@ export class EmailService implements IEmailService {
       if (inReplyTo) {
         // It means it is belonging to a thread, or starting a new thread
         // fetch email with messageId = inReplyTo
+
+        console.info(
+          "finding thread where inReplyTo: ",
+          inReplyTo,
+          "and references: ",
+          references
+        );
+
         const previousEmail: IEmailRecord =
           await EmailRecordModel.query().findOne({
             messageId: inReplyTo,
@@ -994,10 +1035,16 @@ export class EmailService implements IEmailService {
         if (previousEmail) {
           // in case 1 i.e. threadId !== null, attach to email
           if (previousEmail?.threadId) {
+            console.log(
+              "thread found, previousEmail?.threadId",
+              previousEmail?.threadId
+            );
             threadId = previousEmail?.threadId;
           } else {
             // in case2, create a threadId, append and also update to replied email
             threadId = randomUUID();
+            console.log("creating new thread, ", threadId);
+
             await EmailRecordModel.query().findById(previousEmail.id).patch({
               threadId,
             });
@@ -1013,6 +1060,7 @@ export class EmailService implements IEmailService {
               .where({
                 emailId: previousEmail.id,
               } as Partial<IRecipient>);
+            console.log("patched thread id in email and recipient records");
           }
         }
       }
@@ -1025,45 +1073,58 @@ export class EmailService implements IEmailService {
         threadId
       );
 
-      // move this whole transaction to another function
-      let trxError = null;
-      await this.docClient.getKnexClient().transaction(async (trx) => {
-        try {
-          if (!emailRecord) {
-            emailRecord = await EmailRecordModel.query(trx).insert({
-              body:
-                bodyText.length > 1000 ? bodyText.substring(0, 1000) : bodyText,
-              sentAt: mailObject.date.toISOString(),
-              subject: mailObject?.subject,
-              direction: "RECEIVED",
-              inReplyTo,
-              references,
-              isBodyUploaded: bodyText.length > 1000,
-              priority,
-              messageId,
-              containsHtml: !!html,
-              status: "RECEIVED_AND_PROCESSING",
-              threadId,
-            });
-          }
+      console.log("recipients", recipients);
+      console.log("employees", employees);
 
-          recipients.forEach((x) => {
-            x.emailId = emailRecord.id;
-          });
-          console.log("saving recipients");
-          await trx.commit();
-        } catch (e) {
-          trxError = e;
-          await trx.rollback();
-        }
+      // move this whole transaction to another function
+      if (!emailRecord) {
+        const payload = {
+          body: bodyText.length > 1000 ? bodyText.substring(0, 1000) : bodyText,
+          sentAt: mailObject.date.toISOString(),
+          subject: mailObject?.subject,
+          direction: "RECEIVED",
+          inReplyTo,
+          references,
+          isBodyUploaded: bodyText.length > 1000,
+          priority,
+          messageId,
+          containsHtml: !!html,
+          status: "RECEIVED_AND_PROCESSING",
+          threadId,
+        };
+        emailRecord = await EmailRecordModel.query().insertGraph({
+          ...payload,
+          recipients,
+        });
+        console.log("saving email record", emailRecord);
+      } else {
+        console.log("email already exists", emailRecord);
+        // fetch recipients and add missing ones
+        console.log("all recipients", recipients);
+        const existingRecipients: IRecipient[] = RecipientModel.query().where({
+          emailId: emailRecord.id,
+        });
+        console.log("existingRecipients", existingRecipients);
+        const nonExistingRecipients = recipients.filter(
+          (x) =>
+            !existingRecipients.find(
+              (r) => r.recipientEmail === x.recipientEmail
+            )
+        );
+        console.log("nonExistingRecipients", nonExistingRecipients);
+        const newRecipients = await Promise.all(
+          nonExistingRecipients.map(
+            async (x) =>
+              await EmailRecordModel.query().for(emailRecord.id).insert(x)
+          )
+        );
+        console.log("newRecipients", newRecipients);
+      }
+
+      recipients.forEach((x) => {
+        x.emailId = emailRecord.id;
       });
 
-      if (trxError) {
-        throw new CustomError(
-          trxError.message || trxError,
-          trxError.statusCode || 500
-        );
-      }
       console.info("Entry has been added in DB, now upload attachments to S3");
 
       const { contentUrl, attachmentsS3 } =
@@ -1075,11 +1136,11 @@ export class EmailService implements IEmailService {
       console.log("uploaded attachments and content to s3");
 
       attachmentsS3.forEach((x) => {
-        s3CleanupFiles.push(x.fileUrl);
-        s3CleanupFiles.push(x.thumbnailUrl);
+        onErrorS3CleanupUrls.push(x.fileUrl);
+        onErrorS3CleanupUrls.push(x.thumbnailUrl);
       });
 
-      s3CleanupFiles.push(contentUrl);
+      onErrorS3CleanupUrls.push(contentUrl);
 
       const emailUpdatedContent: Partial<IEmailRecord> = {
         contentUrl,
@@ -1099,7 +1160,12 @@ export class EmailService implements IEmailService {
       const fromRecipient = recipients.find((r) => r.recipientType === "FROM");
 
       const avatar = await this.getAvatar(fromRecipient, employees);
+      console.log("avatar", avatar);
 
+      console.log(
+        "creating notifications for ",
+        employees.map((x) => ({ id: x.id, name: x.name }))
+      );
       const notifPromises = employees
         .filter((e) => e.email !== fromRecipient.recipientEmail)
         .map((e) =>
@@ -1123,15 +1189,19 @@ export class EmailService implements IEmailService {
           })
         );
       await Promise.all(notifPromises);
+      console.log("notifications created");
     } catch (e) {
       error.push(e);
-      if (s3CleanupFiles.length) {
-        console.info("Uploading s3CleanupFiles Job", s3CleanupFiles);
+      if (onErrorS3CleanupUrls.length) {
+        console.info(
+          "Uploading onErrorS3CleanupUrls Job",
+          onErrorS3CleanupUrls
+        );
         const jobItem = new JobsModel({
           jobId: randomUUID(),
           uploadedBy: "RECEIVE_EMAIL_SERVICE_JOB",
           jobType: "DELETE_S3_FILES",
-          details: { s3CleanupFiles },
+          details: { onErrorS3CleanupUrls },
           jobStatus: "PENDING",
         });
         await jobItem.save();
@@ -1549,7 +1619,6 @@ export class EmailService implements IEmailService {
       query.page(page - 1, pageSize);
       query.orderBy(...getOrderByItems(body));
 
-      console.log(query.toKnexQuery().toSQL());
       const emails: any = await query.execute();
       return EmailRecordModel.query()
         .withGraphFetched(`recipients.[recipientEmployeeDetails(filterByMe)]`)

@@ -283,15 +283,26 @@ export const deleteObjectFromS3Key = async (
 export const getKeysFromS3Url = (
   url: string
 ): { region: string; bucketName: string; fileKey: string } => {
-  const parsedUrl = new URL(url);
-  // Extract the S3 bucket name and object key from the URL
-  const bucketName = parsedUrl.hostname.split(".")[0];
-  const fileKey = parsedUrl.pathname.substring(1);
+  let region = process.env.REGION;
+  let bucketName = process.env.DEPLOYMENT_BUCKET;
+  let fileKey = "";
+  if (url.includes(process.env.DEPLOYMENT_BUCKET)) {
+    const parsedUrl = new URL(url);
+    // Extract the S3 bucket name and object key from the URL
+    bucketName = parsedUrl.hostname.split(".")[0];
+    fileKey = parsedUrl.pathname.substring(1);
 
-  // Extract the region from the URL
-  const region = parsedUrl.hostname.split(".")[2];
+    // Extract the region from the URL
+    region = parsedUrl.hostname.split(".")[2];
 
-  return { region, bucketName, fileKey };
+    return { region, bucketName, fileKey };
+  } else if (url.includes(process.env.CLOUD_FRONT_DOMAIN_NAME)) {
+    return {
+      region,
+      bucketName,
+      fileKey: url.replace(`${process.env.CLOUD_FRONT_DOMAIN_NAME}/`, ""),
+    };
+  }
 };
 
 export const getS3BufferFromUrl = async (url: string): Promise<Buffer> => {
@@ -307,7 +318,7 @@ export const getS3BufferFromKey = async (
     Bucket: bucketName,
     Key: fileKey,
   };
-  console.log("[getS3BufferFromKey] params", params);
+  console.log("[getS3BufferFromKey] params", fileKey, bucketName);
   const getObjectCommand = new GetObjectCommand(params);
   const objectData = await s3Client.send(getObjectCommand);
 
@@ -329,7 +340,7 @@ export const getS3BufferFromKey = async (
   return Buffer.concat(chunks);
 };
 
-export const getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
+export const getS3ReadableFromUrl = async (url: string) => {
   const keys = getKeysFromS3Url(url);
   return getS3ReadableFromKey(keys.fileKey, keys.bucketName);
 };
@@ -337,7 +348,7 @@ export const getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
 export const getS3ReadableFromKey = async (
   fileKey: string,
   bucketName: string = process.env.DEPLOYMENT_BUCKET
-): Promise<Buffer> => {
+) => {
   const params: GetObjectCommandInput = {
     Bucket: bucketName,
     Key: fileKey,
@@ -346,7 +357,7 @@ export const getS3ReadableFromKey = async (
   const getObjectCommand = new GetObjectCommand(params);
   const objectData = await s3Client.send(getObjectCommand);
 
-  return objectData.Body as Readable;
+  return objectData.Body;
 };
 
 export const getS3ClientsForRegions = (

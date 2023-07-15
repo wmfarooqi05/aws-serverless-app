@@ -269,7 +269,7 @@ export class S3Service {
     return Buffer.concat(chunks);
   };
 
-  getS3ReadableFromUrl = async (url: string): Promise<Buffer> => {
+  getS3ReadableFromUrl = async (url: string) => {
     const keys = getKeysFromS3Url(url);
     return this.getS3ReadableFromKey(keys.fileKey, keys.bucketName);
   };
@@ -277,7 +277,7 @@ export class S3Service {
   getS3ReadableFromKey = async (
     fileKey: string,
     bucketName: string = process.env.DEPLOYMENT_BUCKET
-  ): Promise<Buffer> => {
+  ) => {
     const params: GetObjectCommandInput = {
       Bucket: bucketName,
       Key: fileKey,
@@ -285,7 +285,7 @@ export class S3Service {
     const getObjectCommand = new GetObjectCommand(params);
     const objectData = await this.s3Client.send(getObjectCommand);
 
-    return objectData.Body as Readable;
+    return objectData.Body;
   };
 
   getS3ClientsForRegions = (
