@@ -99,6 +99,7 @@ export const validateCreateActivity = async (
   payload: IActivity
 ) => {
   await Joi.object({
+    title: Joi.string(),//.required(),
     summary: Joi.string(), // in case of email, it will be null
     companyId: Joi.string().guid().required(),
     createdBy: Joi.string().guid().required(),

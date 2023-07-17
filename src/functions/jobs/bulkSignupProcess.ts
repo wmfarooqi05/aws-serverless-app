@@ -11,7 +11,6 @@ import { IEmployee, RolesEnum } from "@models/interfaces/Employees";
 import EmployeeModel from "@models/Employees";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
-import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import {
   AdminCreateUserCommand,
@@ -23,6 +22,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { chunk } from "lodash";
 import { uploadJsonAsXlsx } from "./xlsx";
+import JobsModel, { IJob } from "@models/Jobs";
 
 const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   {
@@ -30,7 +30,7 @@ const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   }
 );
 
-export const bulkImportUsersProcessHandler = async (jobData: IJobData) => {
+export const bulkImportUsersProcessHandler = async (jobData: IJob) => {
   const errors = [];
   let result = {};
   console.log("[bulkImportUsersProcessHandler] jobData", jobData);
@@ -124,7 +124,7 @@ export const bulkImportUsersProcessHandler = async (jobData: IJobData) => {
     const cognitoSignupResult = await insertIntoCognito(employeesPayload);
     console.log("cognitoSignupResult", cognitoSignupResult);
     const { s3Result, employeeToBeCreated } = await handleCognitoResponse(
-      jobData.jobId,
+      jobData.id,
       existingDbEmployees,
       employeesPayload,
       cognitoSignupResult
@@ -175,26 +175,20 @@ export const bulkImportUsersProcessHandler = async (jobData: IJobData) => {
         await trx.rollback();
       }
     });
-    await JobsModel.update(
-      { jobId },
-      {
-        jobStatus: "SUCCESSFUL",
-        result,
-      }
-    );
+    await JobsModel.query().patchAndFetchById(jobData.id, {
+      jobStatus: "SUCCESSFUL",
+      result,
+    });
   } catch (e) {
     errors.push({ message: e.message });
   }
   try {
     if (errors.length) {
       try {
-        await JobsModel.update(
-          { jobId },
-          {
-            jobStatus: "ERROR",
-            result: { errors },
-          }
-        );
+        await JobsModel.query().patchAndFetchById(jobData.id, {
+          jobStatus: "ERROR",
+          result: { errors },
+        });
       } catch (e) {
         console.log("e", e);
       }
@@ -457,15 +451,15 @@ const uploadSignupBulkJobHandler = async (event) => {
 
   const jobsPayload = details.map(
     (x, index) =>
-      new JobsModel({
+      ({
         jobId: jobPayload[index].jobId,
         uploadedBy: employee.sub,
         jobType: "BULK_SIGNUP",
         details: x,
         jobStatus: "PENDING",
-      })
+      } as IJob)
   );
-  const jobs = await JobsModel.batchPut(jobsPayload);
+  const jobs = await JobsModel.query().insert(jobsPayload);
   return formatJSONResponse({ jobs }, 201);
 };
 

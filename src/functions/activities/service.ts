@@ -25,7 +25,6 @@ import {
   ACTIVITY_TYPE,
   defaultReminders,
   IActivity,
-  IACTIVITY_DETAILS,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE } from "src/models/commons";
@@ -37,10 +36,7 @@ import {
   IEmployeeJwt,
   IEmployeeWithTeam,
 } from "@models/interfaces/Employees";
-import {
-  createKnexTransactionQueries,
-  snakeToCamel,
-} from "@common/json_helpers";
+import { createKnexTransactionQueries } from "@common/json_helpers";
 import {
   addFiltersToQueryBuilder,
   addStaleActivityFilters,
@@ -53,10 +49,9 @@ import { checkManagerPermissions } from "@functions/employees/helpers";
 import { getPaginateClauseObject } from "@common/query";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
-import { randomUUID } from "crypto";
 import { SQSEventType } from "@models/interfaces/Reminders";
-import JobsModel from "@models/Jobs";
 import { JobService } from "@functions/jobs/service";
+import { capitalize } from "lodash";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -216,6 +211,7 @@ export class ActivityService implements IActivityService {
 
     // @TODO add validations for detail object
     const activityObj: IActivity = {
+      title: payload.title || `Untitled ${capitalize(payload.activityType)}`,
       summary: payload.summary,
       details,
       companyId: payload.companyId,
@@ -228,9 +224,7 @@ export class ActivityService implements IActivityService {
       reminders,
       dueDate: payload.dueDate,
       status: payload.status ?? ACTIVITY_STATUS.NOT_STARTED,
-      statusShort: ActivityModel.getStatusShort(
-        payload.status ?? ACTIVITY_STATUS.NOT_STARTED
-      ),
+      // statusShort is calculated in afterUpdate hook
     };
 
     const activity: IActivity = await ActivityModel.query().insert(activityObj);

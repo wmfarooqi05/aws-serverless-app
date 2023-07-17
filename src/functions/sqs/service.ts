@@ -1,35 +1,27 @@
 import "reflect-metadata";
-import { container, inject, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import {
   SQSClient,
   SendMessageCommand,
   ReceiveMessageCommand,
-  DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
 import { SQSEvent } from "aws-lambda";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcessHandler } from "@functions/jobs/bulkSignupProcess";
-import {
-  IEmailSqsEventInput,
-  IJobSqsEventInput,
-  I_SQS_EVENT_INPUT,
-  SQSEventType,
-} from "@models/interfaces/Reminders";
-import { IEBSchedulerEventInput } from "@models/interfaces/Reminders";
-import { ReminderService } from "@functions/reminders/service";
-import { EmailService } from "@functions/emails/service";
+import { SQSEventType } from "@models/interfaces/Reminders";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import JobsModel, { IJobData, JOB_STATUS } from "@models/dynamoose/Jobs";
 import moment from "moment-timezone";
 import { randomUUID } from "crypto";
 import { uploadContentToS3 } from "@functions/jobs/upload";
-import { deleteObjectFromS3Url } from "@functions/jobs/upload";
-import { AnyItem } from "dynamoose/dist/Item";
 import { deleteMessageFromSQS } from "@utils/sqs";
 import { deleteS3Files } from "./jobs/deleteS3Files";
-import { scheduleGoogleMeeting } from "./jobs/scheduleGoogleMeeting";
+import {
+  deleteGoogleMeeting,
+  scheduleGoogleMeeting,
+} from "./jobs/scheduleGoogleMeeting";
+import JobsModel, { IJob } from "@models/Jobs";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -66,12 +58,16 @@ export class SQSService {
     for (const record of Records) {
       try {
         console.log("[sqsJobQueueInvokeHandler] record", record);
-        const payload: I_SQS_EVENT_INPUT = JSON.parse(record.body);
+        const payload: IJob = JSON.parse(record.body);
         console.log("payload", payload);
 
-        const jobItem: IJobData = await JobsModel.get({
-          jobId: payload.jobId,
-        });
+        const jobId = payload.id;
+        const jobItem: IJob = await JobsModel.query().patchAndFetchById(jobId, {
+          jobStatus: "IN_PROGRESS",
+        } as IJob);
+        if (!jobItem) {
+          throw new CustomError(`Job Item for id ${jobId} not found`, 400);
+        }
 
         try {
           if (
@@ -89,31 +85,27 @@ export class SQSService {
           }
 
           let resp = null;
-          // if (payload.Type === "Notification" && payload.MessageId) {
-          //   resp = await container
-          //     .resolve(EmailService)
-          //     .receiveEmailHelper(record);
-          if (payload?.eventType === "BULK_SIGNUP") {
+          if (jobItem?.jobType === "BULK_SIGNUP") {
             resp = await bulkImportUsersProcessHandler(jobItem);
-          } else if (payload.eventType === "DELETE_S3_FILES") {
+          } else if (jobItem.jobType === "DELETE_S3_FILES") {
             resp = await deleteS3Files(jobItem);
-          } else if (payload.eventType === "ADD_GOOGLE_MEETING") {
+          } else if (jobItem.jobType === "ADD_GOOGLE_MEETING") {
             resp = await scheduleGoogleMeeting(jobItem);
-          } else if (payload.eventType === "DELETE_GOOGLE_MEETING") {
+          } else if (jobItem.jobType === "DELETE_GOOGLE_MEETING") {
+            // resp = await deleteGoogleMeeting(jobItem);
+          } else if (jobItem.jobType === "CREATE_EB_SCHEDULER") {
             /** @TODO */
-          } else if (payload.eventType === "CREATE_EB_SCHEDULER") {
-            /** @TODO */
-          } else if (payload.eventType === "DELETE_EB_SCHEDULER") {
+          } else if (jobItem.jobType === "DELETE_EB_SCHEDULER") {
             /** @TODO */
           }
 
           // For Email jobs, we will be using different lambda due to layers
 
-          await this.markMessageProcessed(payload.jobId);
+          await this.markMessageProcessed(jobItem.id, resp);
           await deleteMessageFromSQS(this.sqsClient, record.receiptHandle);
         } catch (error) {
           console.error(error);
-          await this.markMessageAsFailed(payload.jobId, {
+          await this.markMessageAsFailed(jobItem, {
             message: error.message,
             statusCode: error.statusCode,
             stack: error.stack,
@@ -246,38 +238,35 @@ export class SQSService {
     return jobItem.jobStatus === "SUCCESSFUL";
   }
 
-  async markMessageProcessed(jobId: string): Promise<void> {
-    console.log("mark job as successful");
-    await JobsModel.update(
-      { jobId },
-      {
-        jobStatus: "SUCCESSFUL" as JOB_STATUS,
-      }
-    );
+  async markMessageProcessed(jobId: string, resp): Promise<void> {
+    await JobsModel.query()
+      .findById(jobId)
+      .patch({
+        jobStatus: "SUCCESSFUL",
+        result: resp,
+      } as IJob);
+    console.log(`marked jobId ${jobId} as successful`);
   }
 
-  async markMessageAsFailed(jobId: string, resp: any): Promise<void> {
-    const job: IJobData = await JobsModel.get(jobId);
-    let result = {};
-    try {
-      result = (job.result && JSON.parse(job.result)) || {};
-    } catch (e) {}
+  async markMessageAsFailed(job: IJob, resp: any): Promise<void> {
+    const result = (job.result && JSON.parse(job.result)) || {};
     const errorObj = {
       error: (resp && JSON.stringify(resp)) || "An error occurred",
       updatedAt: moment().utc().format(),
     };
+    console.log("job failed errorObj", errorObj);
     if (result?.errors?.length) {
       result.errors.push(errorObj);
     } else {
       result.errors = [errorObj];
     }
-    await JobsModel.update(
-      { jobId },
-      {
-        jobStatus: "FAILED" as JOB_STATUS,
+    await JobsModel.query()
+      .findById(job.id)
+      .patch({
+        jobStatus: "FAILED",
         result,
-      }
-    );
+      } as IJob);
+    console.log("marked job as failed");
   }
 
   async markSQSMessageAsFailed(rec): Promise<void> {}

@@ -153,14 +153,14 @@ const handleDynamoStreamRecords = {
   ],
 };
 
-const handlePgTriggerJobEvents = {
-  handler: `${handlerPath(
-    __dirname
-  )}/dynamoDbStreamHandler.handleStreamRecords`,
-  layers: [
-    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
-  ],
-};
+// const handlePgTriggerJobEvents = {
+//   handler: `${handlerPath(
+//     __dirname
+//   )}/dynamoDbStreamHandler.handleStreamRecords`,
+//   layers: [
+//     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+//   ],
+// };
 
 // const handleSESEmailToSNSEvent = {
 //   handler: `${handlerPath(__dirname)}/email.handleSESEmailToSNSEvent`,

@@ -12,7 +12,10 @@ export const sendMessageToSQS = async (
   queueUrl = process.env.JOB_QUEUE_NAME
 ): Promise<SendMessageCommandOutput> => {
   const queueName = queueUrl?.split("/")[-1];
-  if (process.env.STAGE === "local") return;
+  if (process.env.STAGE === "local") {
+    console.log("not enqueuing on local", body);
+    return;
+  }
   try {
     const command = new SendMessageCommand({
       QueueUrl: queueUrl,

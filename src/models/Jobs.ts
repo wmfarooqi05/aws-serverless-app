@@ -5,7 +5,7 @@ import { EMPLOYEES_TABLE_NAME, JOBS_TABLE } from "./commons";
 import { SQSEventType } from "./interfaces/Reminders";
 import EmployeeModel from "./Employees";
 
-export type JOB_STATUS = "SUCCESSFUL" | "QUEUED" | "FAILED" | "PENDING";
+export type JOB_STATUS = "SUCCESSFUL" | "QUEUED" | "FAILED" | "PENDING" | "IN_PROGRESS";
 export interface IJob {
   id?: string;
   uploadedBy?: string;
@@ -21,10 +21,6 @@ export interface IJob {
 export default class JobsModel extends Model {
   static get tableName() {
     return JOBS_TABLE;
-  }
-
-  static get columnNames(): string[] {
-    return Object.keys(this.jsonSchema.properties);
   }
 
   static get jsonSchema() {

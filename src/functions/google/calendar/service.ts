@@ -34,9 +34,7 @@ export class GoogleCalendarService {
     calendarId: string,
     eventId: string
   ) {
-    const client = await this.getAuthenticatedCalendarClient(
-      employeeId
-    );
+    const client = await this.getAuthenticatedCalendarClient(employeeId);
     // 12 minute after 9 [9:32]
     return client.events.get({
       calendarId,
@@ -45,9 +43,7 @@ export class GoogleCalendarService {
   }
   async createMeeting(employeeId: string, calendarId: string, body: string) {
     const payload = JSON.parse(body);
-    const client = await this.getAuthenticatedCalendarClient(
-      employeeId
-    );
+    const client = await this.getAuthenticatedCalendarClient(employeeId);
     // @TODO add joi validator
 
     const event: calendar_v3.Schema$Event = {
@@ -147,12 +143,17 @@ export class GoogleCalendarService {
     return client.events.insert(calendarItem);
   }
 
+  async deleteGoogleMeeting(meetingId, createdBy) {
+    const client = await this.getAuthenticatedCalendarClient(createdBy);
+    return client.events.delete({
+      eventId: meetingId,
+    });
+  }
+
   getDateTime() {}
 
   async getAllCalendars(employeeId: string, nextSyncToken: string | null) {
-    const client = await this.getAuthenticatedCalendarClient(
-      employeeId
-    );
+    const client = await this.getAuthenticatedCalendarClient(employeeId);
     const params: calendar_v3.Params$Resource$Calendarlist$List = {};
     if (nextSyncToken) {
       params.syncToken = nextSyncToken;

@@ -1,12 +1,12 @@
 import { deleteObjectFromS3Url } from "@functions/jobs/upload";
-import { IJobData } from "@models/dynamoose/Jobs";
+import JobsModel, { IJob } from "@models/Jobs";
 
 /**
  * Delete files from S3
  * @param jobItem
  *
  */
-export const deleteS3Files = async (jobItem: IJobData) => {
+export const deleteS3Files = async (jobItem: IJob) => {
   const {
     details: { s3CleanupFiles },
   } = jobItem;
@@ -14,7 +14,8 @@ export const deleteS3Files = async (jobItem: IJobData) => {
   const promises = await Promise.all(
     (s3CleanupFiles as string[]).map((x) => deleteObjectFromS3Url(x))
   );
-  jobItem.jobStatus = "SUCCESSFUL";
-  jobItem.result = { results: promises } as any;
-  await jobItem.save();
+  await JobsModel.query().patchAndFetchById(jobItem.id, {
+    jobStatus: "SUCCESSFUL",
+    result: { results: promises } as any,
+  } as IJob);
 };

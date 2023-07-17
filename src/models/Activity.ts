@@ -85,7 +85,6 @@ export default class ActivityModel extends Model {
   async $beforeInsert() {}
 
   async $beforeUpdate(opt, queryContext) {
-    console.log("afterupdate");
     await super.$beforeUpdate(opt, queryContext);
 
     const payload = this.toJSON();

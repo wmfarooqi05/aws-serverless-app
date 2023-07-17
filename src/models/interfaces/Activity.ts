@@ -68,7 +68,8 @@ export interface IStatusHistory {
 
 export interface IActivity {
   id?: string;
-  summary: string;
+  title: string;
+  summary?: string;
   details: IACTIVITY_DETAILS;
   companyId: string;
   createdBy: string;
