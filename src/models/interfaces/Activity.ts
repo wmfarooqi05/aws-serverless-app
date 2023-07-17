@@ -51,6 +51,11 @@ export interface IReminderInterface {
   ];
 }
 
+export const defaultReminders = [
+  { method: "popup", minutes: 5 },
+  { method: "popup", minutes: 30 },
+];
+
 // rename this to Activity
 // link this with task, not company
 

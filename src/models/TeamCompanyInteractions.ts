@@ -3,15 +3,10 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import {
   COMPANIES_TABLE_NAME,
-  TEAMS_TABLE_NAME,
   TEAM_COMPANY_INTERACTIONS_TABLE,
   TEAMS_TABLE,
 } from "./commons";
-import {
-  COMPANY_PRIORITY,
-  COMPANY_STAGES,
-  COMPANY_STATUS,
-} from "./interfaces/Company";
+import { COMPANY_STAGES } from "./interfaces/Company";
 import { IEmployeeJwt } from "./interfaces/Employees";
 
 export const getDefaultTeamInteractionItem = (

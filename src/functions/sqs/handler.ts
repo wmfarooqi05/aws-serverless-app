@@ -4,6 +4,18 @@ import { SQSEvent } from "aws-lambda";
 import { SQSService } from "./service";
 import { container } from "tsyringe";
 
+export const sqsInvokeHandler = async (event) => {
+  try {
+    const updatedNotification = await container
+      .resolve(SQSService)
+      .sqsInvokeHandler(event.body);
+    return formatJSONResponse(updatedNotification, 200);
+  } catch (e) {
+    console.log("e", e);
+    return formatErrorResponse(e);
+  }
+};
+
 export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
   try {
     // This is for dev testing

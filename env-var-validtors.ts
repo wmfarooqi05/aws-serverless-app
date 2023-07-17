@@ -54,7 +54,7 @@ export const ensureEnvConfigs = () => {
     "GOOGLE_OAUTH_CLIENT_SECRET",
 
     "JOBS_FOLDER",
-    "AWS_ACCOUNT_ID",
+    "ACCOUNT_ID",
     "COGNITO_USER_POOL_ID",
     "MAIL_QUEUE_NAME",
   ]);

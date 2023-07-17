@@ -24,30 +24,4 @@ const webSocketHandler = {
   ],
 };
 
-const broadcastMessage = {
-  handler: `${handlerPath(__dirname)}/handler.broadcastMessage`,
-  events: [
-    {
-      http: {
-        method: "post",
-        path: "websocket/broadcast",
-        cors: true,
-      },
-    },
-  ],
-};
-
-const getAllWebSocketConnections = {
-  handler: `${handlerPath(__dirname)}/handler.getAllConnections`,
-  events: [
-    {
-      http: {
-        method: "get",
-        path: "websocket/get-connections",
-        cors: true,
-      },
-    },
-  ],
-};
-
-export { webSocketHandler, broadcastMessage, getAllWebSocketConnections };
+export { webSocketHandler };

@@ -1,6 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
+console.log("queue name", process.env.QUEUE_NAME);
+console.log("JOBS_TABLE", process.env.JOBS_TABLE);
 const notificationHandler = {
   handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
@@ -32,7 +34,33 @@ const notificationHandler = {
         cors: true,
       },
     },
+    // Websocket events
+    {
+      http: {
+        method: "post",
+        path: "websocket/broadcast",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "websocket/get-connections",
+        cors: true,
+      },
+    },
   ],
 };
+
+if (process.env.NODE_ENV === "local") {
+  console.log("adding sqs handler");
+  notificationHandler.events.push({
+    http: {
+      method: "post",
+      path: "notification-queue",
+      cors: true,
+    },
+  });
+}
 
 export { notificationHandler };

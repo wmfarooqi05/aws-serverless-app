@@ -2,7 +2,6 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-
 const tableName = Tables.notifications;
 
 export async function up(knex: Knex): Promise<void> {
@@ -29,6 +28,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("notification_type").notNullable();
       table.boolean("read_status").defaultTo(false);
       table.boolean("is_scheduled").defaultTo(false);
+      table.jsonb("sent_status").defaultTo({});
 
       table
         .timestamp("created_at", { useTz: true })

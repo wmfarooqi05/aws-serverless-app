@@ -18,6 +18,9 @@ import {
   getPaginateClauseObject,
   sanitizeColumnNames,
 } from "@common/query";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import { SQSRecord } from "aws-lambda";
+import { deleteMessageFromSQS, sendMessageToSQS } from "@utils/sqs";
 
 export interface INotificationService {}
 
@@ -30,11 +33,18 @@ export interface NotificationEBSchedulerPayload {
 
 @injectable()
 export class NotificationService implements INotificationService {
+  notificationQueueClient: SQSClient;
+  queueUrl: string = process.env.NOTIFICATION_QUEUE_URL;
+
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(WebSocketService)
     private readonly webSocketService: WebSocketService // private scheduler: AWS.Scheduler
-  ) {}
+  ) {
+    this.notificationQueueClient = new SQSClient({
+      region: process.env.AWS_REGION,
+    });
+  }
 
   /**
    * Here, employee will request for a creating a notification
@@ -48,20 +58,27 @@ export class NotificationService implements INotificationService {
    * Other example can be of Info Notif, "Employee_A changed status of activity to X". It will have extra
    * data of module "Activity", rowId of activity, and on click we will show employee detailed activity.
    * next, it will have
-   *
+   * @deprecated
    * @returns
    */
   async createNotification(body: {
     title: string;
     notificationType: NotificationType;
-    isScheduled: boolean;
-    extraData: INotifExtraData;
-    senderEmployee: string;
+    isScheduled?: boolean;
+    extraData?: INotifExtraData;
+    senderEmployee?: string;
     receiverEmployee: string;
     subtitle: string;
   }) {
-    // const payload = JSON.parse(body);
-    // validateNotifPayload
+    const notification = await this.createNotificationHelper(body);
+    await this.webSocketService.sendPayloadByEmployeeId(
+      notification.receiverEmployee,
+      notification
+    );
+    return notification;
+  }
+
+  async createNotificationHelper(body: INotification): Promise<INotification> {
     const {
       title,
       notificationType,
@@ -86,14 +103,7 @@ export class NotificationService implements INotificationService {
     };
 
     // const { senderEmployee, receiverEmployee }: { senderEmployee: any; receiverEmployee: any } = req.body
-    const notifItem = await NotificationModel.query().insert(
-      notificationPayload
-    );
-    await this.webSocketService.sendPayloadByEmployeeId(
-      receiverEmployee,
-      notifItem
-    );
-    return notifItem;
+    return NotificationModel.query().insert(notificationPayload);
   }
 
   /** @deprecated */
@@ -150,12 +160,60 @@ export class NotificationService implements INotificationService {
     return response;
   }
 
+  // @TODO move this to sqs service
+  async sendWebSocketNotificationFromSQS(body: string) {
+    const Records: SQSRecord[] = JSON.parse(body)?.Records;
+    const notifPayloads = Records.map(
+      (record) => JSON.parse(record.body) as INotification
+    );
+    const resp = await this.webSocketService.sendNotifications(notifPayloads);
+    await Promise.all(
+      resp.map((notif) =>
+        NotificationModel.query().findById(notif.notificationId).patch({
+          sentStatus: notif,
+        })
+      )
+    );
+    await Promise.all(
+      Records.map((record) =>
+        deleteMessageFromSQS(
+          this.notificationQueueClient,
+          record.receiptHandle,
+          this.queueUrl
+        )
+      )
+    );
+  }
+
   /**
-   * @TODO replace this function with SQS in future
-   * SQS will enqueue request, and then send websocket notification
+   * @deprecated
    */
   async sendWebSocketNotification(notifications: INotification[]) {
     // @TODO add Joi validation
     return this.webSocketService.sendNotifications(notifications);
+  }
+
+  async createAndEnqueueNotifications(
+    notifItems: INotification[]
+  ): Promise<INotification[]> {
+    const notifications = await Promise.all(
+      notifItems.map((x) => this.createNotificationHelper(x))
+    );
+    await sendMessageToSQS(
+      this.notificationQueueClient,
+      JSON.stringify({ notifications }),
+      this.queueUrl
+    );
+    return notifications;
+  }
+
+  /// Websocket events
+
+  async getAllWebsocketConnections() {
+    return this.webSocketService.getAllConnections();
+  }
+
+  async sendTestMessage(body) {
+    return this.webSocketService.sendTestMessage(body);
   }
 }

@@ -6,12 +6,13 @@ export type INFO_TYPE = "CREATE_COMPANY" | "UPDATE_COMPANY" | "DELETE_COMPANY";
 
 export interface INotifExtraData {
   // infoType: INFO_TYPE;
-  infoType: string; // @TODO it is same as title for now
-  senderEmployeeName: string;
-  avatar: string;
-  tableRowId: string;
-  tableName: string;
-  reminderId: string;
+  /** @deprecated */
+  infoType?: string; // @TODO it is same as title for now
+  senderEmployeeName?: string;
+  avatar?: string;
+  tableRowId?: string;
+  tableName?: string;
+  reminderId?: string;
   reminderTime?: string;
 }
 
@@ -24,14 +25,15 @@ export interface INotification {
   id?: string;
   title: string;
   subtitle: string;
-  senderEmployee: string;
+  senderEmployee?: string;
   receiverEmployee: string;
-  extraData: INotifExtraData;
+  extraData?: INotifExtraData;
   notificationType: NotificationType;
-  readStatus: boolean;
-  isScheduled: boolean;
+  readStatus?: boolean;
+  isScheduled?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  sentStatus?: any;
 }
 
 @singleton()
@@ -58,13 +60,11 @@ export default class NotificationModel extends Model {
         notificationType: { type: "string" },
         readStatus: { type: "boolean" },
         isScheduled: { type: "boolean" }, // if yes, extraData will have scheduling info
+        sentStatus: { type: "object", default: {} },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },
-      required: [
-        "title",
-        "receiverEmployee",
-      ],
+      required: ["title", "receiverEmployee"],
       additionalProperties: false,
     };
   }

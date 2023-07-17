@@ -1,6 +1,23 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
+// remove all other handlers and only use jobHandler
+// const jobsHandler = {
+//   handler: `${handlerPath(__dirname)}/express.handler`,
+//   events: [
+//     {
+//       http: {
+//         method: "post",
+//         path: "/jobs/importData",
+//         cors: true,
+//       },
+//     },
+//   ],
+//   layers: [
+//     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+//   ],
+// }
+
 const importData = {
   handler: `${handlerPath(__dirname)}/import.importData`,
   events: [
@@ -12,7 +29,9 @@ const importData = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
 };
 
 // const uploadCompanySheetToS3 = {
@@ -61,7 +80,9 @@ const bulkCognitoSignup = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
 };
 
 // @DEV i guess not in use now
@@ -90,7 +111,9 @@ const uploadSignupBulkJob = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
 };
 
 // dev only
@@ -107,7 +130,9 @@ const bulkImportUsersProcessHandler = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
 };
 
 const handleDynamoStreamRecords = {
@@ -123,7 +148,18 @@ const handleDynamoStreamRecords = {
       },
     },
   ],
-  layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
+};
+
+const handlePgTriggerJobEvents = {
+  handler: `${handlerPath(
+    __dirname
+  )}/dynamoDbStreamHandler.handleStreamRecords`,
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
 };
 
 // const handleSESEmailToSNSEvent = {
@@ -146,6 +182,7 @@ export {
   bulkImportUsersProcessHandler,
   handleDynamoStreamRecords,
   uploadSignupBulkJob,
+  // jobsHandler,
   // streamRecordHelper,
   // handleSESEmailToSNSEvent,
 };

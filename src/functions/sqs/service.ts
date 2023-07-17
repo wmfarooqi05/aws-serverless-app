@@ -29,6 +29,7 @@ import { deleteObjectFromS3Url } from "@functions/jobs/upload";
 import { AnyItem } from "dynamoose/dist/Item";
 import { deleteMessageFromSQS } from "@utils/sqs";
 import { deleteS3Files } from "./jobs/deleteS3Files";
+import { scheduleGoogleMeeting } from "./jobs/scheduleGoogleMeeting";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -97,7 +98,7 @@ export class SQSService {
           } else if (payload.eventType === "DELETE_S3_FILES") {
             resp = await deleteS3Files(jobItem);
           } else if (payload.eventType === "ADD_GOOGLE_MEETING") {
-            /** @TODO */
+            resp = await scheduleGoogleMeeting(jobItem);
           } else if (payload.eventType === "DELETE_GOOGLE_MEETING") {
             /** @TODO */
           } else if (payload.eventType === "CREATE_EB_SCHEDULER") {

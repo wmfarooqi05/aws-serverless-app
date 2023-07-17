@@ -5,11 +5,7 @@ import { pendingApprovalsHandler } from "@functions/pending_approvals";
 
 // import { handleEBSchedulerLambdaInvoke } from "@functions/reminders";
 
-import {
-  webSocketHandler,
-  // broadcastMessage,
-  // getAllWebSocketConnections,
-} from "@functions/websocket";
+import { webSocketHandler } from "@functions/websocket";
 import { notificationHandler } from "@functions/notifications";
 import {
   googleOauthCallbackHandler,
@@ -67,8 +63,6 @@ const exportHandlers = {
   // Reminders
   // handleEBSchedulerLambdaInvoke,
   webSocketHandler,
-  // broadcastMessage,
-  // getAllWebSocketConnections,
 
   // google
   googleOauthHandler,

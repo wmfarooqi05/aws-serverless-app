@@ -29,6 +29,7 @@ export const config: Record<ENV, Knex.Config> = {
     seeds: {
       directory: "./seeds",
     },
+    
   },
   dev: {
     client: "pg",

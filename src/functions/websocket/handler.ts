@@ -18,31 +18,5 @@ export const _webSocketHandler = async (event) => {
   }
 };
 
-export const sendMessage = async (event) => {
-  const { body } = event;
-
-  try {
-    const newMessage = await container
-      .resolve(WebSocketService)
-      .sendMessage(body);
-    return formatJSONResponse(newMessage, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
-export async function _getAllConnections() {
-  try {
-    const connections = await await container
-      .resolve(WebSocketService)
-      .getAllConnections();
-    return formatJSONResponse(connections, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-}
-
 export const webSocketHandler =
   jwtWebsocketMiddlewareWrapper(_webSocketHandler);
-export const broadcastMessage = sendMessage;
-export const getAllConnections = _getAllConnections;

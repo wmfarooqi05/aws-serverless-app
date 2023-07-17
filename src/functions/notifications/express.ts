@@ -3,9 +3,12 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 import {
+  broadcastMessage,
   createNotification,
+  getAllConnections,
   getNotificationById,
   getNotifications,
+  sqsHandle,
   updateNotificationsReadStatus,
 } from "./handler";
 
@@ -39,7 +42,39 @@ app.put("/notification", async (req, res) => {
   resHelper(res, resp);
 });
 
-exports.handler = awsSlsExpress({ app });
+app.post("/sqs", async (req, res) => {
+  const resp = await sqsHandle(req, {} as any);
+  return res.status(200).send(resp?.body || { message: "received" });
+});
+
+//// Websockets
+
+app.post("/websocket/broadcast", async (req, res) => {
+  const resp = await broadcastMessage(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.post("/get-connections", async (req, res) => {
+  const resp = await getAllConnections(req, {} as any);
+  resHelper(res, resp);
+});
+
+
+//// LOCAL
+
+if (process.env.STAGE === "local") {
+  console.log("app using local notification queue");
+  app.post("/notification-queue", async (req, res) => {
+    const resp = await sqsHandle(req, {} as any);
+    return res.status(200).send(resp?.body || { message: "received" });
+  });
+}
+
+const eventSourceRoutes = {
+  AWS_SQS: "/sqs",
+};
+
+exports.handler = awsSlsExpress({ app, eventSourceRoutes });
 
 const resHelper = (res, apiResponse) => {
   res

@@ -413,7 +413,7 @@ export class ReminderService implements IReminderService {
   ) {
     const Target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
-      Arn: process.env.JOB_QUEUE_ARN!,
+      Arn: process.env.JOB_QUEUE_ARN!, // @TODO replace this with notification ARN
     };
 
     const input: UpdateScheduleCommandInput = {
@@ -815,7 +815,7 @@ export class ReminderService implements IReminderService {
   ): Promise<CreateScheduleCommandOutput> {
     const target: Target = {
       RoleArn: process.env.REMINDER_TARGET_ROLE_ARN!,
-      Arn: process.env.JOB_QUEUE_ARN!,
+      Arn: process.env.JOB_QUEUE_ARN!, // @TODO replace this with notification arn
       Input: JSON.stringify(params),
     };
 

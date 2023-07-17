@@ -1,6 +1,7 @@
 import "reflect-metadata";
 
 import {
+  INotification,
   INotificationModel,
   INotificationPaginated,
 } from "@models/Notification";
@@ -11,14 +12,13 @@ import {
   ValidatedEventAPIGatewayProxyEvent,
 } from "@libs/api-gateway";
 import { NotificationService } from "./service";
-import middy from "@middy/core";
-import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
 
 // Initialize Container
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
 import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
+import { SQSRecord } from "aws-lambda";
 
 /** @DEV */
 export const createNotificationHandler: ValidatedEventAPIGatewayProxyEvent<
@@ -76,6 +76,41 @@ const updateNotificationsReadStatusHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+export const sqsHandle = async (event) => {
+  try {
+    const updatedNotification = await container
+      .resolve(NotificationService)
+      .sendWebSocketNotificationFromSQS(event.body);
+    return formatJSONResponse(updatedNotification, 200);
+  } catch (e) {
+    console.log("e", e);
+    return formatErrorResponse(e);
+  }
+};
+
+export const sendTestMessage = async (event) => {
+  try {
+    const newMessage = await container
+      .resolve(NotificationService)
+      .sendTestMessage(event.body);
+    return formatJSONResponse(newMessage, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+// Websockets
+export async function getAllWebsocketConnections() {
+  try {
+    const connections = await await container
+      .resolve(NotificationService)
+      .getAllWebsocketConnections();
+    return formatJSONResponse(connections, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+}
+
 export const getNotifications = checkRolePermission(
   getNotificationsHandler,
   "COMPANY_READ_ALL"
@@ -94,3 +129,9 @@ export const createNotification = checkRolePermission(
   createNotificationHandler,
   "COMPANY_READ_ALL"
 );
+
+
+// these are dev only functions
+export const broadcastMessage = sendTestMessage;
+export const getAllConnections = getAllWebsocketConnections;
+

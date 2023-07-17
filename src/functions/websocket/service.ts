@@ -9,6 +9,7 @@ import {
   ApiGatewayManagementApiClient,
   PostToConnectionCommandInput,
   ApiGatewayManagementApiClientConfig,
+  PostToConnectionCommandOutput,
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { CustomError } from "@helpers/custom-error";
@@ -16,6 +17,11 @@ import { CacheService } from "@common/service/cache/CacheService";
 import { INotification } from "@models/Notification";
 
 export interface IWebSocketService {}
+
+export interface PostToConnectionOutput extends PostToConnectionCommandOutput {
+  connectionId: string;
+  notificationId: string;
+}
 
 @injectable()
 export class WebSocketService implements IWebSocketService {
@@ -98,7 +104,7 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  async sendMessage(data: string) {
+  async sendTestMessage(data: string) {
     try {
       console.log("[Websocket] sendMessage, data", data);
       const payload = JSON.parse(data);
@@ -134,11 +140,14 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  async sendSimpleMessage(connectionId: string | null, payload: Object) {
+  async sendSimpleMessage(
+    connectionId: string | null,
+    payload: Object
+  ): Promise<PostToConnectionOutput | { message: string }> {
     console.log("[Websocket] sendSimpleMessage", connectionId, payload);
     if (!connectionId) {
       console.log("no connectionId");
-      return;
+      return { message: "No connection id found" };
     }
     const encodingPayload = JSON.stringify({
       ...payload,
@@ -157,7 +166,7 @@ export class WebSocketService implements IWebSocketService {
     try {
       const resp = await this.apiGateway.send(command);
       console.log("resp?.$metadata", resp?.$metadata);
-      return { ...resp.$metadata, connectionId };
+      return { ...resp, connectionId };
     } catch (error) {
       console.error("websocket sendSimpleMessage error", error);
       return {
@@ -196,25 +205,36 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  async sendNotifications(notifications: INotification[]) {
+  async sendNotifications(
+    notifications: INotification[]
+  ): Promise<
+    PostToConnectionOutput[] | { message: string; notificationId: string }[]
+  > {
     console.log("[WebSockets] sendNotifications", notifications);
     for (let i = 0; i < notifications.length; i++) {
       const connectionId = await this.getConnectionId(
         notifications[i].receiverEmployee
       );
-      console.log("Index:", i, ", connectionId: ", connectionId);
 
-      if (connectionId) {
-        await this.sendSimpleMessage(
-          connectionId,
-          JSON.stringify({
-            type: "NOTIFICATION",
-            senderName: notifications[i].extraData.senderEmployeeName,
-            module: notifications[i].extraData.infoType,
-            payload: notifications[i],
-          })
-        );
-      }
+      console.log(
+        "NotificationId: ",
+        notifications[i].id,
+        ", connectionId: ",
+        connectionId
+      );
+      const resp = await this.sendSimpleMessage(
+        connectionId,
+        JSON.stringify({
+          type: "NOTIFICATION",
+          senderName: notifications[i].extraData.senderEmployeeName,
+          module: notifications[i].extraData.infoType,
+          payload: notifications[i],
+        })
+      );
+      return {
+        ...resp,
+        notificationId: notifications[i].id,
+      };
     }
   }
 }
