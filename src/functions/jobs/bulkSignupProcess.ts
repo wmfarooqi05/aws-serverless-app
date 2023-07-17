@@ -177,8 +177,8 @@ export const bulkImportUsersProcessHandler = async (jobData: IJob) => {
     });
     await JobsModel.query().patchAndFetchById(jobData.id, {
       jobStatus: "SUCCESSFUL",
-      result,
-    });
+      jobResult: result,
+    } as IJob);
   } catch (e) {
     errors.push({ message: e.message });
   }
@@ -187,7 +187,7 @@ export const bulkImportUsersProcessHandler = async (jobData: IJob) => {
       try {
         await JobsModel.query().patchAndFetchById(jobData.id, {
           jobStatus: "ERROR",
-          result: { errors },
+          jobResult: { errors },
         });
       } catch (e) {
         console.log("e", e);

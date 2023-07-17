@@ -243,13 +243,13 @@ export class SQSService {
       .findById(jobId)
       .patch({
         jobStatus: "SUCCESSFUL",
-        result: resp,
+        jobResult: resp,
       } as IJob);
     console.log(`marked jobId ${jobId} as successful`);
   }
 
   async markMessageAsFailed(job: IJob, resp: any): Promise<void> {
-    const result = (job.result && JSON.parse(job.result)) || {};
+    const result = job.jobResult || {};
     const errorObj = {
       error: (resp && JSON.stringify(resp)) || "An error occurred",
       updatedAt: moment().utc().format(),
@@ -264,7 +264,7 @@ export class SQSService {
       .findById(job.id)
       .patch({
         jobStatus: "FAILED",
-        result,
+        jobResult: result,
       } as IJob);
     console.log("marked job as failed");
   }

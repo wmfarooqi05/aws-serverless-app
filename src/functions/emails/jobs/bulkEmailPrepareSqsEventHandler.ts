@@ -12,17 +12,19 @@ import {
   I_BULK_EMAIL_JOB,
   I_BULK_EMAIL_JOB_PREPARE,
 } from "@functions/emails/models/interfaces/bulkEmail";
+import { JobService } from "@functions/jobs/service";
 import { copyS3Object, getKeysFromS3Url } from "@functions/jobs/upload";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { IJob } from "@models/Jobs";
 import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
-import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 import { mergeEmailAndName } from "@utils/emails";
 import { randomUUID } from "crypto";
 import { IWithPagination } from "knex-paginate";
+import { container } from "tsyringe";
 
 export const bulkEmailPrepareSqsEventHandler = async (
   emailDbClient: DatabaseService,
-  jobItem: IJobData
+  jobItem: IJob
 ) => {
   const { details }: { details: I_BULK_EMAIL_JOB_PREPARE } = jobItem as any;
 
@@ -120,15 +122,16 @@ export const bulkEmailPrepareSqsEventHandler = async (
       }),
     };
 
-    const jobData = new JobsModel({
-      jobId: randomUUID(),
-      details: bulkEmailJobPayloads,
-      jobStatus: "PENDING",
-      uploadedBy: jobItem.uploadedBy,
-      jobType: "BULK_EMAIL",
-    });
-    await jobData.save();
-    jobDataArray.push({ jobId: jobData.jobId });
+    const resp = await container.resolve(JobService).createAndEnqueueJob(
+      {
+        details: bulkEmailJobPayloads,
+        jobStatus: "PENDING",
+        uploadedBy: jobItem.uploadedBy,
+        jobType: "BULK_EMAIL",
+      },
+      process.env.MAIL_QUEUE_URL
+    );
+    jobDataArray.push({ jobId: resp.job.id });
   }
 
   return jobDataArray;

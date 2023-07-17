@@ -8,14 +8,14 @@ import {
 } from "@functions/emails/models/EmailTemplate";
 import { getS3BufferFromUrl, uploadContentToS3 } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
-import { IJobData } from "@models/dynamoose/Jobs";
+import { IJob } from "@models/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
 import { generateThumbnailFromHtml } from "@utils/thumbnails";
 
 const sesClient = new SESClient({ region: process.env.REGION });
 
-const processEmailTemplateSqsEventHandler = async (jobItem: IJobData) => {
+const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
   const {
     details: { emailTemplateId },
   } = jobItem;

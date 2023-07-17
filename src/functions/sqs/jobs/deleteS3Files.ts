@@ -16,6 +16,6 @@ export const deleteS3Files = async (jobItem: IJob) => {
   );
   await JobsModel.query().patchAndFetchById(jobItem.id, {
     jobStatus: "SUCCESSFUL",
-    result: { results: promises } as any,
+    jobResult: { results: promises } as any,
   } as IJob);
 };

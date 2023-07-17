@@ -14,6 +14,7 @@ import { IRecipient } from "@functions/emails/models/Recipient";
 import { I_BULK_EMAIL_JOB } from "@functions/emails/models/interfaces/bulkEmail";
 import { CustomError } from "@helpers/custom-error";
 import { DatabaseService } from "@libs/database/database-service-objection";
+import { IJob } from "@models/Jobs";
 import { IJobData } from "@models/dynamoose/Jobs";
 import { mergeEmailAndNameList, splitEmailAndName } from "@utils/emails";
 import moment from "moment-timezone";
@@ -25,7 +26,7 @@ const dlqUrl = "YOUR_DLQ_URL";
 export const bulkEmailSqsEventHandler = async (
   emailDbClient: DatabaseService,
   _: SQSClient,
-  jobItem: IJobData
+  jobItem: IJob
 ) => {
   const {
     details: {

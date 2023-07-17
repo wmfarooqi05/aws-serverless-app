@@ -837,4 +837,3 @@ export class ReminderService implements IReminderService {
   }
 }
 
-interface I_SQS_INPUT {}

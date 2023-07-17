@@ -4,7 +4,6 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 
 import { inject, injectable } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
-import { IJobData, JobsModel } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
 import {
@@ -99,6 +98,8 @@ import { S3Service } from "@common/service/S3Service";
 import { NotificationService } from "@functions/notifications/service";
 import CompanyModel from "@models/Company";
 import { ICompany } from "@models/interfaces/Company";
+import JobsModel, { IJob } from "@models/Jobs";
+import { JobService } from "@functions/jobs/service";
 
 const s3UsClient = new S3Client({ region: "us-east-1" });
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -111,15 +112,18 @@ export interface IEmailService {}
 export class EmailService implements IEmailService {
   sqsClient: SQSClient = null;
   emailDbClient: DatabaseService = null;
+  mailQueueUrl: string = process.env.MAIL_QUEUE_URL;
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
     private readonly filePermissionsService: FilePermissionsService,
     @inject(S3Service) private readonly s3Service: S3Service,
     @inject(NotificationService)
-    private readonly notificationService: NotificationService
+    private readonly notificationService: NotificationService,
+    @inject(JobService) private readonly jobService: JobService
   ) {
     this.sqsClient = new SQSClient({ region: process.env.REGION });
+    this.mailQueueUrl = process.env.MAIL_QUEUE_URL;
   }
 
   async getAllEmails(body: any): Promise<any> {}
@@ -775,14 +779,15 @@ export class EmailService implements IEmailService {
       }),
     };
 
-    const jobItem = new JobsModel({
-      jobId: randomUUID(),
-      uploadedBy: employee.id,
-      jobType: "BULK_EMAIL",
-      details,
-      jobStatus: "PENDING",
-    });
-    return jobItem.save();
+    await this.jobService.createAndEnqueueJob(
+      {
+        uploadedBy: employee.id,
+        jobType: "BULK_EMAIL",
+        details,
+        jobStatus: "PENDING",
+      },
+      this.mailQueueUrl
+    );
   }
 
   async emailQueueInvokeHandler(Records: SQSRecord[]) {
@@ -799,9 +804,7 @@ export class EmailService implements IEmailService {
           await this.processMetricsEvent(record);
         } else if (payload.jobId) {
           console.log("payload.jobId", payload.jobId);
-          const jobItem: IJobData = await JobsModel.get({
-            jobId: payload.jobId,
-          });
+          const jobItem: IJob = await JobsModel.query().findById(payload.jobId);
 
           if (
             process.env.STAGE !== "local" &&
@@ -818,16 +821,16 @@ export class EmailService implements IEmailService {
           }
 
           let resp = null;
-          if (payload?.eventType === "PROCESS_TEMPLATE") {
+          if (jobItem.jobType === "PROCESS_TEMPLATE") {
             // Move this to email sqs handler
             resp = await processEmailTemplateSqsEventHandler(jobItem);
-          } else if (payload?.eventType === "BULK_EMAIL_PREPARE") {
+          } else if (jobItem.jobType === "BULK_EMAIL_PREPARE") {
             // Move this to email sqs handler
             resp = await bulkEmailPrepareSqsEventHandler(
               this.emailDbClient,
               jobItem
             );
-          } else if (payload?.eventType === "BULK_EMAIL") {
+          } else if (jobItem.jobType === "BULK_EMAIL") {
             // Move this to email sqs handler
             resp = await bulkEmailSqsEventHandler(
               this.emailDbClient,
@@ -835,6 +838,11 @@ export class EmailService implements IEmailService {
               jobItem
             );
           }
+
+          await JobsModel.query().patchAndFetchById(jobItem.id, {
+            jobStatus: "SUCCESSFUL",
+            jobResult: resp,
+          } as IJob);
         } else {
           if (process.env.STAGE === "local") {
             console.log("no event found");
@@ -1169,24 +1177,26 @@ export class EmailService implements IEmailService {
       const notifPromises = employees
         .filter((e) => e.email !== fromRecipient.recipientEmail)
         .map((e) =>
-          this.notificationService.createNotification({
-            isScheduled: false,
-            notificationType: "INFO_NOTIFICATION",
-            readStatus: false,
-            receiverEmployee: e.id,
-            senderEmployee: null,
-            title: `You have received a new email from ${
-              fromRecipient.recipientName || fromRecipient.recipientEmail
-            }`,
-            subtitle: emailRecord.subject,
-            extraData: {
-              module: "EMAILS",
-              rowId: emailRecord.id,
-              senderEmployeeName:
-                fromRecipient.recipientName || fromRecipient.recipientEmail,
-              avatar,
+          this.notificationService.createAndEnqueueNotifications([
+            {
+              isScheduled: false,
+              notificationType: "INFO_NOTIFICATION",
+              readStatus: false,
+              receiverEmployee: e.id,
+              senderEmployee: null,
+              title: `You have received a new email from ${
+                fromRecipient.recipientName || fromRecipient.recipientEmail
+              }`,
+              subtitle: emailRecord.subject,
+              extraData: {
+                module: "EMAILS",
+                rowId: emailRecord.id,
+                senderEmployeeName:
+                  fromRecipient.recipientName || fromRecipient.recipientEmail,
+                avatar,
+              },
             },
-          })
+          ])
         );
       await Promise.all(notifPromises);
       console.log("notifications created");
@@ -1197,14 +1207,14 @@ export class EmailService implements IEmailService {
           "Uploading onErrorS3CleanupUrls Job",
           onErrorS3CleanupUrls
         );
-        const jobItem = new JobsModel({
-          jobId: randomUUID(),
-          uploadedBy: "RECEIVE_EMAIL_SERVICE_JOB",
-          jobType: "DELETE_S3_FILES",
-          details: { onErrorS3CleanupUrls },
-          jobStatus: "PENDING",
-        });
-        await jobItem.save();
+        await this.jobService.createAndEnqueueJob(
+          {
+            jobType: "DELETE_S3_FILES",
+            details: { s3CleanupFiles: onErrorS3CleanupUrls },
+            jobStatus: "PENDING",
+          },
+          this.mailQueueUrl
+        );
       }
     }
     if (error.length) {

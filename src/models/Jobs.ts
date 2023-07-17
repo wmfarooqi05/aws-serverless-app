@@ -11,7 +11,7 @@ export interface IJob {
   uploadedBy?: string;
   jobType: SQSEventType;
   details: Object;
-  result?: string;
+  jobResult?: Object;
   jobStatus?: JOB_STATUS;
   createdAt?: string;
   updatedAt?: string;

@@ -14,12 +14,10 @@ import {
 } from "@functions/jobs/upload";
 import { validateCreateEmailTemplate, validateDeleteTemplate } from "./schema";
 import { CustomError } from "@helpers/custom-error";
-import {
-  DynamoDBClient,
-} from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { checkTemplateExistsOnSES } from "./helpers";
-import { randomUUID } from "crypto";
-import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
+import { JobService } from "@functions/jobs/service";
+import { IJob } from "@models/Jobs";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -27,7 +25,10 @@ const dynamoClient = new DynamoDBClient({ region: process.env.REGION });
 
 @injectable()
 export class EmailTemplateService {
-  constructor(@inject(DatabaseService) private readonly _: DatabaseService) {}
+  constructor(
+    @inject(DatabaseService) private readonly _: DatabaseService,
+    @inject(JobService) private readonly jobService: JobService
+  ) {}
 
   // Function to list all SES templates
   async listTemplates(): Promise<string[]> {
@@ -85,21 +86,22 @@ export class EmailTemplateService {
       emailTemplateEntry = await EmailTemplatesModel.query().insert(template);
 
       if (!saveAsDraft) {
-        const jobItem = new JobsModel({
-          jobId: randomUUID(),
-          uploadedBy: employee.sub,
-          jobType: "PROCESS_TEMPLATE",
-          details: { emailTemplateId: emailTemplateEntry.id },
-          jobStatus: "PENDING",
-        });
-        const jobResp: IJobData = await jobItem.save();
+        const jobItem: IJob = await this.jobService.createAndEnqueueJob(
+          {
+            uploadedBy: employee.sub,
+            jobType: "PROCESS_TEMPLATE",
+            details: { emailTemplateId: emailTemplateEntry.id },
+            jobStatus: "PENDING",
+          },
+          process.env.MAIL_QUEUE_URL
+        );
 
         await EmailTemplatesModel.query()
           .findById(emailTemplateEntry.id)
           .patch({
             details: {
               // sesResponse,
-              jobId: jobResp.jobId,
+              jobId: jobItem.id,
             },
           });
       }
@@ -129,8 +131,7 @@ export class EmailTemplateService {
       const query = EmailTemplatesModel.query();
       if (templateId) {
         query.where({ id: templateId });
-      }
-       else {
+      } else {
         query.where({ templateSesName });
       }
 
