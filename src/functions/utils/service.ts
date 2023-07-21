@@ -6,6 +6,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 import { FilePermissionsService } from "@functions/filePermissions/service";
 import { validateGetPublicUrls } from "./schema";
+import { getFileExtension } from "@utils/file";
 
 @injectable()
 export class UtilService {
@@ -23,7 +24,7 @@ export class UtilService {
     const { filenames } = JSON.parse(body);
     const signedUrls = await Promise.all(
       filenames.map(async (filename: string) => {
-        const ext = getExtension(filename);
+        const ext = getFileExtension(filename);
         const newFileName = `${randomUUID()}${ext}`;
         const key = `tmp/${newFileName}`;
         const command = new PutObjectCommand({
@@ -55,11 +56,3 @@ export class UtilService {
     return this.filePermissionsService.getCDNPublicUrlWithPermissions(employee, urls);
   }
 }
-
-export const getExtension = (filename: string) => {
-  let ext = "";
-  if (filename.split(".")[1]) {
-    ext = `.${filename.split(".")[1]}`;
-  }
-  return ext;
-};

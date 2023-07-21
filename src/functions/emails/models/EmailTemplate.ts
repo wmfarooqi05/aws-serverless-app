@@ -17,7 +17,7 @@ export interface IEmailTemplate {
   updatedBy: string;
   createdAt?: string;
   updatedAt?: string;
-  status: "DRAFT" | "PROCESSING" | "OK" | "ERROR";
+  status: "DRAFT" | "QUEUED" | "IN_PROGRESS" | "READY" | "ERROR";
   details: any;
 }
 

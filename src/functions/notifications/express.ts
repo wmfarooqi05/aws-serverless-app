@@ -8,7 +8,7 @@ import {
   getAllConnections,
   getNotificationById,
   getNotifications,
-  sqsHandle,
+  notificationQueueInvokeHandler,
   updateNotificationsReadStatus,
 } from "./handler";
 
@@ -42,11 +42,6 @@ app.put("/notification", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.post("/sqs", async (req, res) => {
-  const resp = await sqsHandle(req, {} as any);
-  return res.status(200).send(resp?.body || { message: "received" });
-});
-
 //// Websockets
 
 app.post("/websocket/broadcast", async (req, res) => {
@@ -59,13 +54,12 @@ app.post("/get-connections", async (req, res) => {
   resHelper(res, resp);
 });
 
-
 //// LOCAL
 
 if (process.env.STAGE === "local") {
   console.log("app using local notification queue");
   app.post("/notification-queue", async (req, res) => {
-    const resp = await sqsHandle(req, {} as any);
+    const resp = await notificationQueueInvokeHandler(req);
     return res.status(200).send(resp?.body || { message: "received" });
   });
 }

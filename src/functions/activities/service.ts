@@ -25,6 +25,7 @@ import {
   ACTIVITY_TYPE,
   defaultReminders,
   IActivity,
+  IReminderInterface,
 } from "src/models/interfaces/Activity";
 import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE } from "src/models/commons";
@@ -204,10 +205,10 @@ export class ActivityService implements IActivityService {
     }
     const details = createDetailsPayload(payload.activityType, payload.details);
 
-    const reminders =
-      payload.reminders ||
-      employee.details?.defaultReminders ||
-      defaultReminders;
+    const reminders = this.getRemindersFromPayload(
+      payload.reminders,
+      employee.details?.defaultReminders
+    );
 
     // @TODO add validations for detail object
     const activityObj: IActivity = {
@@ -263,6 +264,25 @@ export class ActivityService implements IActivityService {
     //   throw new CustomError(errorMessage, 500);
     // }
     // return activity;
+  }
+
+  getRemindersFromPayload(
+    reminderPayload,
+    employeeDefaultReminders
+  ): IReminderInterface {
+    let reminders = defaultReminders;
+    if (reminderPayload?.overrides?.length) {
+      reminders.overrides = reminderPayload.overrides;
+    }
+
+    if (
+      reminderPayload?.useDefault &&
+      employeeDefaultReminders?.overrides?.length
+    ) {
+      reminders = employeeDefaultReminders;
+    }
+
+    return reminders;
   }
 
   /**

@@ -43,18 +43,25 @@ export enum ACTIVITY_PRIORITY {
 
 export interface IReminderInterface {
   useDefault?: boolean;
-  overrides?: [
-    {
-      method: "email" | "popup";
-      minutes: number;
-    }
-  ];
+  overrides?: {
+    method: "email" | "popup";
+    minutes: number;
+  }[];
 }
 
-export const defaultReminders = [
-  { method: "popup", minutes: 5 },
-  { method: "popup", minutes: 30 },
-];
+export const defaultReminders: IReminderInterface = {
+  useDefault: false,
+  overrides: [
+    {
+      method: "popup",
+      minutes: 5,
+    },
+    {
+      method: "popup",
+      minutes: 60,
+    },
+  ],
+};
 
 // rename this to Activity
 // link this with task, not company

@@ -76,7 +76,7 @@ export class EmailTemplateService {
       updatedBy: employee.sub,
       version,
       subject: subjectPart,
-      status: !!saveAsDraft ? "DRAFT" : "PROCESSING",
+      status: !!saveAsDraft ? "DRAFT" : "QUEUED",
       htmlPartUrl: htmlS3Link,
       textPartUrl: textS3Link,
     };

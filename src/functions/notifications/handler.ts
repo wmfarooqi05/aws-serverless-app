@@ -18,7 +18,7 @@ import { NotificationService } from "./service";
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
 import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
-import { SQSRecord } from "aws-lambda";
+import { SQSEvent, SQSRecord } from "aws-lambda";
 
 /** @DEV */
 export const createNotificationHandler: ValidatedEventAPIGatewayProxyEvent<
@@ -76,11 +76,16 @@ const updateNotificationsReadStatusHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const sqsHandle = async (event) => {
-  try {
+export const notificationQueueInvokeHandler = async (event: SQSEvent) => {
+  try {    
+    // This is for dev testing
+    if (process.env.STAGE === "local" && event.body) {
+      event.Records = [JSON.parse(event.body)];
+    }
+
     const updatedNotification = await container
       .resolve(NotificationService)
-      .sendWebSocketNotificationFromSQS(event.body);
+      .notificationQueueInvokeHandler(event.Records);
     return formatJSONResponse(updatedNotification, 200);
   } catch (e) {
     console.log("e", e);
@@ -130,8 +135,6 @@ export const createNotification = checkRolePermission(
   "COMPANY_READ_ALL"
 );
 
-
 // these are dev only functions
 export const broadcastMessage = sendTestMessage;
 export const getAllConnections = getAllWebsocketConnections;
-

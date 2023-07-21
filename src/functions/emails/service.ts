@@ -854,8 +854,7 @@ export class EmailService implements IEmailService {
         }
         await deleteMessageFromSQS(
           this.sqsClient,
-          record.receiptHandle,
-          process.env.MAIL_QUEUE_NAME
+          record,
         );
       } catch (e) {
         if (process.env.STAGE !== "local") {

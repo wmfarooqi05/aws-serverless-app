@@ -28,7 +28,7 @@ export class JobService {
     queueUrl: string
   ): Promise<{ job: IJob; queueOutput: SendMessageCommandOutput }> {
     const job = await JobsModel.query().insert(jobPayload);
-    const queueOutput = await this.enqueueJob(jobPayload, queueUrl);
+    const queueOutput = await this.enqueueJob(job, queueUrl);
     await job.$query().patch({
       jobStatus: "QUEUED",
     } as IJob);

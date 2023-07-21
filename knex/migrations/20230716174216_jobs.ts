@@ -1,7 +1,6 @@
 import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
-import { onInsertLambdaTrigger } from "../triggers/onInsertLambdaTrigger";
 
 const tableName = Tables.jobs;
 
@@ -31,8 +30,7 @@ export async function up(knex: Knex): Promise<void> {
         .notNullable()
         .defaultTo(knex.fn.now());
     })
-    .then(() => knex.raw(onUpdateTrigger(tableName)))
-    .then(() => knex.raw(onInsertLambdaTrigger()));
+    .then(() => knex.raw(onUpdateTrigger(tableName)));
 }
 
 export async function down(knex: Knex): Promise<void> {

@@ -20,7 +20,11 @@ import {
 } from "@common/query";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { SQSRecord } from "aws-lambda";
-import { deleteMessageFromSQS, sendMessageToSQS } from "@utils/sqs";
+import {
+  deleteMessageFromSQS,
+  moveMessageToDLQ,
+  sendMessageToSQS,
+} from "@utils/sqs";
 
 export interface INotificationService {}
 
@@ -44,6 +48,7 @@ export class NotificationService implements INotificationService {
     this.notificationQueueClient = new SQSClient({
       region: process.env.AWS_REGION,
     });
+    this.queueUrl = process.env.NOTIFICATION_QUEUE_URL;
   }
 
   /**
@@ -161,28 +166,32 @@ export class NotificationService implements INotificationService {
   }
 
   // @TODO move this to sqs service
-  async sendWebSocketNotificationFromSQS(body: string) {
-    const Records: SQSRecord[] = JSON.parse(body)?.Records;
-    const notifPayloads = Records.map(
-      (record) => JSON.parse(record.body) as INotification
-    );
-    const resp = await this.webSocketService.sendNotifications(notifPayloads);
-    await Promise.all(
-      resp.map((notif) =>
-        NotificationModel.query().findById(notif.notificationId).patch({
-          sentStatus: notif,
-        })
-      )
-    );
-    await Promise.all(
-      Records.map((record) =>
-        deleteMessageFromSQS(
-          this.notificationQueueClient,
-          record.receiptHandle,
-          this.queueUrl
+  async notificationQueueInvokeHandler(Records: SQSRecord[]) {
+    try {
+      console.log("notification Records", Records);
+      const notifPayloads = Records.map(
+        (record) => JSON.parse(record.body) as INotification
+      );
+      const resp = await this.webSocketService.sendNotifications(notifPayloads);
+      await Promise.all(
+        resp.map((notif) =>
+          NotificationModel.query()
+            .findById(notif.notificationId)
+            .patch({
+              sentStatus: notif,
+            } as INotification)
         )
-      )
-    );
+      );
+    } catch (e) {
+      console.log("[notificationQueueInvokeHandler] error: ", e);
+      console.log("[notificationQueueInvokeHandler] not moving to DLQ: ");
+    } finally {
+      await Promise.all(
+        Records.map((record) =>
+          deleteMessageFromSQS(this.notificationQueueClient, record)
+        )
+      );
+    }
   }
 
   /**
@@ -196,6 +205,7 @@ export class NotificationService implements INotificationService {
   async createAndEnqueueNotifications(
     notifItems: INotification[]
   ): Promise<INotification[]> {
+    console.log("[createAndEnqueueNotifications] queueUrl", this.queueUrl);
     const notifications = await Promise.all(
       notifItems.map((x) => this.createNotificationHelper(x))
     );

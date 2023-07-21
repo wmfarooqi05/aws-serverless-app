@@ -22,6 +22,7 @@ export async function up(knex: Knex): Promise<void> {
       table.string("name").notNullable();
       table.string("avatar");
       table.string("job_title").defaultTo(RolesArray[0]);
+      table.boolean("enabled").defaultTo(true);
       table
         .enum("role", EmployeeRolesMigrate)
         .defaultTo(EmployeeRolesMigrate[0]);

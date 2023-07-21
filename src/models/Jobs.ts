@@ -46,7 +46,7 @@ export default class JobsModel extends Model {
   }
 
   static relationMappings = () => ({
-    uploadedBy: {
+    uploader: {
       relation: Model.BelongsToOneRelation,
       modelClass: EmployeeModel,
       join: {

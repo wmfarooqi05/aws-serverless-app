@@ -107,7 +107,7 @@ exports.handler = awsSlsExpress({ app });
 const resHelper = (res, apiResponse) => {
   res
     .status(apiResponse.statusCode || 200)
-    .set(apiResponse.headers)
+    // .set(apiResponse.headers)
     .set("Content-Type", "application/json")
     .send(apiResponse.body);
 };

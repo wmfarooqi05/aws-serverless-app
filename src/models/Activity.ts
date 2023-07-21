@@ -28,6 +28,7 @@ export default class ActivityModel extends Model {
       type: "object",
       properties: {
         id: { type: "string" },
+        title: { type: "string" },
         summary: { type: "string" },
         details: { type: "object" },
         companyId: { type: "string" },

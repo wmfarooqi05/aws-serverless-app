@@ -15,7 +15,7 @@ const sqsJobQueueInvokeHandler = {
     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
     // "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
   ],
-  timeout: 30,
+  timeout: 5,
 };
 
 if (process.env.NODE_ENV === "local") {

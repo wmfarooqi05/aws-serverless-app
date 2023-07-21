@@ -52,6 +52,18 @@ const notificationHandler = {
   ],
 };
 
+const notificationQueueInvokeHandler = {
+  handler: `${handlerPath(__dirname)}/handler.notificationQueueInvokeHandler`,
+  events: [
+    {
+      sqs: {
+        arn: "arn:aws:sqs:${self:provider.region}:${aws:accountId}:job_queue_dev",
+      },
+    },
+  ],
+  timeout: 5,
+};
+
 if (process.env.NODE_ENV === "local") {
   console.log("adding sqs handler");
   notificationHandler.events.push({
@@ -63,4 +75,4 @@ if (process.env.NODE_ENV === "local") {
   });
 }
 
-export { notificationHandler };
+export { notificationHandler, notificationQueueInvokeHandler };

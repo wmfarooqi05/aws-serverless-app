@@ -99,7 +99,7 @@ export const validateCreateActivity = async (
   payload: IActivity
 ) => {
   await Joi.object({
-    title: Joi.string(),//.required(),
+    title: Joi.string(), //.required(),
     summary: Joi.string(), // in case of email, it will be null
     companyId: Joi.string().guid().required(),
     createdBy: Joi.string().guid().required(),
@@ -118,7 +118,7 @@ export const validateCreateActivity = async (
     createdAt: Joi.string().isoDate(),
     updatedAt: Joi.string().isoDate(),
     reminders: Joi.object({
-      useDefault: Joi.boolean(),
+      useDefault: Joi.boolean(),//.required(),
       overrides: Joi.array().items(
         Joi.object({
           method: Joi.string().valid("email", "popup").required(),
@@ -130,6 +130,7 @@ export const validateCreateActivity = async (
     { ...payload, createdBy },
     {
       abortEarly: true,
+      allowUnknown: true,
     }
   );
   await validateDetailPayload(payload.activityType, payload.details);

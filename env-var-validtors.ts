@@ -33,7 +33,6 @@ export const ensureEnvConfigs = () => {
     "REMINDER_TARGET_ROLE_ARN",
     "REMINDER_SCHEDULER_GROUP_ARN",
     "REMINDER_SCHEDULER_GROUP_NAME",
-    "REMINDER_TARGET_LAMBDA",
     "JOB_QUEUE_ARN",
     "MAIL_QUEUE_ARN",
 
@@ -56,6 +55,7 @@ export const ensureEnvConfigs = () => {
     "JOBS_FOLDER",
     "ACCOUNT_ID",
     "COGNITO_USER_POOL_ID",
-    "MAIL_QUEUE_NAME",
+    // "MAIL_QUEUE_NAME",
+    "NOTIFICATION_QUEUE_URL",
   ]);
 };

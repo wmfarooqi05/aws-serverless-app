@@ -15,7 +15,7 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 import { randomUUID } from "crypto";
 import { uploadContentToS3 } from "@functions/jobs/upload";
-import { deleteMessageFromSQS } from "@utils/sqs";
+import { deleteMessageFromSQS, moveMessageToDLQ } from "@utils/sqs";
 import { deleteS3Files } from "./jobs/deleteS3Files";
 import {
   deleteGoogleMeeting,
@@ -56,71 +56,84 @@ export class SQSService {
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
     for (const record of Records) {
+      let jobItem: IJob = {};
       try {
         console.log("[sqsJobQueueInvokeHandler] record", record);
         const payload: IJob = JSON.parse(record.body);
         console.log("payload", payload);
 
         const jobId = payload.id;
-        const jobItem: IJob = await JobsModel.query().patchAndFetchById(jobId, {
+        jobItem = await JobsModel.query().patchAndFetchById(jobId, {
           jobStatus: "IN_PROGRESS",
         } as IJob);
         if (!jobItem) {
           throw new CustomError(`Job Item for id ${jobId} not found`, 400);
         }
 
-        try {
-          if (
-            process.env.STAGE !== "local" &&
-            jobItem.jobStatus === "SUCCESSFUL"
-          ) {
-            console.log(
-              `Message ${record.messageId} has already been processed. Skipping...`
-            );
-            continue;
-          }
+        if (
+          process.env.STAGE !== "local" &&
+          jobItem.jobStatus === "SUCCESSFUL"
+        ) {
+          console.log(
+            `Message ${record.messageId} has already been processed. Skipping...`
+          );
+          continue;
+        }
 
-          if (!this.emailDbClient) {
-            this.emailDbClient = this.docClient;
-          }
+        if (!this.emailDbClient) {
+          this.emailDbClient = this.docClient;
+        }
 
-          let resp = null;
-          if (jobItem?.jobType === "BULK_SIGNUP") {
-            resp = await bulkImportUsersProcessHandler(jobItem);
-          } else if (jobItem.jobType === "DELETE_S3_FILES") {
-            resp = await deleteS3Files(jobItem);
-          } else if (jobItem.jobType === "ADD_GOOGLE_MEETING") {
-            resp = await scheduleGoogleMeeting(jobItem);
-          } else if (jobItem.jobType === "DELETE_GOOGLE_MEETING") {
-            // resp = await deleteGoogleMeeting(jobItem);
-          } else if (jobItem.jobType === "CREATE_EB_SCHEDULER") {
-            /** @TODO */
-          } else if (jobItem.jobType === "DELETE_EB_SCHEDULER") {
-            /** @TODO */
-          }
+        /**
+         * We are here taking a decision
+         * that jobs failed inside processing will be treated as successful
+         * because if 3rd party is crashing, like google meet, then 
+         * user should restart the job after fixing the issue e.g. refresh token
+         * 
+         * but for aws related things like delete s3 files, schedule reminder,
+         * failing inside processing will be treated as failed job
+         * but user will be notified about this as well and record's details will
+         * also be updated
+         */
 
-          // For Email jobs, we will be using different lambda due to layers
+        let resp = null;
+        if (jobItem?.jobType === "BULK_SIGNUP") {
+          resp = await bulkImportUsersProcessHandler(jobItem);
+        } else if (jobItem.jobType === "DELETE_S3_FILES") {
+          resp = await deleteS3Files(jobItem);
+        } else if (jobItem.jobType === "ADD_GOOGLE_MEETING") {
+          resp = await scheduleGoogleMeeting(jobItem);
+        } else if (jobItem.jobType === "DELETE_GOOGLE_MEETING") {
+          resp = await deleteGoogleMeeting(jobItem);
+        } else if (jobItem.jobType === "CREATE_EB_SCHEDULER") {
+          /** @TODO */
+        } else if (jobItem.jobType === "DELETE_EB_SCHEDULER") {
+          /** @TODO */
+        }
 
-          await this.markMessageProcessed(jobItem.id, resp);
-          await deleteMessageFromSQS(this.sqsClient, record.receiptHandle);
-        } catch (error) {
-          console.error(error);
-          await this.markMessageAsFailed(jobItem, {
+        // For Email jobs, we will be using different lambda due to layers
+        await this.markJobAsSuccessful(jobItem.id, resp);
+      } catch (error) {
+        console.error(error);
+        if (jobItem?.id) {
+          await this.markJobAsFailed(jobItem, {
             message: error.message,
             statusCode: error.statusCode,
             stack: error.stack,
           });
-          if (process.env.STAGE === "local") {
-            continue;
-          }
-
-          const key = `jobs/unprocessed-events/catch/${randomUUID()}`;
-          const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
-          console.log("uploaded to s3", s3Resp);
-          // Push to DLQ or set job
         }
-      } catch (error) {
-        console.error("[SQS] Error: ", error);
+        if (process.env.STAGE === "local") {
+          continue;
+        }
+
+        // We dont need as we have DLQ
+        // const key = `jobs/unprocessed-events/catch/${randomUUID()}`;
+        // const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+        // console.log("uploaded to s3", s3Resp);
+        // Push to DLQ or set job
+        await moveMessageToDLQ(this.sqsClient, record);
+      } finally {
+        await deleteMessageFromSQS(this.sqsClient, record);
       }
     }
   }
@@ -188,37 +201,6 @@ export class SQSService {
     }
   }
 
-  /**
-   * @deprecated many issues in this function
-   * @param maxNumberOfMessages
-   */
-  // Receive messages from a SQS queue
-  async receiveMessages(maxNumberOfMessages: number) {
-    try {
-      const command = new ReceiveMessageCommand({
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: maxNumberOfMessages,
-      });
-      const response = await this.sqsClient.send(command);
-      if (response.Messages) {
-        console.log(
-          `Received ${response.Messages.length} message(s) from queue:`
-        );
-        response.Messages.forEach((message) => {
-          console.log(
-            `Message ID: ${message.MessageId}, Body: ${message.Body}`
-          );
-          // Delete the message from the queue
-          deleteMessageFromSQS(this.sqsClient, message.ReceiptHandle);
-        });
-      } else {
-        console.log("No messages received from queue.");
-      }
-    } catch (error) {
-      console.error(`Error receiving messages from queue: ${error}`);
-    }
-  }
-
   async enqueueItems(item: any) {
     try {
       const sendMessageCommand = new SendMessageCommand({
@@ -238,7 +220,7 @@ export class SQSService {
     return jobItem.jobStatus === "SUCCESSFUL";
   }
 
-  async markMessageProcessed(jobId: string, resp): Promise<void> {
+  async markJobAsSuccessful(jobId: string, resp): Promise<void> {
     await JobsModel.query()
       .findById(jobId)
       .patch({
@@ -248,7 +230,7 @@ export class SQSService {
     console.log(`marked jobId ${jobId} as successful`);
   }
 
-  async markMessageAsFailed(job: IJob, resp: any): Promise<void> {
+  async markJobAsFailed(job: IJob, resp: any): Promise<void> {
     const result = job.jobResult || {};
     const errorObj = {
       error: (resp && JSON.stringify(resp)) || "An error occurred",
