@@ -42,7 +42,7 @@ export const uploadToS3 = async (path, body) => {
   try {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
-    return `${process.env.DEPLOYMENT_BUCKET}.s3Client.${process.env.REGION}.amazonaws.com/${Key}`;
+    return `${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${Key}`;
   } catch (e) {
     console.error("Error uploading file:", e);
   }

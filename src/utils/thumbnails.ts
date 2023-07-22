@@ -1,6 +1,6 @@
 import { launch, executablePath, Browser } from "puppeteer";
 import * as chromium from "@sparticuz/chromium";
-// import sharp from "sharp";
+import sharp from "sharp";
 
 let browser: Browser = null;
 
@@ -14,7 +14,7 @@ export const generateThumbnailFromHtml = async (
   html: string,
   width: number = 600,
   height: number = 800
-): Promise<{ thumbnailBuffer: Buffer; bodyText: string }> => {
+): Promise<Buffer> => {
   try {
     console.log(process.env.STAGE);
     const execPath =
@@ -40,10 +40,6 @@ export const generateThumbnailFromHtml = async (
     // Navigate to the HTML content
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const bodyText = await page.evaluate(() => {
-      return document.querySelector("body").innerText;
-    });
-
     // Take a screenshot of the page and return it as a Buffer
     const screenshotBuffer = await page.screenshot({
       type: "png",
@@ -66,10 +62,11 @@ export const generateThumbnailFromHtml = async (
     console.log("closing browser");
     await browser.close();
     console.log("browser closed");
-    return { thumbnailBuffer: screenShot, bodyText };
+    return screenShot;
   } catch (e) {
     console.log("error", e);
   }
+  return null;
 };
 
 export const generateThumbnailFromImageBuffers = async (

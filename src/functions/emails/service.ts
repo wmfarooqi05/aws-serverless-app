@@ -802,10 +802,10 @@ export class EmailService implements IEmailService {
         } else if (payload.eventType && !payload.jobId) {
           console.log("payload.eventType", payload.eventType);
           await this.processMetricsEvent(record);
-        } else if (payload.jobId) {
-          console.log("payload.jobId", payload.jobId);
-          const jobItem: IJob = await JobsModel.query().findById(payload.jobId);
-
+        } else if (payload.id) {
+          console.log("payload.jobId", payload.id);
+          const jobItem: IJob = await JobsModel.query().findById(payload.id);
+          console.log("jobItem", jobItem);
           if (
             process.env.STAGE !== "local" &&
             jobItem.jobStatus === "SUCCESSFUL"
@@ -822,7 +822,6 @@ export class EmailService implements IEmailService {
 
           let resp = null;
           if (jobItem.jobType === "PROCESS_TEMPLATE") {
-            // Move this to email sqs handler
             resp = await processEmailTemplateSqsEventHandler(jobItem);
           } else if (jobItem.jobType === "BULK_EMAIL_PREPARE") {
             // Move this to email sqs handler
@@ -852,10 +851,7 @@ export class EmailService implements IEmailService {
           const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
           console.log("Unprocessed Events, adding to S3", s3Resp);
         }
-        await deleteMessageFromSQS(
-          this.sqsClient,
-          record,
-        );
+        await deleteMessageFromSQS(this.sqsClient, record);
       } catch (e) {
         if (process.env.STAGE !== "local") {
           console.log("error", e);

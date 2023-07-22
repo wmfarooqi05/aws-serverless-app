@@ -1,10 +1,8 @@
-import {
-  CreateTemplateCommand,
-  SESClient,
-} from "@aws-sdk/client-ses";
+import { CreateTemplateCommand, SESClient } from "@aws-sdk/client-ses";
 import {
   EmailTemplatesModel,
   IEmailTemplate,
+  IEmailTemplatesModel,
 } from "@functions/emails/models/EmailTemplate";
 import { getS3BufferFromUrl, uploadContentToS3 } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
@@ -12,6 +10,7 @@ import { IJob } from "@models/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
 import { generateThumbnailFromHtml } from "@utils/thumbnails";
+import { htmlToText } from "html-to-text";
 
 const sesClient = new SESClient({ region: process.env.REGION });
 
@@ -28,20 +27,21 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
       400
     );
   }
-  if (emailTemplate?.status === "DRAFT" || emailTemplate?.status === "OK") {
+
+  if (emailTemplate?.status === "DRAFT" || emailTemplate?.status === "READY") {
     throw new CustomError(
       `Template with status: '${emailTemplate.status}' cannot be processed`,
       400
     );
   }
+
+  await emailTemplate?.$query()?.patch({
+    status: "IN_PROGRESS" as IEmailTemplate["status"],
+  });
+
   try {
-    const {
-      templateName,
-      version,
-      templateSesName,
-      htmlPartUrl,
-      subject,
-    } = emailTemplate;
+    const { templateName, version, templateSesName, htmlPartUrl, subject } =
+      emailTemplate;
 
     const htmlPartBuffer = await getS3BufferFromUrl(htmlPartUrl);
     const htmlPartContent = htmlPartBuffer.toString();
@@ -50,10 +50,12 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
       throw new CustomError("Not valid html template", 400);
     }
 
-    const { thumbnailBuffer, bodyText } = await generateThumbnailFromHtml(
+    const thumbnailBuffer = await generateThumbnailFromHtml(
       htmlPartContent
     );
-    
+
+    const bodyText = htmlToText(htmlPartContent);
+
     // HtmlPart
     const replacements = await replaceImageUrls(
       htmlPartContent,
@@ -70,17 +72,19 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
 
     const updateDbItem: Partial<IEmailTemplate> = {
       htmlPartUrl: htmlPart.fileUrl,
-      status: "OK",
+      status: "READY",
     };
 
     // Thumbnail
-    const thumbKey = `${rootKey}/thumbnail.png`;
-    const thumbnail = await uploadContentToS3(
-      thumbKey,
-      thumbnailBuffer,
-      "public-read"
-    );
-    updateDbItem.thumbnailUrl = thumbnail.fileUrl;
+    if (thumbnailBuffer) {
+      const thumbKey = `${rootKey}/thumbnail.png`;
+      const thumbnail = await uploadContentToS3(
+        thumbKey,
+        thumbnailBuffer,
+        "public-read"
+      );
+      updateDbItem.thumbnailUrl = thumbnail.fileUrl;
+    }
 
     if (bodyText?.trim()?.length > 0) {
       const textPart = await uploadContentToS3(
@@ -105,7 +109,7 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
           TemplateName: templateSesName,
           HtmlPart: replacements.html,
           SubjectPart: subject,
-          TextPart: bodyText,          
+          TextPart: bodyText,
         },
       })
     );
