@@ -13,7 +13,7 @@ export const recipientCategoryTypes: RECIPIENT_CATEGORY[] = [
 ];
 
 export const generalFolders = [
-  'inobx',
+  'inbox',
   'sent_items',
   'trash',
   'important',

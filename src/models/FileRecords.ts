@@ -3,7 +3,7 @@ import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { FILE_RECORDS } from "./commons";
 
-export type FILE_PERMISSION_TYPE = "OWNER" | "READ" | "WRITE";
+export type FILE_RECORD_TYPE = "OWNER" | "READ" | "WRITE";
 export type THUMBNAIL_STATUS =
   | "COMPLETED"
   | "PENDING"
@@ -23,7 +23,7 @@ export interface FilePermissionsMap {
   [employeeId: string]: {
     employeeId: string;
     email: string;
-    permissions: FILE_PERMISSION_TYPE[];
+    permissions: FILE_RECORD_TYPE[];
   };
 }
 
@@ -45,7 +45,7 @@ export interface FILE_VARIATION {
 
 export type VARIATION_STATUS = "REQUIRED" | "NOT_REQUIRED";
 
-export interface IFilePermissions {
+export interface IFileRecords {
   id?: string;
   fileUrl: string;
   s3Key: string;
@@ -68,7 +68,7 @@ export interface IFilePermissions {
 }
 
 @singleton()
-export class FilePermissionModel extends Model {
+export class FileRecordModel extends Model {
   static get tableName() {
     return FILE_RECORDS;
   }
@@ -116,5 +116,5 @@ export class FilePermissionModel extends Model {
   }
 }
 
-export type IFilePermissionModel = ModelObject<FilePermissionModel>;
-export type IFilePermissionPaginated = IWithPagination<IFilePermissionModel>;
+export type IFileRecordModel = ModelObject<FileRecordModel>;
+export type FileRecordPaginated = IWithPagination<IFileRecordModel>;

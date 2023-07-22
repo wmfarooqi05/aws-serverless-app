@@ -93,7 +93,7 @@ import {
   generalFolders,
 } from "./models/RecipientEmployeeDetails";
 import { FilePermissionsService } from "@functions/fileRecords/service";
-import { FilePermissionsMap, IFilePermissions } from "@models/FilePermissions";
+import { FilePermissionsMap, IFileRecords } from "@models/FileRecords";
 import { S3Service } from "@common/service/S3Service";
 import { NotificationService } from "@functions/notifications/service";
 import CompanyModel from "@models/Company";
@@ -544,7 +544,7 @@ export class EmailService implements IEmailService {
     });
 
     const copyS3Promises: Promise<CopyObjectCommandOutput>[] = [];
-    let fileMap: IFilePermissions[] = [];
+    let fileMap: IFileRecords[] = [];
 
     const employees: IEmployee[] = await EmployeeModel.query().whereIn(
       "email",
@@ -642,13 +642,15 @@ export class EmailService implements IEmailService {
       }
     }
 
+    console.log('a');
     const contentResp =
       await this.fileRecordsService.uploadFilesToBucketWithPermissions(
         [
           {
             fileContent,
-            contentType: "text/json",
-            Key: `${SENT_EMAIL_FOLDER}/${emailRecord.id}/content.json`,
+            fileType: "text/json",
+            fileName: "content.json",
+            s3Key: `${SENT_EMAIL_FOLDER}/${emailRecord.id}`,
             originalFilename: "content.json",
           },
         ],

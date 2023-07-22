@@ -14,10 +14,10 @@ import {
 } from "@functions/jobs/upload";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import {
-  FilePermissionModel,
+  FileRecordModel,
   FilePermissionsMap,
-  IFilePermissions,
-} from "@models/FilePermissions";
+  IFileRecords,
+} from "@models/FileRecords";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes from "@utils/bytes";
 import { checkVariationStatus, constructS3Url } from "@utils/s3";
@@ -29,6 +29,7 @@ import { CustomError } from "@helpers/custom-error";
 import moment from "moment-timezone";
 import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 import { randomUUID } from "crypto";
+import { getFileContentType, getFileExtension, getFileNameWithoutExtension } from "@utils/file";
 
 @injectable()
 export class FilePermissionsService {
@@ -74,7 +75,7 @@ export class FilePermissionsService {
     permissionMap: FilePermissionsMap,
     bucketName: string = process.env.DEPLOYMENT_BUCKET,
     region: string = process.env.REGION
-  ): Promise<IFilePermissions[]> {
+  ): Promise<IFileRecords[]> {
     const filePromises = files.map(({ s3Key, fileContent, fileName }) => {
       const uploadParams: PutObjectCommandInput = {
         Bucket: process.env.DEPLOYMENT_BUCKET,
@@ -86,7 +87,7 @@ export class FilePermissionsService {
       return this.s3Client.send(command);
     });
     const responses = await Promise.allSettled(filePromises);
-    const dbEntries: IFilePermissions[] = responses.map((x, index) => {
+    const dbEntries: IFileRecords[] = responses.map((x, index) => {
       const { s3Key, fileName, fileContent, fileType, originalFilename } =
         files[index];
       return {
@@ -101,28 +102,10 @@ export class FilePermissionsService {
         permissions: permissionMap,
         status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
         details: x.status === "rejected" ? { error: x.reason } : {},
-      } as IFilePermissions;
-      // return {
-      //   fileName: "",
-      //   keyWords: "",
-      //   resolution: "",
-      //   s3Key: "",
-      //   fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
-
-      //   bucketName,
-      //   region,
-      //   fileUrl: constructS3Url(bucketName, region, Key),
-      //   fileType: contentType,
-      //   // originalFilename,
-      //   // permissions: permissionMap,
-      //   // status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
-      //   // details: x.status === "rejected" ? { error: x.reason } : {},
-      //   // variationStatus: checkVariationStatus(contentType),
-      //   // variations: [],
-      // } as IFilePermissions;
+      } as IFileRecords;
     });
 
-    const dbResp: IFilePermissions[] = await FilePermissionModel.query()
+    const dbResp: IFileRecords[] = await FileRecordModel.query()
       .insert(dbEntries)
       .onConflict()
       .ignore();
@@ -144,7 +127,7 @@ export class FilePermissionsService {
     permissionMap: FilePermissionsMap,
     destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
     destinationRegion: string = process.env.REGION
-  ): Promise<IFilePermissions[]> {
+  ): Promise<IFileRecords[]> {
     const filePromises = files.map((x) =>
       copyS3ObjectAndGetSize(
         x.sourceKey,
@@ -158,29 +141,29 @@ export class FilePermissionsService {
     );
 
     const responses = await Promise.allSettled(filePromises);
-    const dbEntries: IFilePermissions[] = responses.map((x, index) => {
+    const dbEntries: IFileRecords[] = responses.map((x, index) => {
       const { destinationKey, contentType, originalFilename } = files[index];
+      const fileNameWithExt = destinationKey.split("/").at(-1);
       return {
         bucketName: destinationBucket,
         region: destinationRegion,
-        fileKey: destinationKey,
+        fileName: getFileNameWithoutExtension(fileNameWithExt),
+        s3Key: destinationKey.replace(fileNameWithExt, ""),
         fileUrl: constructS3Url(
           destinationBucket,
           destinationRegion,
           destinationKey
         ),
-        contentType,
+        fileType: contentType,
         originalFilename,
         permissions: permissionMap,
-        variationStatus: checkVariationStatus(contentType),
         status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
         fileSize: x.status === "fulfilled" ? x.value.size : 0,
         details: x.status === "rejected" ? { error: x.reason } : {},
-        variations: [],
-      };
+      } as IFileRecords;
     });
 
-    const dbResp: IFilePermissions[] = await FilePermissionModel.query().insert(
+    const dbResp: IFileRecords[] = await FileRecordModel.query().insert(
       dbEntries
     );
     await this.prepareImageVariationJob(dbResp);
@@ -188,7 +171,7 @@ export class FilePermissionsService {
     return dbResp;
   }
 
-  async prepareImageVariationJob(entries: IFilePermissions[]) {
+  async prepareImageVariationJob(entries: IFileRecords[]) {
     // We are not handling it for now;
     return [];
     // this is working code of job which has to be created
@@ -213,9 +196,9 @@ export class FilePermissionsService {
   async getCDNPublicUrlWithPermissions(
     employee: IEmployeeJwt,
     fileUrls: string[]
-  ): Promise<IFilePermissions[]> {
-    const fileRecordRecords: IFilePermissions[] =
-      await FilePermissionModel.query().whereIn("fileUrl", fileUrls);
+  ): Promise<IFileRecords[]> {
+    const fileRecordRecords: IFileRecords[] =
+      await FileRecordModel.query().whereIn("fileUrl", fileUrls);
 
     await this.initializeCloudFrontPrivateKey();
     return fileRecordRecords

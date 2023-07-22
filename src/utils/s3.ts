@@ -1,5 +1,5 @@
 import { CustomError } from "@helpers/custom-error";
-import { VARIATION_STATUS } from "@models/FilePermissions";
+import { VARIATION_STATUS } from "@models/FileRecords";
 
 /**
  *
