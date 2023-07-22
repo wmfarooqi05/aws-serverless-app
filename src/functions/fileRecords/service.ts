@@ -66,18 +66,19 @@ export class FilePermissionsService {
   async uploadFilesToBucketWithPermissions(
     files: {
       originalFilename: string;
-      contentType: string;
-      Key: string;
+      fileType: string;
+      s3Key: string;
       fileContent: any;
+      fileName: string;
     }[],
-    permissionMap: PermissionsMap,
+    permissionMap: FilePermissionsMap,
     bucketName: string = process.env.DEPLOYMENT_BUCKET,
     region: string = process.env.REGION
   ): Promise<IFilePermissions[]> {
-    const filePromises = files.map(({ Key, fileContent }) => {
+    const filePromises = files.map(({ s3Key, fileContent, fileName }) => {
       const uploadParams: PutObjectCommandInput = {
         Bucket: process.env.DEPLOYMENT_BUCKET,
-        Key,
+        Key: `${s3Key}/${fileName}`,
         Body: JSON.stringify(fileContent),
       };
 
@@ -86,21 +87,39 @@ export class FilePermissionsService {
     });
     const responses = await Promise.allSettled(filePromises);
     const dbEntries: IFilePermissions[] = responses.map((x, index) => {
-      const { Key, fileContent, contentType, originalFilename } = files[index];
+      const { s3Key, fileName, fileContent, fileType, originalFilename } =
+        files[index];
       return {
+        fileName,
+        s3Key,
+        fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
+        fileUrl: constructS3Url(bucketName, region, s3Key),
         bucketName,
         region,
-        fileKey: Key,
-        fileUrl: constructS3Url(bucketName, region, Key),
-        contentType,
+        fileType,
         originalFilename,
         permissions: permissionMap,
         status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
         details: x.status === "rejected" ? { error: x.reason } : {},
-        fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
-        variationStatus: checkVariationStatus(contentType),
-        variations: [],
       } as IFilePermissions;
+      // return {
+      //   fileName: "",
+      //   keyWords: "",
+      //   resolution: "",
+      //   s3Key: "",
+      //   fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
+
+      //   bucketName,
+      //   region,
+      //   fileUrl: constructS3Url(bucketName, region, Key),
+      //   fileType: contentType,
+      //   // originalFilename,
+      //   // permissions: permissionMap,
+      //   // status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
+      //   // details: x.status === "rejected" ? { error: x.reason } : {},
+      //   // variationStatus: checkVariationStatus(contentType),
+      //   // variations: [],
+      // } as IFilePermissions;
     });
 
     const dbResp: IFilePermissions[] = await FilePermissionModel.query()
@@ -195,11 +214,11 @@ export class FilePermissionsService {
     employee: IEmployeeJwt,
     fileUrls: string[]
   ): Promise<IFilePermissions[]> {
-    const filePermissionRecords: IFilePermissions[] =
+    const fileRecordRecords: IFilePermissions[] =
       await FilePermissionModel.query().whereIn("fileUrl", fileUrls);
 
     await this.initializeCloudFrontPrivateKey();
-    return filePermissionRecords
+    return fileRecordRecords
       .filter((x) => x.permissions[employee.sub])
       .map((x) => ({
         ...x,

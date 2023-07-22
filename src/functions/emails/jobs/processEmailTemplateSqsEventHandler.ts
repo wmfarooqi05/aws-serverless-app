@@ -9,7 +9,6 @@ import { CustomError } from "@helpers/custom-error";
 import { IJob } from "@models/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
-import { generateThumbnailFromHtml } from "@utils/thumbnails";
 import { htmlToText } from "html-to-text";
 
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -50,9 +49,9 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
       throw new CustomError("Not valid html template", 400);
     }
 
-    const thumbnailBuffer = await generateThumbnailFromHtml(
-      htmlPartContent
-    );
+    // const thumbnailBuffer = await generateThumbnailFromHtml(
+    //   htmlPartContent
+    // );
 
     const bodyText = htmlToText(htmlPartContent);
 

@@ -1,7 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import { FILE_PERMISSIONS } from "./commons";
+import { FILE_RECORDS } from "./commons";
 
 export type FILE_PERMISSION_TYPE = "OWNER" | "READ" | "WRITE";
 export type THUMBNAIL_STATUS =
@@ -48,25 +48,29 @@ export type VARIATION_STATUS = "REQUIRED" | "NOT_REQUIRED";
 export interface IFilePermissions {
   id?: string;
   fileUrl: string;
-  fileKey: string;
-  bucketName: string;
-  region: string;
-  contentType: string;
+  s3Key: string;
+  fileName: string;
+  fileType: string;
   fileSize?: string;
-  originalFilename: string;
-  permissions: FilePermissionsMap;
+  resolution?: string;
+
+  bucketName?: string;
+  region?: string;
+  originalFilename?: string;
+  permissions?: FilePermissionsMap;
   createdAt?: string;
   updatedAt?: string;
-  status: FILE_STATUS;
-  details: any;
-  variationStatus: VARIATION_STATUS;
-  variations: FILE_VARIATION[];
+  status?: FILE_STATUS;
+  details?: any;
+  // variationStatus: VARIATION_STATUS;
+  // variations: FILE_VARIATION[];
+  keyWords?: string[];
 }
 
 @singleton()
 export class FilePermissionModel extends Model {
   static get tableName() {
-    return FILE_PERMISSIONS;
+    return FILE_RECORDS;
   }
 
   static get idColumn() {
@@ -79,16 +83,18 @@ export class FilePermissionModel extends Model {
       properties: {
         id: { type: "string" },
         fileUrl: { type: "string" },
+        s3Key: { type: "string" },
+        fileName: { type: "string" },
+        fileType: { type: "string" },
+        fileSize: { type: "string" },
+        resolution: { type: "string" },
+
         fileKey: { type: ["string", "null"] },
         bucketName: { type: ["string", "null"] },
         region: { type: ["string", "null"] },
-        contentType: { type: ["string", "null"] },
-        fileSize: { type: ["string", "null"] },
         originalFilename: { type: ["string", "null"], default: "" },
         permissions: { type: ["object", "null"] },
         status: { type: ["string", "null"] },
-        variationStatus: { type: ["string", "null"] },
-        variations: { type: "array", default: [] },
         details: { type: "object", default: {} },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },

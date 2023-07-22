@@ -2,24 +2,23 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-const tableName = Tables.filePermissions;
+const tableName = Tables.fileVariants;
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("file_url").notNullable().unique();
-      table.string("file_key");
-      table.string("bucket_name");
-      table.string("region");
-      table.string("content_type");
-      table.string("file_size");
+      table.uuid("original_file_id").notNullable();
+
+      table.string("s3_key");
       table.string("original_filename");
+      table.string("file_name_postfix");
+      table.string("file_type");
+      table.string("file_size");
+      table.string("resolution");
       table.jsonb("details");
-      table.jsonb("permissions");
       table.string("status");
-      table.string("variations_status", 30);
-      table.jsonb("variation");
 
       table
         .timestamp("created_at", { useTz: true })

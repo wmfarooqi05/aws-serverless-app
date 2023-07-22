@@ -14,6 +14,7 @@ export interface INotifExtraData {
   tableName?: string;
   reminderId?: string;
   reminderTime?: string;
+  module?: string;
 }
 
 export type NotificationType =

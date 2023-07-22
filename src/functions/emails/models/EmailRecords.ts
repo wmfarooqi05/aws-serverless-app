@@ -40,15 +40,14 @@ export const emailStatuses: EMAIL_STATUS[] = [
 
 export interface IATTACHMENT {
   fileUrl: string;
-  fileKey: string;
-  originalName: string;
-  s3FileName: string;
+  originalFilename: string;
+  s3Key: string;
+  fileName: string;
   cid?: string;
   thumbnailUrl?: string;
   updatedAt: string;
   fileSize: string;
 }
-
 
 export type EMAIL_DIRECTION = "SENT" | "RECEIVED";
 
@@ -82,7 +81,6 @@ export interface IEmailRecord {
   createdAt?: string;
   updatedAt?: string;
 }
-
 
 export interface IEmailRecordWithRecipients extends IEmailRecord {
   recipients: IRecipient[];

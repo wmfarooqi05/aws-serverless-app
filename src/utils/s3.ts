@@ -1,11 +1,23 @@
 import { CustomError } from "@helpers/custom-error";
 import { VARIATION_STATUS } from "@models/FilePermissions";
 
+/**
+ *
+ * @param bucketName
+ * @param region
+ * @param fileKey
+ * @param fileName in case fileKey doesn't have fileName
+ * @returns
+ */
 export const constructS3Url = (
   bucketName: string,
   region: string,
-  fileKey: string
-) => `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
+  fileKey: string,
+  fileName?: string
+) => {
+  const url = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
+  return fileName ? `${url}/${fileName}` : url;
+};
 
 export const checkVariationStatus = (
   fileType: string | null | undefined

@@ -21,5 +21,6 @@ export const tableName = {
     process.env.TEAM_COMPANY_INTERACTIONS || "team_company_interactions",
   contacts: process.env.CONTACTS_TABLE || "contacts",
   employeeTeams: process.env.EMPLOYEE_TEAMS || "employee_teams",
-  filePermissions: process.env.s || "file_permissions",
+  fileRecords: process.env.FILE_RECORDS || "file_records",
+  fileVariants: process.env.FILE_VARIANTS || "file_variants",
 };

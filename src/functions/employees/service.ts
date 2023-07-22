@@ -19,7 +19,7 @@ import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { getEmployeeFilter } from "./helpers";
 import { COMPANY_STAGES } from "@models/interfaces/Company";
-import { FilePermissionsService } from "@functions/filePermissions/service";
+import { FilePermissionsService } from "@functions/fileRecords/service";
 import { getKeysFromS3Url } from "@utils/s3";
 import { getFileExtension } from "@utils/file";
 import { randomUUID } from "crypto";
@@ -38,7 +38,7 @@ export class EmployeeService implements IEmployeeService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
-    private readonly filePermissionsService: FilePermissionsService
+    private readonly fileRecordsService: FilePermissionsService
   ) {}
 
   /**
@@ -146,7 +146,7 @@ export class EmployeeService implements IEmployeeService {
     if (payload.avatar) {
       const keys = getKeysFromS3Url(payload.avatar);
       const { contentType } =
-        await this.filePermissionsService.getFileProperties(
+        await this.fileRecordsService.getFileProperties(
           keys.fileKey,
           keys.bucketName
         );
@@ -156,7 +156,7 @@ export class EmployeeService implements IEmployeeService {
       // and maybe mark this record as to be deleted
       const fileName = `${randomUUID()}.${getFileExtension(contentType)}`;
       const files =
-        await this.filePermissionsService.copyFilesToBucketWithPermissions(
+        await this.fileRecordsService.copyFilesToBucketWithPermissions(
           [
             {
               contentType,

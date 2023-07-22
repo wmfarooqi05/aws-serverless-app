@@ -27,7 +27,7 @@ export const TEAM_COMPANY_INTERACTIONS_TABLE =
 export const CONTACTS_TABLE = process.env.CONTACTS_TABLE || "contacts";
 export const EMPLOYEE_TEAMS_TABLE =
   process.env.EMPLOYEE_TEAMS_TABLE || "employee_teams";
-export const FILE_PERMISSIONS = process.env.FILE_PERMISSIONS || "file_permissions";
+export const FILE_RECORDS = process.env.FILE_RECORDS || "file_records";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

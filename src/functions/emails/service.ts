@@ -92,7 +92,7 @@ import {
   RecipientEmployeeDetailsModel,
   generalFolders,
 } from "./models/RecipientEmployeeDetails";
-import { FilePermissionsService } from "@functions/filePermissions/service";
+import { FilePermissionsService } from "@functions/fileRecords/service";
 import { FilePermissionsMap, IFilePermissions } from "@models/FilePermissions";
 import { S3Service } from "@common/service/S3Service";
 import { NotificationService } from "@functions/notifications/service";
@@ -100,6 +100,7 @@ import CompanyModel from "@models/Company";
 import { ICompany } from "@models/interfaces/Company";
 import JobsModel, { IJob } from "@models/Jobs";
 import { JobService } from "@functions/jobs/service";
+import { getFileExtension } from "@utils/file";
 
 const s3UsClient = new S3Client({ region: "us-east-1" });
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -116,7 +117,7 @@ export class EmailService implements IEmailService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FilePermissionsService)
-    private readonly filePermissionsService: FilePermissionsService,
+    private readonly fileRecordsService: FilePermissionsService,
     @inject(S3Service) private readonly s3Service: S3Service,
     @inject(NotificationService)
     private readonly notificationService: NotificationService,
@@ -189,14 +190,14 @@ export class EmailService implements IEmailService {
     // ];
 
     // const files =
-    //   await this.filePermissionsService.getCDNPublicUrlWithPermissions(
+    //   await this.fileRecordsService.getCDNPublicUrlWithPermissions(
     //     employee,
     //     downloadableContent
     //   );
   }
 
   async getProcessEmailRecords(emailRecords: IEmailRecord[]) {
-    await this.filePermissionsService.initializeCloudFrontPrivateKey();
+    await this.fileRecordsService.initializeCloudFrontPrivateKey();
     const newContentPromises = emailRecords.map(async (email, index) => {
       let content: any = {};
       if (email.contentUrl) {
@@ -215,13 +216,13 @@ export class EmailService implements IEmailService {
         attachments: email.attachments.map((x) => ({
           ...x,
           fileUrl: x.fileUrl
-            ? this.filePermissionsService.getCloudFrontSignedUrl(
+            ? this.fileRecordsService.getCloudFrontSignedUrl(
                 x.fileUrl,
                 process.env.CLOUDFRONT_PRIVATE_KEY
               )
             : null,
           thumbnailUrl: x.thumbnailUrl
-            ? this.filePermissionsService.getCloudFrontSignedUrl(
+            ? this.fileRecordsService.getCloudFrontSignedUrl(
                 x.thumbnailUrl,
                 process.env.CLOUDFRONT_PRIVATE_KEY
               )
@@ -631,7 +632,7 @@ export class EmailService implements IEmailService {
 
       try {
         fileMap =
-          await this.filePermissionsService.copyFilesToBucketWithPermissions(
+          await this.fileRecordsService.copyFilesToBucketWithPermissions(
             files,
             permissionMap
           );
@@ -642,7 +643,7 @@ export class EmailService implements IEmailService {
     }
 
     const contentResp =
-      await this.filePermissionsService.uploadFilesToBucketWithPermissions(
+      await this.fileRecordsService.uploadFilesToBucketWithPermissions(
         [
           {
             fileContent,
@@ -657,11 +658,11 @@ export class EmailService implements IEmailService {
     const updatedParams = {
       attachments: fileMap.map((x) => {
         return {
-          fileKey: x.fileKey,
+          s3Key: x.s3Key,
+          fileName: x.fileName,
           fileUrl: x.fileUrl,
-          originalName: x.originalFilename,
+          originalFilename: x.originalFilename,
           fileSize: x.fileSize,
-          thumbnailUrl: x.thumbnailUrl,
         } as any;
       }),
       contentUrl: contentResp[0].fileUrl,
@@ -1185,7 +1186,8 @@ export class EmailService implements IEmailService {
               subtitle: emailRecord.subject,
               extraData: {
                 module: "EMAILS",
-                rowId: emailRecord.id,
+                tableName: EmailRecordModel.tableName,
+                tableRowId: emailRecord.id,
                 senderEmployeeName:
                   fromRecipient.recipientName || fromRecipient.recipientEmail,
                 avatar,
@@ -1301,9 +1303,9 @@ export class EmailService implements IEmailService {
     contentUrl: string;
     attachmentsS3: {
       fileUrl: string;
-      fileKey: string;
-      originalName: string;
-      s3FileName: string;
+      s3Key: string;
+      fileName: string;
+      originalFilename: string;
       cid?: string;
       thumbnailUrl: string;
       fileSize: string;
@@ -1312,13 +1314,14 @@ export class EmailService implements IEmailService {
     const { text, headers } = mailObject;
     let attachmentsS3: {
       fileUrl: string;
-      fileKey: string;
-      originalName: string;
-      s3FileName: string;
+      s3Key: string;
+      fileName: string;
+      originalFilename: string;
       cid?: string;
       thumbnailUrl: string;
       isEmbedded: boolean;
       fileSize: string;
+      fileType: string;
     }[] = [];
 
     const permissionMap = {};
@@ -1335,51 +1338,55 @@ export class EmailService implements IEmailService {
     if (mailObject.attachments?.length) {
       // FileMap with original and s3 filenames record
       const fileMap: {
-        originalName: string;
-        s3FileName: string;
-        content: any;
+        originalFilename: string;
+        fileContent: any;
         cid?: string;
-        contentType: string;
+        fileType: string;
+        fileName: string;
+        s3Key: string;
       }[] = mailObject?.attachments?.map((x) => {
-        const fileType = x.contentType ? `.${x.contentType.split("/")[1]}` : "";
         return {
-          originalName: `${x.filename}${fileType}`,
-          s3FileName: `${randomUUID()}${fileType}`,
-          content: x.content,
+          originalFilename: x.filename, // we dont need to add extension here, maybe
+          fileName: `${randomUUID()}.${getFileExtension(x.contentType)}`,
+          fileContent: x.content,
           cid: x.cid,
-          contentType: x.contentType,
+          fileType: x.contentType,
+          s3Key: `emails/${folderId}/attachments`,
         };
       });
 
-      const uploadFiles = fileMap?.map((x) => {
-        return {
-          originalFilename: x.originalName,
-          contentType: x.contentType,
-          fileContent: x.content,
-          Key: `emails/${folderId}/attachments/${x.s3FileName}`,
-        } as {
-          originalFilename: string;
-          contentType: string;
-          Key: string;
-          fileContent: any;
-        };
-      });
+      // const uploadFiles = fileMap?.map((x) => {
+      //   return {
+      //     originalFilename: x.originalFilename,
+      //     fileType: x.fileType,
+      //     fileContent: x.content,
+      //     s3Key: `emails/${folderId}/attachments`,
+      //     fileName: x.fileName,
+      //   } as {
+      //     originalFilename: string;
+      //     fileType: string;
+      //     s3Key: string;
+      //     fileContent: any;
+      //     fileName: string;
+      //   };
+      // });
 
       const s3UploadedContent =
-        await this.filePermissionsService.uploadFilesToBucketWithPermissions(
-          uploadFiles,
+        await this.fileRecordsService.uploadFilesToBucketWithPermissions(
+          fileMap,
           permissionMap
         );
 
       s3UploadedContent.forEach((x) => {
-        const { originalName, s3FileName, cid } = fileMap.find((f) =>
-          x.fileKey.includes(`attachments/${f.s3FileName}`)
+        const { originalFilename, fileName, s3Key, cid } = fileMap.find(
+          (f) => x.fileName === f.fileName
         );
 
         attachmentsS3.push({
           ...x,
-          originalName,
-          s3FileName,
+          fileName,
+          originalFilename,
+          s3Key,
           cid,
           thumbnailUrl: null,
           isEmbedded: false,
@@ -1410,16 +1417,17 @@ export class EmailService implements IEmailService {
     }
 
     const contentS3 =
-      await this.filePermissionsService.uploadFilesToBucketWithPermissions(
+      await this.fileRecordsService.uploadFilesToBucketWithPermissions(
         [
           {
-            contentType: "application/json",
+            fileType: "application/json",
             fileContent: JSON.stringify({
               text,
               html: replacedHtml,
               headers: headerObject,
             }),
-            Key: `emails/${folderId}/content.json`,
+            s3Key: `emails/${folderId}/content.json`,
+            fileName: "content.json",
             originalFilename: "content.json",
           },
         ],
