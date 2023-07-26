@@ -6,17 +6,16 @@ import { VARIATION_STATUS } from "@models/FileRecords";
  * @param bucketName
  * @param region
  * @param fileKey
- * @param fileName in case fileKey doesn't have fileName
+ * @param fileName
  * @returns
  */
 export const constructS3Url = (
   bucketName: string,
   region: string,
   fileKey: string,
-  fileName?: string
+  fileName: string
 ) => {
-  const url = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
-  return fileName ? `${url}/${fileName}` : url;
+  return `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}/${fileName}`;
 };
 
 export const checkVariationStatus = (

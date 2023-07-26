@@ -8,13 +8,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
-      table
-        .uuid("uploaded_by")
-        .index()
-        .references("id")
-        .inTable(Tables.employees)
-        .onDelete("SET NULL")
-        .notNullable();
+      table.string("uploaded_by");
 
       table.jsonb("details").defaultTo({});
       table.string("job_type");

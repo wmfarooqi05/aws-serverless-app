@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@sparticuz/chromium": "^114.0.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "puppeteer": "^20.9.0",
+    "sharp": "^0.32.4"
+  }
+}

@@ -1,14 +1,10 @@
 import {
-  GetObjectAclCommand,
-  GetObjectAclCommandInput,
-  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
 } from "@aws-sdk/client-s3";
 import {
-  copyS3Object,
   copyS3ObjectAndGetSize,
   getKeysFromS3Url,
 } from "@functions/jobs/upload";
@@ -17,6 +13,8 @@ import {
   FileRecordModel,
   FilePermissionsMap,
   IFileRecords,
+  VARIATION_STATUS,
+  IFileRecordDetails,
 } from "@models/FileRecords";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes from "@utils/bytes";
@@ -27,24 +25,27 @@ import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 import { SecretManager } from "@common/service/SecretManager";
 import { CustomError } from "@helpers/custom-error";
 import moment from "moment-timezone";
-import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
-import { randomUUID } from "crypto";
-import { getFileContentType, getFileExtension, getFileNameWithoutExtension } from "@utils/file";
+import { getFileNameWithoutExtension } from "@utils/file";
+import JobsModel, { IJob } from "@models/Jobs";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import { sendMessageToSQS } from "@utils/sqs";
 
 @injectable()
-export class FilePermissionsService {
+export class FileRecordService {
   s3Client: S3Client = null;
   cloudFrontClient: CloudFrontClient = null;
   cloudFrontPrivateKeyInitializing = false;
+  sqsClient: SQSClient = null;
 
   constructor(
     @inject(DatabaseService) private readonly _: DatabaseService,
     @inject(SecretManager) private readonly secretManager: SecretManager
   ) {
-    this.s3Client = new S3Client({ region: process.env.REGION });
+    this.s3Client = new S3Client({ region: process.env.AWS_REGION });
     this.cloudFrontClient = new CloudFrontClient({
       region: process.env.REGION,
     });
+    this.sqsClient = new SQSClient({ region: process.env.AWS_REGION });
   }
 
   async initializeCloudFrontPrivateKey() {
@@ -64,6 +65,14 @@ export class FilePermissionsService {
     }
   }
 
+  /**
+   *
+   * @param files
+   * @param permissionMap
+   * @param bucketName
+   * @param region
+   * @returns
+   */
   async uploadFilesToBucketWithPermissions(
     files: {
       originalFilename: string;
@@ -71,6 +80,8 @@ export class FilePermissionsService {
       s3Key: string;
       fileContent: any;
       fileName: string;
+      variationEnforcedRequired?: boolean;
+      variations?: string[];
     }[],
     permissionMap: FilePermissionsMap,
     bucketName: string = process.env.DEPLOYMENT_BUCKET,
@@ -88,20 +99,40 @@ export class FilePermissionsService {
     });
     const responses = await Promise.allSettled(filePromises);
     const dbEntries: IFileRecords[] = responses.map((x, index) => {
-      const { s3Key, fileName, fileContent, fileType, originalFilename } =
-        files[index];
+      const {
+        s3Key,
+        fileName,
+        fileContent,
+        fileType,
+        originalFilename,
+        variations,
+        variationEnforcedRequired,
+      } = files[index];
+      const details: any = x.status === "rejected" ? { error: x.reason } : {};
+
+      if (variationEnforcedRequired) {
+        details.variations = {
+          variationStatus: "REQUIRED" as VARIATION_STATUS,
+          variationSizes: variations ?? ["THUMBNAIL"],
+        };
+      } else {
+        details.variations = {
+          variationStatus: checkVariationStatus("contentType"),
+          variationSizes: variations ?? ["THUMBNAIL"],
+        };
+      }
       return {
         fileName,
         s3Key,
         fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
-        fileUrl: constructS3Url(bucketName, region, s3Key),
+        fileUrl: constructS3Url(bucketName, region, s3Key, fileName),
         bucketName,
         region,
         fileType,
         originalFilename,
         permissions: permissionMap,
         status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
-        details: x.status === "rejected" ? { error: x.reason } : {},
+        details,
       } as IFileRecords;
     });
 
@@ -144,22 +175,31 @@ export class FilePermissionsService {
     const dbEntries: IFileRecords[] = responses.map((x, index) => {
       const { destinationKey, contentType, originalFilename } = files[index];
       const fileNameWithExt = destinationKey.split("/").at(-1);
+      const details: IFileRecordDetails =
+        x.status === "rejected" ? { error: x.reason } : {};
+
+      details.variations = {
+        variationStatus: checkVariationStatus("contentType"),
+        variationSizes: ["THUMBNAIL"],
+      };
+      const fileName = getFileNameWithoutExtension(fileNameWithExt);
       return {
         bucketName: destinationBucket,
         region: destinationRegion,
-        fileName: getFileNameWithoutExtension(fileNameWithExt),
+        fileName,
         s3Key: destinationKey.replace(fileNameWithExt, ""),
         fileUrl: constructS3Url(
           destinationBucket,
           destinationRegion,
-          destinationKey
+          destinationKey,
+          fileName
         ),
         fileType: contentType,
         originalFilename,
         permissions: permissionMap,
         status: x.status === "fulfilled" ? "UPLOADED" : "ERROR",
         fileSize: x.status === "fulfilled" ? x.value.size : 0,
-        details: x.status === "rejected" ? { error: x.reason } : {},
+        details,
       } as IFileRecords;
     });
 
@@ -173,23 +213,24 @@ export class FilePermissionsService {
 
   async prepareImageVariationJob(entries: IFileRecords[]) {
     // We are not handling it for now;
-    return [];
     // this is working code of job which has to be created
     const variationRequired = entries.filter(
-      (x) => x.variationStatus === "REQUIRED"
+      (x) => x.details?.variations?.variationStatus === "REQUIRED"
     );
 
-    if (variationRequired.length) {
-      // change job to newer job system
-      const jobItem = new JobsModel({
-        jobId: randomUUID(),
+    if (variationRequired.length > 0) {
+      const job = await JobsModel.query().insert({
         uploadedBy: "SYSTEM",
         jobType: "CREATE_MEDIA_FILE_VARIATIONS",
-        details: { files: variationRequired.map((x) => x.id) },
+        details: { files: variationRequired?.map((x) => x.id) || [] },
         jobStatus: "PENDING",
-      });
-
-      await jobItem.save();
+      } as IJob);
+      await sendMessageToSQS(
+        this.sqsClient,
+        job,
+        process.env.IMAGE_PROCESSING_QUEUE_URL
+      );
+      await job.$query().patchAndFetchById(job.id, { jobStatus: "QUEUED" });
     }
   }
 

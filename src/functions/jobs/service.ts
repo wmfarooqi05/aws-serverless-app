@@ -8,6 +8,7 @@ import {
   SendMessageCommand,
   SendMessageCommandOutput,
 } from "@aws-sdk/client-sqs";
+import { sendMessageToSQS } from "@utils/sqs";
 
 @injectable()
 export class JobService {
@@ -28,22 +29,10 @@ export class JobService {
     queueUrl: string
   ): Promise<{ job: IJob; queueOutput: SendMessageCommandOutput }> {
     const job = await JobsModel.query().insert(jobPayload);
-    const queueOutput = await this.enqueueJob(job, queueUrl);
+    const queueOutput = await sendMessageToSQS(this.sqsClient, job, queueUrl);
     await job.$query().patch({
       jobStatus: "QUEUED",
     } as IJob);
     return { job, queueOutput };
-  }
-
-  async enqueueJob(
-    payload: any,
-    queueUrl: string
-  ): Promise<SendMessageCommandOutput> {
-    return this.sqsClient.send(
-      new SendMessageCommand({
-        MessageBody: JSON.stringify(payload),
-        QueueUrl: queueUrl,
-      })
-    );
   }
 }

@@ -18,6 +18,8 @@ import bytes from "@utils/bytes";
 import * as stream from "stream";
 import * as fs from "fs";
 import { getKeysFromS3Url } from "@utils/s3";
+import * as path from "path";
+import { createFileWithDirectories } from "@utils/fs";
 
 @injectable()
 export class S3Service {
@@ -43,6 +45,11 @@ export class S3Service {
     Key: string,
     fileContent: any
   ): Promise<{ fileUrl: string; fileKey: string }> {
+    if (process.env.STAGE === "local") {
+      const fullPath = `${process.env.ROOT_FOLDER_PATH}/S3TmpBucket/${Key}`;
+      await createFileWithDirectories(fullPath, fileContent);
+      return { fileUrl: fullPath, fileKey: Key };
+    }
     const uploadParams: PutObjectCommandInput = {
       Bucket: process.env.DEPLOYMENT_BUCKET,
       Key,
@@ -267,6 +274,15 @@ export class S3Service {
     await stream.promises.finished(bufferStream);
 
     return Buffer.concat(chunks);
+  };
+
+  downloadFileFromUrl = async (url: string) => {
+    const keys = getKeysFromS3Url(url);
+    const stream = await this.getS3ReadableFromKey(
+      keys.fileKey,
+      keys.bucketName
+    );
+    return stream.transformToString();
   };
 
   getS3ReadableFromUrl = async (url: string) => {

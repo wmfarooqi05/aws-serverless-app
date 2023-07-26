@@ -54,13 +54,25 @@ async function downloadImage(urlString: string): Promise<DownloadedImage> {
 interface ImageReplacement {
   originalUrl: string;
   s3Url: string;
+  cdnUrl: string;
 }
 
+/**
+ *
+ * @param html
+ * @param rootKey
+ * @param existingKeyPattern
+ * @returns
+ */
 export const replaceImageUrls = async (
   html: string,
   rootKey: string,
   existingKeyPattern?: string
 ): Promise<{ html: string; replacements: ImageReplacement[] }> => {
+  /**
+   * BUG
+   * Replace with CDN urls, not s3 urls
+   */
   const imageTags = html.match(/<img[^>]+src="([^">]+)"/g);
   if (!imageTags) {
     return { html, replacements: [] };
@@ -77,17 +89,11 @@ export const replaceImageUrls = async (
       }
       const imageData = await downloadImage(imageUrl);
       const s3Key = `${rootKey}/${randomUUID()}.${imageData.fileType}`; // Modify the key as per your requirement
-      const s3Url = await uploadContentToS3(
-        s3Key,
-        imageData.data,
-        "public-read"
-      );
+      const resp = await uploadContentToS3(s3Key, imageData.data);
 
-      // const s3Url = {
-      //   fileUrl: `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${s3Key}`,
-      // };
-      replacements.push({ originalUrl: imageUrl, s3Url: s3Url.fileUrl });
-      html = html.replace(imageUrl, s3Url.fileUrl);
+      const cdnUrl = `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${s3Key}`;
+      replacements.push({ originalUrl: imageUrl, cdnUrl, s3Url: resp.fileUrl });
+      html = html.replace(imageUrl, cdnUrl);
     }
   }
 

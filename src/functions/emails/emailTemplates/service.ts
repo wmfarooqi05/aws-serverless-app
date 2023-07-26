@@ -77,8 +77,8 @@ export class EmailTemplateService {
       version,
       subject: subjectPart,
       status: !!saveAsDraft ? "DRAFT" : "QUEUED",
-      htmlPartUrl: htmlS3Link,
-      textPartUrl: textS3Link,
+      htmlPartUrl: htmlS3Link, // This is tmp/ folder link, we will transfer it in process template
+      // textPartUrl: textS3Link, @TODO check if we need this
     };
 
     let emailTemplateEntry: IEmailTemplate = null;
@@ -86,7 +86,7 @@ export class EmailTemplateService {
       emailTemplateEntry = await EmailTemplatesModel.query().insert(template);
 
       if (!saveAsDraft) {
-        const jobItem: IJob = await this.jobService.createAndEnqueueJob(
+        const jobItem = await this.jobService.createAndEnqueueJob(
           {
             uploadedBy: employee.sub,
             jobType: "PROCESS_TEMPLATE",
@@ -100,8 +100,8 @@ export class EmailTemplateService {
           .findById(emailTemplateEntry.id)
           .patch({
             details: {
-              // sesResponse,
-              jobId: jobItem.id,
+              sesResponse: jobItem.queueOutput,
+              jobId: jobItem.job.id,
             },
           });
       }

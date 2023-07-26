@@ -24,3 +24,4 @@ layers/**/nodejs/node_modules
 layers/**/*.zip
 layers/**/*.tar.gz
 secrets.json
+S3TmpBucket/

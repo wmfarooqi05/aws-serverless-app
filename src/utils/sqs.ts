@@ -6,8 +6,17 @@ import {
   SendMessageCommand,
   SendMessageCommandOutput,
 } from "@aws-sdk/client-sqs";
+import { uploadContentToS3 } from "@functions/jobs/upload";
 import { SQSRecord } from "aws-lambda";
+import { randomUUID } from "crypto";
 
+/**
+ *
+ * @param sqsClient
+ * @param body
+ * @param queueUrl
+ * @returns
+ */
 export const sendMessageToSQS = async (
   sqsClient: SQSClient,
   body: any,
@@ -64,6 +73,11 @@ export const deleteMessageFromSQS = async (
   }
 };
 
+/**
+ *
+ * @param sqsClient
+ * @param record
+ */
 export const moveMessageToDLQ = async (
   sqsClient: SQSClient,
   record: SQSRecord
@@ -98,6 +112,11 @@ export const moveMessageToDLQ = async (
   }
 };
 
+/**
+ *
+ * @param arn
+ * @returns
+ */
 export const sqsQueueUrlFromArn = (arn: string) => {
   const parts = arn.split(":");
 
@@ -111,4 +130,14 @@ export const sqsQueueUrlFromArn = (arn: string) => {
     queueName,
     region,
   };
+};
+
+export const markAsUnprocessedEvent = async (record: SQSRecord) => {
+  if (process.env.STAGE === "local") {
+    console.log("no event found");
+    return;
+  }
+  const key = `emails/unprocessed-events/${randomUUID()}`;
+  const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
+  console.log("Unprocessed Events, adding to S3", s3Resp);
 };

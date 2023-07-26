@@ -15,7 +15,23 @@ const sqsJobQueueInvokeHandler = {
     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
     // "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
   ],
-  timeout: 5,
+  // timeout: 5,
+};
+
+const imageVariationJob = {
+  handler: `${handlerPath(__dirname)}/jobs/imageVariationJob.handler`,
+  events: [
+    {
+      sqs: {
+        arn: "arn:aws:sqs:${self:provider.region}:${aws:accountId}:${self:custom.IMAGE_PROCESSING_QUEUE}_${self:provider.region}",
+      },
+    },
+  ],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:3",
+  ],
 };
 
 if (process.env.NODE_ENV === "local") {
@@ -26,6 +42,14 @@ if (process.env.NODE_ENV === "local") {
       cors: true,
     },
   } as any);
+
+  imageVariationJob.events.push({
+    http: {
+      method: "post",
+      path: "image-variation",
+      cors: true,
+    },
+  } as any);
 }
 
-export { sqsJobQueueInvokeHandler };
+export { sqsJobQueueInvokeHandler, imageVariationJob };

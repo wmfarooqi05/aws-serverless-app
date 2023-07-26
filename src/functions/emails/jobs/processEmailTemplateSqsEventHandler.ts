@@ -2,16 +2,19 @@ import { CreateTemplateCommand, SESClient } from "@aws-sdk/client-ses";
 import {
   EmailTemplatesModel,
   IEmailTemplate,
-  IEmailTemplatesModel,
 } from "@functions/emails/models/EmailTemplate";
-import { getS3BufferFromUrl, uploadContentToS3 } from "@functions/jobs/upload";
+import { FileRecordService } from "@functions/fileRecords/service";
+import { getS3BufferFromUrl } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
+import { FilePermissionsMap } from "@models/FileRecords";
 import { IJob } from "@models/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
 import { htmlToText } from "html-to-text";
+import { container } from "tsyringe";
 
 const sesClient = new SESClient({ region: process.env.REGION });
+const fileRecordService = container.resolve(FileRecordService);
 
 const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
   const {
@@ -49,55 +52,46 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
       throw new CustomError("Not valid html template", 400);
     }
 
-    // const thumbnailBuffer = await generateThumbnailFromHtml(
-    //   htmlPartContent
-    // );
-
-    const bodyText = htmlToText(htmlPartContent);
-
     // HtmlPart
     const replacements = await replaceImageUrls(
       htmlPartContent,
       `media/email-templates/${templateName}/${version}`,
       `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
     );
+    const bodyText = htmlToText(replacements.html);
 
     const rootKey = `media/email-templates/${templateName}/${version}`;
-    const htmlPart = await uploadContentToS3(
-      `${rootKey}/HtmlPart.html`,
-      replacements.html,
-      "public-read"
+
+    const permissionMap: FilePermissionsMap = {
+      "*": {
+        email: "*",
+        employeeId: "*",
+        permissions: ["READ"],
+      },
+    };
+    const files = await fileRecordService.uploadFilesToBucketWithPermissions(
+      [
+        {
+          fileContent: replacements.html,
+          fileName: "HtmlPart",
+          fileType: "text/html",
+          originalFilename: "HtmlPart",
+          s3Key: rootKey,
+          variationEnforcedRequired: true,
+          variations: ["FULL_SNAPSHOT", "THUMBNAIL"],
+        },
+      ],
+      permissionMap
     );
 
     const updateDbItem: Partial<IEmailTemplate> = {
-      htmlPartUrl: htmlPart.fileUrl,
+      htmlPartUrl: files[0].fileUrl,
       status: "READY",
     };
-
-    // Thumbnail
-    if (thumbnailBuffer) {
-      const thumbKey = `${rootKey}/thumbnail.png`;
-      const thumbnail = await uploadContentToS3(
-        thumbKey,
-        thumbnailBuffer,
-        "public-read"
-      );
-      updateDbItem.thumbnailUrl = thumbnail.fileUrl;
-    }
-
-    if (bodyText?.trim()?.length > 0) {
-      const textPart = await uploadContentToS3(
-        `${rootKey}/TextPart.txt`,
-        bodyText,
-        "public-read"
-      );
-      updateDbItem.textPartUrl = textPart.fileUrl;
-    }
 
     // Placeholders
     const placeholders = [
       ...getPlaceholders(subject),
-      ...getPlaceholders(bodyText),
       ...getPlaceholders(bodyText),
     ];
     updateDbItem.placeholders = placeholders;

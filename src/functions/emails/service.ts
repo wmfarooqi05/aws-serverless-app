@@ -78,7 +78,7 @@ import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
 import processEmailTemplateSqsEventHandler from "@functions/emails/jobs/processEmailTemplateSqsEventHandler";
 import { bulkEmailPrepareSqsEventHandler } from "@functions/emails/jobs/bulkEmailPrepareSqsEventHandler";
 import { bulkEmailSqsEventHandler } from "@functions/emails/jobs/bulkEmailSqsEventHandler";
-import { deleteMessageFromSQS } from "@utils/sqs";
+import { deleteMessageFromSQS, markAsUnprocessedEvent } from "@utils/sqs";
 import ContactModel from "@models/Contacts";
 import { IContact } from "@models/Contacts";
 import {
@@ -92,7 +92,7 @@ import {
   RecipientEmployeeDetailsModel,
   generalFolders,
 } from "./models/RecipientEmployeeDetails";
-import { FilePermissionsService } from "@functions/fileRecords/service";
+import { FileRecordService } from "@functions/fileRecords/service";
 import { FilePermissionsMap, IFileRecords } from "@models/FileRecords";
 import { S3Service } from "@common/service/S3Service";
 import { NotificationService } from "@functions/notifications/service";
@@ -116,8 +116,8 @@ export class EmailService implements IEmailService {
   mailQueueUrl: string = process.env.MAIL_QUEUE_URL;
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(FilePermissionsService)
-    private readonly fileRecordsService: FilePermissionsService,
+    @inject(FileRecordService)
+    private readonly fileRecordsService: FileRecordService,
     @inject(S3Service) private readonly s3Service: S3Service,
     @inject(NotificationService)
     private readonly notificationService: NotificationService,
@@ -642,7 +642,6 @@ export class EmailService implements IEmailService {
       }
     }
 
-    console.log('a');
     const contentResp =
       await this.fileRecordsService.uploadFilesToBucketWithPermissions(
         [
@@ -652,6 +651,8 @@ export class EmailService implements IEmailService {
             fileName: "content.json",
             s3Key: `${SENT_EMAIL_FOLDER}/${emailRecord.id}`,
             originalFilename: "content.json",
+            variationEnforcedRequired: true,
+            variations: ["THUMBNAIL", "MEDIUM"],
           },
         ],
         permissionMap
@@ -802,7 +803,7 @@ export class EmailService implements IEmailService {
         if (payload?.notificationType === "Received") {
           console.log("notificationType", payload?.notificationType);
           await this.receiveEmailHelper(record);
-        } else if (payload.eventType && !payload.jobId) {
+        } else if (payload.eventType && !payload.id) {
           console.log("payload.eventType", payload.eventType);
           await this.processMetricsEvent(record);
         } else if (payload.id) {
@@ -846,13 +847,7 @@ export class EmailService implements IEmailService {
             jobResult: resp,
           } as IJob);
         } else {
-          if (process.env.STAGE === "local") {
-            console.log("no event found");
-            continue;
-          }
-          const key = `emails/unprocessed-events/${randomUUID()}`;
-          const s3Resp = await uploadContentToS3(key, JSON.stringify(record));
-          console.log("Unprocessed Events, adding to S3", s3Resp);
+          await markAsUnprocessedEvent(record);
         }
         await deleteMessageFromSQS(this.sqsClient, record);
       } catch (e) {

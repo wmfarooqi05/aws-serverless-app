@@ -19,7 +19,7 @@ import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { getEmployeeFilter } from "./helpers";
 import { COMPANY_STAGES } from "@models/interfaces/Company";
-import { FilePermissionsService } from "@functions/fileRecords/service";
+import { FileRecordService } from "@functions/fileRecords/service";
 import { getKeysFromS3Url } from "@utils/s3";
 import { getFileExtension } from "@utils/file";
 import { randomUUID } from "crypto";
@@ -37,8 +37,8 @@ export interface EmployeeEBSchedulerPayload {
 export class EmployeeService implements IEmployeeService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(FilePermissionsService)
-    private readonly fileRecordsService: FilePermissionsService
+    @inject(FileRecordService)
+    private readonly fileRecordsService: FileRecordService
   ) {}
 
   /**

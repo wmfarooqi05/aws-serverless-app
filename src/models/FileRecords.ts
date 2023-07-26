@@ -2,6 +2,7 @@ import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
 import { FILE_RECORDS } from "./commons";
+import { FileVariationModel } from "./FileVariations";
 
 export type FILE_RECORD_TYPE = "OWNER" | "READ" | "WRITE";
 export type THUMBNAIL_STATUS =
@@ -45,6 +46,36 @@ export interface FILE_VARIATION {
 
 export type VARIATION_STATUS = "REQUIRED" | "NOT_REQUIRED";
 
+export type FILE_VARIATION_TYPE =
+  | "THUMBNAIL"
+  | "SMALL"
+  | "MEDIUM"
+  | "LARGE"
+  | "FULL_SNAPSHOT";
+export interface IMAGE_SIZE {
+  width: number;
+  height: number;
+}
+
+export const variationMap: Record<FILE_VARIATION_TYPE, IMAGE_SIZE> = {
+  THUMBNAIL: {
+    width: 200,
+    height: 200,
+  },
+  FULL_SNAPSHOT: {
+    width: 2000,
+    height: 2000,
+  },
+};
+
+export interface IFileRecordDetails {
+  variations?: {
+    variationStatus: VARIATION_STATUS;
+    variationSizes: FILE_VARIATION_TYPE[];
+  };
+  error?: any;
+}
+
 export interface IFileRecords {
   id?: string;
   fileUrl: string;
@@ -61,7 +92,7 @@ export interface IFileRecords {
   createdAt?: string;
   updatedAt?: string;
   status?: FILE_STATUS;
-  details?: any;
+  details?: IFileRecordDetails;
   // variationStatus: VARIATION_STATUS;
   // variations: FILE_VARIATION[];
   keyWords?: string[];
@@ -107,12 +138,25 @@ export class FileRecordModel extends Model {
   }
 
   static $beforeInsert(queryContext) {
-    console.log("beforeInsert queryContext", queryContext);
-    if (queryContext?.contentType?.includes("image")) {
-      queryContext.variationStatus = "PENDING";
-    } else {
-      queryContext.variationStatus = "NOT_REQUIRED";
-    }
+    // console.log("beforeInsert queryContext", queryContext);
+    // if (queryContext?.contentType?.includes("image")) {
+    //   queryContext.variationStatus = "PENDING";
+    // } else {
+    //   queryContext.variationStatus = "NOT_REQUIRED";
+    // }
+  }
+
+  static get relationMappings() {
+    return {
+      variations: {
+        relation: Model.HasManyRelation,
+        modelClass: FileRecordModel,
+        join: {
+          from: `${FileRecordModel.tableName}.id`,
+          to: `${FileVariationModel.tableName}.originalFileId`,
+        },
+      },
+    };
   }
 }
 

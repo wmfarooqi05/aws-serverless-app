@@ -31,7 +31,7 @@ const serverlessConfiguration: AWS = {
     name: "aws",
     runtime: "nodejs18.x",
     region: "ca-central-1",
-    timeout: process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
+    timeout: 900, //process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
     stage: "${self:custom.STAGE}",
     iam: {
       role: {
@@ -121,6 +121,7 @@ const serverlessConfiguration: AWS = {
       "arn:aws:sns:${self:provider.region}:${aws:accountId}:email-sns-topic",
     JOBS_DYNAMO_TABLE: process.env.JOBS_DYNAMO_TABLE,
     ACCOUNT_ID: "${aws:accountId}",
+    IMAGE_PROCESSING_QUEUE: process.env.IMAGE_PROCESSING_QUEUE,
     APIG_WS_ENDPOINT: {
       "Fn::Join": [
         "",

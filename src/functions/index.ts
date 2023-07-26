@@ -37,7 +37,7 @@ import {
 
 import { employeeHandler } from "@functions/employees";
 
-import { sqsJobQueueInvokeHandler } from "@functions/sqs";
+import { sqsJobQueueInvokeHandler, imageVariationJob } from "@functions/sqs";
 
 import { teamHandler } from "@functions/teams";
 import { cognitoOAuthHandler } from "./auth";
@@ -72,6 +72,7 @@ const exportHandlers = {
   receiveEmailHandler,
   employeeHandler,
   sqsJobQueueInvokeHandler,
+  imageVariationJob,
 };
 
 // if (process.env.NODE_ENV === "local") {
