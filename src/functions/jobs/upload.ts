@@ -18,6 +18,7 @@ import * as fs from "fs";
 import { Readable } from "stream";
 import { CustomError } from "@helpers/custom-error";
 import bytes from "@utils/bytes";
+import { createFileWithDirectories } from "@utils/fs";
 
 // @TODO rename this to s3-utils
 
@@ -70,6 +71,11 @@ export const uploadContentToS3 = async (
   /** @deprecated */
   ACL: string = "private"
 ): Promise<{ fileUrl: string; fileKey: string }> => {
+  if (process.env.STAGE === "local") {
+    const fullPath = `${process.env.ROOT_FOLDER_PATH}/S3TmpBucket/${Key}`;
+    await createFileWithDirectories(fullPath, fileContent);
+    return { fileUrl: fullPath, fileKey: Key };
+  }
   const uploadParams: PutObjectCommandInput = {
     Bucket: process.env.DEPLOYMENT_BUCKET,
     Key,

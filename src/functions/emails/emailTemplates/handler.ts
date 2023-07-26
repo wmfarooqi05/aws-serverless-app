@@ -40,7 +40,7 @@ const getAllTemplatesHandler = async (event) => {
   try {
     const newEmailTemplate = await container
       .resolve(EmailTemplateService)
-      .getAllTemplates();
+      .getAllTemplates(event.query || {});
     return formatJSONResponse(newEmailTemplate, 201);
   } catch (e) {
     return formatErrorResponse(e);

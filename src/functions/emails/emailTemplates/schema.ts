@@ -30,5 +30,14 @@ export const validateDeleteTemplate = async (obj) => {
   await Joi.object({
     templateId: Joi.string().guid(),
     templateSesName: Joi.string(),
-  }).xor("templateSesName", "templateId").validateAsync(obj);
+  })
+    .xor("templateSesName", "templateId")
+    .validateAsync(obj);
+};
+
+export const validateGetAllTemplates = async (body) => {
+  await Joi.object({
+    page: Joi.number().min(1),
+    pageSize: Joi.number().min(1),
+  }).validateAsync(body);
 };

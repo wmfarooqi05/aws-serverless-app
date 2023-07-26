@@ -80,7 +80,7 @@ export const handler = async (event: SQSEvent) => {
           } else if (fileType.includes("image") || fileType.includes("html")) {
             console.log("variationSize", variationSize);
             const pageSize = variationMap[variationSize] || {
-              width: 600,
+              width: 800,
               height: 600,
             };
             const fileVariation = await convertAndResizeImage(
@@ -122,7 +122,7 @@ export const convertAndResizeImage = async (
   height: number
 ): Promise<FileVariationModel> => {
   const { s3Key, fileName } = fileRecord;
-  const resizeBuffer = await imageResize(htmlImageBuffer);
+  const resizeBuffer = await imageResize(htmlImageBuffer, width, height);
   const newFileName = `${fileName}_${variationSize}`;
   const uploadedFile = await s3Service.uploadContentToS3(
     `${s3Key}/${newFileName}.png`,

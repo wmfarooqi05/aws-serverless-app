@@ -59,8 +59,8 @@ export interface IMAGE_SIZE {
 
 export const variationMap: Record<FILE_VARIATION_TYPE, IMAGE_SIZE> = {
   THUMBNAIL: {
-    width: 200,
-    height: 200,
+    width: 300,
+    height: 300,
   },
   FULL_SNAPSHOT: {
     width: 2000,
@@ -150,7 +150,7 @@ export class FileRecordModel extends Model {
     return {
       variations: {
         relation: Model.HasManyRelation,
-        modelClass: FileRecordModel,
+        modelClass: FileVariationModel,
         join: {
           from: `${FileRecordModel.tableName}.id`,
           to: `${FileVariationModel.tableName}.originalFileId`,

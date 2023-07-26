@@ -12,12 +12,18 @@ import {
   copyS3FolderContent,
   validateS3BucketUrl,
 } from "@functions/jobs/upload";
-import { validateCreateEmailTemplate, validateDeleteTemplate } from "./schema";
+import {
+  validateCreateEmailTemplate,
+  validateDeleteTemplate,
+  validateGetAllTemplates,
+} from "./schema";
 import { CustomError } from "@helpers/custom-error";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { checkTemplateExistsOnSES } from "./helpers";
 import { JobService } from "@functions/jobs/service";
 import { IJob } from "@models/Jobs";
+import { FileRecordModel, IFileRecords } from "@models/FileRecords";
+import { IWithPagination } from "knex-paginate";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -182,9 +188,28 @@ export class EmailTemplateService {
       throw new CustomError(error.message, error.statusCode);
     }
   }
+
   // Function to retrieve a template record from the database
-  async getAllTemplates(): Promise<any> {
-    return EmailTemplatesModel.query();
+  async getAllTemplates(body): Promise<any> {
+    await validateGetAllTemplates(body);
+    const { page, pageSize } = body;
+    const templates = await EmailTemplatesModel.query().page(
+      page || 0,
+      pageSize || 50
+    );
+
+    const htmlUrls = templates?.results
+      .map((x) => x.htmlPartUrl)
+      .filter((x) => typeof x === "string");
+    const fileRecords: IFileRecords[] = await FileRecordModel.query()
+      .whereIn("fileUrl", htmlUrls)
+      .withGraphFetched("variations");
+
+    templates?.results?.forEach((t) => {
+      const fileRecord = fileRecords.find((f) => f.fileUrl === t.htmlPartUrl);
+      t.variations = fileRecord?.variations || [];
+    });
+    return templates;
   }
 
   async getTemplateById(body): Promise<any> {
