@@ -270,7 +270,7 @@ export class FileRecordService {
     if (!fileKey) {
       throw new CustomError(`No valid s3 key in ${url}`, 400);
     }
-    const cdnUrl = `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${fileKey}`;
+    const cdnUrl = `${process.env.CLOUD_FRONT_URL}/${fileKey}`;
     const keyPairId = process.env.CLOUD_FRONT_PUBLIC_KEY_ID;
 
     return getSignedUrl({

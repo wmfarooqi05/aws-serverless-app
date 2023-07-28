@@ -56,3 +56,14 @@ export const validateS3BucketUrl = (url: string) => {
     );
   }
 };
+
+export const replaceS3UrlWithCDN = (url: string) => {
+  try {
+    if (!url?.trim().length) return "";
+    const keys = getKeysFromS3Url(url);
+    return `${process.env.CLOUD_FRONT_URL}/${keys.fileKey}`;
+  } catch (e) {
+    console.log("error replaceS3UrlWithCDN", url);
+    return "";
+  }
+};

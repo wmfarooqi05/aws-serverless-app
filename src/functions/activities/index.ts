@@ -102,6 +102,13 @@ const activitiesHandler = {
         cors: true,
       },
     },
+    {
+      http: {
+        method: "get",
+        path: "google/calendars",
+        cors: true,
+      },
+    },
   ],
   layers: [
     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",

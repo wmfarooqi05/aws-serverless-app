@@ -1,0 +1,3 @@
+zip -r image-layer-v4.zip nodejs
+aws configure
+aws s3 cp image-layer-v4.zip s3://gel-api-dev-serverlessdeploymentbucket-d34v77eas9bz/serverless/custom_layers/

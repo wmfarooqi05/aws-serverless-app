@@ -31,7 +31,7 @@ import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
-import { injectable, inject } from "tsyringe";
+import { injectable, inject, container } from "tsyringe";
 import {
   IEmployee,
   IEmployeeJwt,
@@ -53,6 +53,9 @@ import UpdateHistoryModel from "@models/UpdateHistory";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
 import { capitalize } from "lodash";
+import { GoogleGmailService } from "@functions/google/gmail/service";
+import { GoogleCalendarService } from "@functions/google/calendar/service";
+import { calendar_v3 } from "googleapis";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;
@@ -77,7 +80,9 @@ export class ActivityService implements IActivityService {
 
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
-    // @TODO replace this with generic service (in case of adding multiple calendar service) // @inject(GoogleCalendarService) // private readonly calendarService: GoogleCalendarService, // @TODO replace this with generic service (in case of adding multiple email service) // @inject(ReminderService) // private readonly reminderService: ReminderService
+    // @TODO replace this with generic service (in case of adding multiple calendar service) //
+    @inject(GoogleCalendarService)
+    private readonly calendarService: GoogleCalendarService, // @TODO replace this with generic service (in case of adding multiple email service) // @inject(ReminderService) // private readonly reminderService: ReminderService
     @inject(JobService) private readonly jobService: JobService
   ) {}
 
@@ -462,6 +467,18 @@ export class ActivityService implements IActivityService {
         }
       })
       .paginate(getPaginateClauseObject(body));
+  }
+
+  async getAllCalendars(employee: IEmployeeJwt, nextSyncToken: string | null) {
+    const client = await this.calendarService.getAuthenticatedCalendarClient(
+      employee.sub
+    );
+    const params: calendar_v3.Params$Resource$Calendarlist$List = {};
+    if (nextSyncToken) {
+      params.syncToken = nextSyncToken;
+    }
+    const listResponse = await client.calendarList.list(params);
+    return listResponse.data;
   }
 
   // Helper

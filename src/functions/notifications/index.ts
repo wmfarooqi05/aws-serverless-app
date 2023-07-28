@@ -1,8 +1,6 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
 
-console.log("queue name", process.env.QUEUE_NAME);
-console.log("JOBS_TABLE", process.env.JOBS_TABLE);
 const notificationHandler = {
   handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
@@ -61,7 +59,7 @@ const notificationQueueInvokeHandler = {
       },
     },
   ],
-  timeout: 5,
+  // timeout: 5,
 };
 
 if (process.env.NODE_ENV === "local") {

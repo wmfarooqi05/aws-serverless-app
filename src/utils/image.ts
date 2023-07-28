@@ -91,7 +91,7 @@ export const replaceImageUrls = async (
       const s3Key = `${rootKey}/${randomUUID()}.${imageData.fileType}`; // Modify the key as per your requirement
       const resp = await uploadContentToS3(s3Key, imageData.data);
 
-      const cdnUrl = `${process.env.CLOUD_FRONT_DOMAIN_NAME}/${s3Key}`;
+      const cdnUrl = `${process.env.CLOUD_FRONT_URL}/${s3Key}`;
       replacements.push({ originalUrl: imageUrl, cdnUrl, s3Url: resp.fileUrl });
       html = html.replace(imageUrl, cdnUrl);
     }

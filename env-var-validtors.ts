@@ -57,5 +57,8 @@ export const ensureEnvConfigs = () => {
     "COGNITO_USER_POOL_ID",
     // "MAIL_QUEUE_NAME",
     "NOTIFICATION_QUEUE_URL",
+    "CLOUD_FRONT_DISTRIBUTION_ID",
+    "CLOUD_FRONT_URL",
+    "CLOUD_FRONT_PUBLIC_KEY_ID",
   ]);
 };

@@ -302,11 +302,11 @@ export const getKeysFromS3Url = (
     region = parsedUrl.hostname.split(".")[2];
 
     return { region, bucketName, fileKey };
-  } else if (url.includes(process.env.CLOUD_FRONT_DOMAIN_NAME)) {
+  } else if (url.includes(process.env.CLOUD_FRONT_URL)) {
     return {
       region,
       bucketName,
-      fileKey: url.replace(`${process.env.CLOUD_FRONT_DOMAIN_NAME}/`, ""),
+      fileKey: url.replace(`${process.env.CLOUD_FRONT_URL}/`, ""),
     };
   }
 };
@@ -410,8 +410,8 @@ export const validateS3BucketUrl = (url: string) => {
   const keys = getKeysFromS3Url(url);
   if (
     !(
-      keys.bucketName === process.env.DEPLOYMENT_BUCKET &&
-      keys.region === process.env.REGION
+      keys?.bucketName === process.env.DEPLOYMENT_BUCKET &&
+      keys?.region === process.env.REGION
     )
   ) {
     throw new CustomError(

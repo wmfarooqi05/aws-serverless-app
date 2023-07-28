@@ -14,6 +14,7 @@ import {
   getMyStaleActivityByStatus,
   updateStatusOfActivity,
   getEmployeeStaleActivityByStatus,
+  getAllCalendars,
 } from "./handler";
 
 import {
@@ -99,6 +100,11 @@ app.put("/activity/:activityId/remarks/:remarksId", async (req, res) => {
 
 app.delete("/activity/:activityId/remarks/:remarksId", async (req, res) => {
   const resp = await deleteRemarkFromActivity(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/google/calendars", async (req, res) => {
+  const resp = await getAllCalendars(req, {} as any);
   resHelper(res, resp);
 });
 

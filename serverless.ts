@@ -31,7 +31,7 @@ const serverlessConfiguration: AWS = {
     name: "aws",
     runtime: "nodejs18.x",
     region: "ca-central-1",
-    timeout: 900, //process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
+    timeout: process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10,
     stage: "${self:custom.STAGE}",
     iam: {
       role: {

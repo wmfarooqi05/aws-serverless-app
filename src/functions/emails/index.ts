@@ -150,7 +150,7 @@ const emailHandler = {
   ],
   layers: [
     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
-    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:3",
   ],
 };
 
@@ -165,7 +165,7 @@ const receiveEmailHandler = {
   ],
   layers: [
     "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
-    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:2",
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:image-layer-v1:3",
   ],
 };
 

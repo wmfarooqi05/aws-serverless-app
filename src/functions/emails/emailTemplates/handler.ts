@@ -30,7 +30,7 @@ const deleteEmailTemplateHandler = async (event) => {
     const newEmailTemplate = await container
       .resolve(EmailTemplateService)
       .deleteEmailTemplate(event.employee, event.body);
-    return formatJSONResponse(newEmailTemplate, 201);
+    return formatJSONResponse(newEmailTemplate, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -41,7 +41,7 @@ const getAllTemplatesHandler = async (event) => {
     const newEmailTemplate = await container
       .resolve(EmailTemplateService)
       .getAllTemplates(event.query || {});
-    return formatJSONResponse(newEmailTemplate, 201);
+    return formatJSONResponse(newEmailTemplate, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -52,7 +52,7 @@ const getTemplateByIdHandler = async (event) => {
     const newEmailTemplate = await container
       .resolve(EmailTemplateService)
       .getTemplateById(event.params);
-    return formatJSONResponse(newEmailTemplate, 201);
+    return formatJSONResponse(newEmailTemplate, 200);
   } catch (e) {
     return formatErrorResponse(e);
   }

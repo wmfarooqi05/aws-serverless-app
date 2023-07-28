@@ -1,10 +1,6 @@
 import "reflect-metadata";
 import { inject, injectable } from "tsyringe";
-import {
-  SQSClient,
-  SendMessageCommand,
-  ReceiveMessageCommand,
-} from "@aws-sdk/client-sqs";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { SQSEvent } from "aws-lambda";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
 import { CustomError } from "@helpers/custom-error";
@@ -13,8 +9,6 @@ import { SQSEventType } from "@models/interfaces/Reminders";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
-import { randomUUID } from "crypto";
-import { uploadContentToS3 } from "@functions/jobs/upload";
 import { deleteMessageFromSQS, moveMessageToDLQ } from "@utils/sqs";
 import { deleteS3Files } from "./jobs/deleteS3Files";
 import {
@@ -87,9 +81,9 @@ export class SQSService {
         /**
          * We are here taking a decision
          * that jobs failed inside processing will be treated as successful
-         * because if 3rd party is crashing, like google meet, then 
+         * because if 3rd party is crashing, like google meet, then
          * user should restart the job after fixing the issue e.g. refresh token
-         * 
+         *
          * but for aws related things like delete s3 files, schedule reminder,
          * failing inside processing will be treated as failed job
          * but user will be notified about this as well and record's details will

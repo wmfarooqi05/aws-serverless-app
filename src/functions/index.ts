@@ -13,15 +13,6 @@ import {
 } from "@functions/google/oauth";
 
 import {
-  getAllCalendars,
-  // getMeetings,
-  // getMeetingById,
-  createMeeting,
-  // updateMeetingById,
-  // deleteMeetingById,
-} from "@functions/google/calendar";
-
-import {
   // sendEmailText,
   receiveEmailHandler,
 } from "@functions/emails";
@@ -31,7 +22,7 @@ import {
   // importData,
   // bulkCognitoSignup,
   // uploadSignupBulkJob,
-  handleDynamoStreamRecords,
+  // handleDynamoStreamRecords,
   // handleSESEmailToSNSEvent,
 } from "@functions/jobs";
 
@@ -57,7 +48,7 @@ const exportHandlers = {
   // Jobs
   // importData,
   // bulkCognitoSignup,
-  handleDynamoStreamRecords,
+  // handleDynamoStreamRecords,
   // uploadSignupBulkJob,
 
   // Reminders
@@ -67,8 +58,8 @@ const exportHandlers = {
   // google
   googleOauthHandler,
   googleOauthCallbackHandler,
-  getAllCalendars,
-  createMeeting,
+  // getAllCalendars,
+  // createMeeting,
   receiveEmailHandler,
   employeeHandler,
   sqsJobQueueInvokeHandler,

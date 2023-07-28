@@ -21,9 +21,8 @@ import { CustomError } from "@helpers/custom-error";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { checkTemplateExistsOnSES } from "./helpers";
 import { JobService } from "@functions/jobs/service";
-import { IJob } from "@models/Jobs";
 import { FileRecordModel, IFileRecords } from "@models/FileRecords";
-import { IWithPagination } from "knex-paginate";
+import { replaceS3UrlWithCDN } from "@utils/s3";
 
 // Initialize AWS SES client and DynamoDB client
 const sesClient = new SESClient({ region: process.env.REGION });
@@ -205,9 +204,14 @@ export class EmailTemplateService {
       .whereIn("fileUrl", htmlUrls)
       .withGraphFetched("variations");
 
-    templates?.results?.forEach((t) => {
+    templates?.results?.forEach((t: IEmailTemplate) => {
       const fileRecord = fileRecords.find((f) => f.fileUrl === t.htmlPartUrl);
-      t.variations = fileRecord?.variations || [];
+      t.htmlPartUrl = replaceS3UrlWithCDN(t.htmlPartUrl);
+      const variations = fileRecord?.variations || [];
+      variations.forEach((v) => {
+        v.cdnUrl = replaceS3UrlWithCDN(v.fileUrl);
+      });
+      t.variations = variations;
     });
     return templates;
   }

@@ -10,7 +10,8 @@ export type JOB_STATUS =
   | "QUEUED"
   | "FAILED"
   | "PENDING"
-  | "IN_PROGRESS";
+  | "IN_PROGRESS"
+  | "UNPROCESSED";
 export interface IJob {
   id?: string;
   uploadedBy?: string;

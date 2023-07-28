@@ -10,102 +10,146 @@ import {
 import { FileVariationModel, IFileVariation } from "@models/FileVariations";
 import JobsModel, { IJob } from "@models/Jobs";
 import bytes from "@utils/bytes";
-import { getFileExtension } from "@utils/file";
-import { markAsUnprocessedEvent } from "@utils/sqs";
+import {
+  deleteMessageFromSQS,
+  markAsUnprocessedEvent,
+  moveMessageToDLQ,
+  sqsQueueUrlFromArn,
+} from "@utils/sqs";
 import { generateThumbnailFromHtml, imageResize } from "@utils/thumbnails";
 import { SQSEvent } from "aws-lambda";
 import { container } from "tsyringe";
+import { SQSClient } from "@aws-sdk/client-sqs";
+import moment from "moment-timezone";
 
 // move this to handler / service pattern
 // if image variation need multiple endpoints
 // or it grows
 const s3Service: S3Service = container.resolve(S3Service);
+const sqsClient: SQSClient = new SQSClient({ region: process.env.AWS_REGION });
 container.resolve(DatabaseService);
 
 export const handler = async (event: SQSEvent) => {
   // This is for dev testing
+  console.log("event", event);
   if (process.env.STAGE === "local" && event.body) {
     event.Records = [JSON.parse(event.body)];
   }
 
   const { Records } = event;
   for (const record of Records) {
+    console.log("record", record);
     const payload: IJob = JSON.parse(record.body);
     const jobType = payload.jobType;
+    console.log("jobType", jobType);
     const jobId = payload.id;
-
-    if (jobType === "CREATE_MEDIA_FILE_VARIATIONS") {
-      const jobItem: IJob = await JobsModel.query().patchAndFetchById(jobId, {
-        jobStatus: "IN_PROGRESS",
-      } as IJob);
-      const {
-        details: { files },
-      } = jobItem;
-
-      const fileRecords: IFileRecords[] =
-        await FileRecordModel.query().findByIds(files);
-
-      for (const fileRecord of fileRecords) {
+    console.log("marking job as in progress", jobId);
+    const jobItem: IJob = await JobsModel.query().patchAndFetchById(jobId, {
+      jobStatus: "IN_PROGRESS",
+    } as IJob);
+    console.log("jobItem", jobItem);
+    try {
+      if (jobType === "CREATE_MEDIA_FILE_VARIATIONS") {
+        console.log("inside media loop");
         const {
-          fileType,
-          fileUrl,
-          details: {
-            variations: { variationSizes, variationStatus },
-          },
-        } = fileRecord;
-        if (!variationStatus || variationStatus === "NOT_REQUIRED") continue;
-        let originalImageBuffer: any = await s3Service.downloadFileFromUrl(
-          fileUrl
-        );
-        let fullSize = null;
-        if (fileType.includes("html")) {
-          const { htmlImageBuffer, pageSize } = await generateThumbnailFromHtml(
-            originalImageBuffer
+          details: { files },
+        } = jobItem;
+
+        console.log("files", files);
+        const fileRecords: IFileRecords[] =
+          await FileRecordModel.query().findByIds(files);
+
+        console.log("fileRecords", fileRecords);
+        for (const fileRecord of fileRecords) {
+          const {
+            fileType,
+            fileUrl,
+            details: {
+              variations: { variationSizes, variationStatus },
+            },
+          } = fileRecord;
+          if (!variationStatus || variationStatus === "NOT_REQUIRED") continue;
+          let originalImageBuffer: any = await s3Service.downloadFileFromUrl(
+            fileUrl
           );
-          originalImageBuffer = htmlImageBuffer;
-          fullSize = pageSize;
-        }
-        console.log("variationSizes", variationSizes);
-        for (const variationSize of variationSizes) {
-          if (fileType.includes("html") && variationSize === "FULL_SNAPSHOT") {
-            console.log("variationSize", variationSize);
-            const fileVariation = await convertAndResizeImage(
-              originalImageBuffer,
-              fileRecord,
-              variationSize,
-              fullSize.width,
-              fullSize.height
-            );
-            console.log("variationSize", variationSize, " completed ");
-          } else if (fileType.includes("image") || fileType.includes("html")) {
-            console.log("variationSize", variationSize);
-            const pageSize = variationMap[variationSize] || {
-              width: 800,
-              height: 600,
-            };
-            const fileVariation = await convertAndResizeImage(
-              originalImageBuffer,
-              fileRecord,
-              variationSize,
-              pageSize.width,
-              pageSize.height
-            );
-            console.log("variationSize", variationSize, " completed ");
+          let fullSize = null;
+          if (fileType.includes("html")) {
+            const { htmlImageBuffer, pageSize } =
+              await generateThumbnailFromHtml(originalImageBuffer);
+            originalImageBuffer = htmlImageBuffer;
+            fullSize = pageSize;
           }
-          //  else if (fileType.includes("pdf")) {
-          //   const imageBuffer = await s3Service.downloadFileFromUrl(fileUrl);
-          //   await convertAndResizeImage(imageBuffer, fileRecord, variationSize);
-          // }
-          // upload to bucket
-          // add fileVariation object
-          // return;
+          console.log("variationSizes", variationSizes);
+          for (const variationSize of variationSizes) {
+            if (
+              fileType.includes("html") &&
+              variationSize === "FULL_SNAPSHOT"
+            ) {
+              console.log("variationSize", variationSize);
+              await convertAndResizeImage(
+                originalImageBuffer,
+                fileRecord,
+                variationSize,
+                fullSize.width,
+                fullSize.height
+              );
+              console.log("variationSize", variationSize, " completed ");
+            } else if (
+              fileType.includes("image") ||
+              fileType.includes("html")
+            ) {
+              console.log("variationSize", variationSize);
+              const pageSize = variationMap[variationSize] || {
+                width: 800,
+                height: 600,
+              };
+              await convertAndResizeImage(
+                originalImageBuffer,
+                fileRecord,
+                variationSize,
+                pageSize.width,
+                pageSize.height
+              );
+              console.log("variationSize", variationSize, " completed ");
+            }
+            //  else if (fileType.includes("pdf")) {
+            //   const imageBuffer = await s3Service.downloadFileFromUrl(fileUrl);
+            //   await convertAndResizeImage(imageBuffer, fileRecord, variationSize);
+            // }
+            // upload to bucket
+            // add fileVariation object
+            // return;
+          }
+          console.log("for variation loop ended");
         }
-        console.log("for variation loop ended");
+        await JobsModel.query().patchAndFetchById(jobId, {
+          jobStatus: "SUCCESSFUL",
+        } as IJob);
+        console.log("marked job as successful");
+        console.log("for fileRecords loop ended");
+      } else {
+        console.log("else unprocessed");
+        await JobsModel.query().patchAndFetchById(jobId, {
+          jobStatus: "UNPROCESSED",
+        } as IJob);
+        await markAsUnprocessedEvent(record);
       }
-      console.log("for fileRecords loop ended");
-    } else {
-      console.log("else unprocessed");
-      await markAsUnprocessedEvent(record);
+    } catch (e) {
+      console.log("error", e);
+      await JobsModel.query().patchAndFetchById(jobId, {
+        jobStatus: "FAILED",
+        details: {
+          ...jobItem.details,
+          error: {
+            timestamp: moment().utc().format(),
+            message: e.message,
+            stackTrace: e.stack,
+          },
+        },
+      });
+      await moveMessageToDLQ(sqsClient, record);
+    } finally {
+      await deleteMessageFromSQS(sqsClient, record);
     }
     console.log("for Records loop ended");
     // mark job as completed
@@ -132,6 +176,7 @@ export const convertAndResizeImage = async (
   return FileVariationModel.query()
     .insert({
       fileName: `${fileName}_${variationSize}`,
+      fileNamePostfix: variationSize,
       fileType: "image/png",
       fileUrl: uploadedFile.fileUrl,
       status: "UPLOADED",
