@@ -4,7 +4,6 @@ import CompanyModel, {
   ICompanyPaginated,
 } from "@models/Company";
 import {
-  IContact,
   ICompany,
   INotes,
   COMPANY_PRIORITY,
@@ -27,7 +26,7 @@ import {
   validateUpdateCompanyInteractions,
 } from "./schema";
 
-import { container, inject, injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
@@ -35,8 +34,6 @@ import {
   convertToWhereInValue,
   validateJSONItemAndGetIndex,
   updateHistoryHelper,
-  snakeToCamel,
-  createKnexTransactionQueries,
 } from "src/common/json_helpers";
 import {
   IPendingApprovals,
@@ -52,14 +49,11 @@ import {
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
 import {
-  COMPANIES_TABLE_NAME,
-  CONTACTS_TABLE,
   EMPLOYEE_COMPANY_INTERACTIONS_TABLE,
   TEAM_COMPANY_INTERACTIONS_TABLE,
 } from "@models/commons";
 import EmployeeCompanyInteractionsModel, {
   IEmployeeCompanyInteraction,
-  IEmployeeCompanyInteractionsModel,
   defaultInteractionItem,
   getDefaultEmployeeInteractionItem,
 } from "@models/EmployeeCompanyInteractions";
@@ -67,11 +61,8 @@ import TeamCompanyInteractionsModel, {
   ITeamCompanyInteraction,
   getDefaultTeamInteractionItem,
 } from "@models/TeamCompanyInteractions";
-import TeamModel, { ITeam } from "@models/Teams";
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
-import UpdateHistoryModel from "@models/UpdateHistory";
 import { IWithPagination } from "knex-paginate";
-import ContactModel from "@models/Contacts";
 import EmployeeModel from "@models/Employees";
 
 const defaultTimezone = "Canada/Eastern";
@@ -134,12 +125,12 @@ export class CompanyService implements ICompanyService {
     )
       .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
         join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
-        join.on("ec.company_id", '=', "c.id")
+        join.on("ec.company_id", "=", "c.id");
       })
       .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
         // @TODO FIX_TEAM_ID
         join.on("tc.team_id", "=", knex.raw("?", [employee.currentTeamId]));
-        join.on("tc.company_id", '=', "c.id")
+        join.on("tc.company_id", "=", "c.id");
       })
       .select("c.id")
       .where(whereClause)
@@ -193,6 +184,19 @@ export class CompanyService implements ICompanyService {
     });
     company["activities"] = activities;
     return company;
+  }
+
+  async getContactsByCompanyForEmailList(employee: IEmployee, body) {
+    const { page = 1, pageSize = 500 } = body;
+    return CompanyModel.query()
+      .select(["id", "companyName", "avatar"])
+      .page(page - 1, pageSize)
+      .withGraphFetched("contacts(shortForm)")
+      .modifiers({
+        shortForm(builder) {
+          builder.select(["id", "name", "avatar", "emails"]);
+        },
+      });
   }
 
   async createCompany(

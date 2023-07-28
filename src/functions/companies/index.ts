@@ -27,6 +27,13 @@ const companyHandler = {
     },
     {
       http: {
+        method: "get",
+        path: "companies/email-list-contacts",
+        cors: true,
+      },
+    },
+    {
+      http: {
         method: "put",
         path: "company/{companyId}",
         cors: true,
@@ -144,26 +151,26 @@ const companyHandler = {
     },
     ////
     {
-      http:{
-        method:"get",
-        path:"contact",
-        cors:true,
-      }
+      http: {
+        method: "get",
+        path: "contact",
+        cors: true,
+      },
     },
     {
-      http:{
-        method:"get",
-        path:"company/{companyId}/contact",
-        cors:true,
-      }
+      http: {
+        method: "get",
+        path: "company/{companyId}/contact",
+        cors: true,
+      },
     },
     {
-      http:{
-        method:"get",
-        path:"contact/{contactId}",
-        cors:true,
-      }
-    }
+      http: {
+        method: "get",
+        path: "contact/{contactId}",
+        cors: true,
+      },
+    },
   ],
 };
 

@@ -57,11 +57,7 @@ const getCompaniesByEmployeeIdHandler = async (event) => {
     const { employeeId } = event.params;
     const companies = await container
       .resolve(CompanyService)
-      .getCompaniesByEmployeeId(
-        event.employee,
-        employeeId,
-        event.query || {}
-      );
+      .getCompaniesByEmployeeId(event.employee, employeeId, event.query || {});
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -76,6 +72,17 @@ const getCompanyByIdHandler: ValidatedEventAPIGatewayProxyEvent<
     const companies = await container
       .resolve(CompanyService)
       .getCompany(event.employee, companyId);
+    return formatJSONResponse(companies, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
+export const getContactsByCompanyForEmailListHandler = async (event) => {
+  try {
+    const companies = await container
+      .resolve(CompanyService)
+      .getContactsByCompanyForEmailList(event.employee, event.query || {});
     return formatJSONResponse(companies, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -245,6 +252,12 @@ export const getCompaniesByEmployeeId = checkRolePermission(
   getCompaniesByEmployeeIdHandler,
   "COMPANY_READ"
 );
+
+export const getContactsByCompanyForEmailList = checkRolePermission(
+  getContactsByCompanyForEmailListHandler,
+  "COMPANY_READ"
+);
+
 export const updateCompany = checkRolePermission(
   updateCompanyHandler,
   "COMPANY_UPDATE",

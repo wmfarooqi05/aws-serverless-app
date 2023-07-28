@@ -6,10 +6,7 @@ import {
   RelationMappingsThunk,
 } from "objection";
 import { singleton } from "tsyringe";
-import {
-  COMPANIES_TABLE_NAME,
-  CONTACTS_TABLE,
-} from "./commons";
+import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "./commons";
 
 import ContactModel from "./Contacts";
 import TeamCompanyInteractionsModel from "./TeamCompanyInteractions";
@@ -31,6 +28,7 @@ export default class CompanyModel extends Model {
       properties: {
         id: { type: "string" },
         companyName: { type: "string" },
+        avatar: { type: "string" },
         createdBy: { type: "string" },
         addresses: { type: "array" },
         assignedTo: { type: "string" },

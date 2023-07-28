@@ -22,6 +22,7 @@ import {
   createNotes,
   updateNotes,
   deleteNotes,
+  getContactsByCompanyForEmailList,
 } from "./handler";
 
 import {
@@ -72,6 +73,11 @@ app.delete("/company/:companyId", async (req, res) => {
 
 app.get("/companies/employee/:employeeId", async (req, res) => {
   const resp = await getCompaniesByEmployeeId(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/companies/email-list-contacts", async (req, res) => {
+  const resp = await getContactsByCompanyForEmailList(req, {} as any);
   resHelper(res, resp);
 });
 
@@ -148,12 +154,12 @@ app.get("/contact", async (req, res) => {
   resHelper(res, resp);
 });
 
-app.get("/company/:companyId/contact", async (req,res)=>{
+app.get("/company/:companyId/contact", async (req, res) => {
   const resp = await getContactsByCompany(req, {} as any);
   resHelper(res, resp);
 });
 
-app.get("/contact/:contactId", async (req,res)=>{
+app.get("/contact/:contactId", async (req, res) => {
   const resp = await getContactById(req, {} as any);
   resHelper(res, resp);
 });
