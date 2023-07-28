@@ -145,6 +145,13 @@ app.delete("/email/:emailId", async (req, res) => {
   resHelper(res, resp);
 });
 
+app.all("*", (req, res) => {
+  console.log("event was not caught by any express handler", req);
+  resHelper(res, {
+    message: "event was not caught by any express handler",
+    statusCode: 200,
+  });
+});
 // Recipient Employee Details
 // app.post("/email/labels", async(req,res) => {
 //   const resp = await createLabel(req, {} as any);

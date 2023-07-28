@@ -207,6 +207,7 @@ export class EmailTemplateService {
     templates?.results?.forEach((t: IEmailTemplate) => {
       const fileRecord = fileRecords.find((f) => f.fileUrl === t.htmlPartUrl);
       t.htmlPartUrl = replaceS3UrlWithCDN(t.htmlPartUrl);
+      t.thumbnailUrl = replaceS3UrlWithCDN(t.thumbnailUrl);
       const variations = fileRecord?.variations || [];
       variations.forEach((v) => {
         v.cdnUrl = replaceS3UrlWithCDN(v.fileUrl);

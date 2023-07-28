@@ -6,10 +6,11 @@ import {
 import { FileRecordService } from "@functions/fileRecords/service";
 import { getS3BufferFromUrl } from "@functions/jobs/upload";
 import { CustomError } from "@helpers/custom-error";
-import { FilePermissionsMap } from "@models/FileRecords";
+import { FilePermissionsMap, ReadAllPermissions } from "@models/FileRecords";
 import { IJob } from "@models/Jobs";
 import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
+import { isValidJSON } from "@utils/json";
 import { htmlToText } from "html-to-text";
 import { container } from "tsyringe";
 
@@ -56,26 +57,20 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
     const replacements = await replaceImageUrls(
       htmlPartContent,
       `media/email-templates/${templateName}/${version}`,
-      `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/media/email-templates/${templateName}/`
     );
+    return;
     const bodyText = htmlToText(replacements.html);
 
     const rootKey = `media/email-templates/${templateName}/${version}`;
 
-    const permissionMap: FilePermissionsMap = {
-      "*": {
-        email: "*",
-        employeeId: "*",
-        permissions: ["READ"],
-      },
-    };
+    const permissionMap: FilePermissionsMap = ReadAllPermissions;
     const files = await fileRecordService.uploadFilesToBucketWithPermissions(
       [
         {
           fileContent: replacements.html,
-          fileName: "HtmlPart",
+          fileName: "template.html",
           fileType: "text/html",
-          originalFilename: "HtmlPart",
+          originalFilename: "template.html",
           s3Key: rootKey,
           variationEnforcedRequired: true,
           variations: ["FULL_SNAPSHOT", "THUMBNAIL"],

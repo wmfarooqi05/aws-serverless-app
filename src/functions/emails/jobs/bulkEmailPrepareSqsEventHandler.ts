@@ -67,7 +67,7 @@ export const bulkEmailPrepareSqsEventHandler = async (
 
   // COPY HTML PART
   const templateKey = getKeysFromS3Url(templateEntity.htmlPartUrl);
-  const newTemplateKey = `media/bulk_emails/${randomUUID()}/HtmlPart.html`;
+  const newTemplateKey = `media/bulk_emails/${randomUUID()}/template.html`;
   await copyS3Object(templateKey.fileKey, newTemplateKey);
 
   if (templateEntity.textPartUrl) {

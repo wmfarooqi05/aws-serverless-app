@@ -3,6 +3,8 @@
  * MIT Licensed
  */
 
+import { isArrayBuffer, isBuffer, isString } from "lodash";
+
 interface BytesOptions {
   case?: string;
   decimalPlaces?: number;
@@ -25,7 +27,7 @@ const formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
 const formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
 
 const map: Map = {
-  b:  1,
+  b: 1,
   kb: 1 << 10,
   mb: 1 << 20,
   gb: 1 << 30,
@@ -42,16 +44,29 @@ const parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
  * @param options - Optional bytes options.
  * @returns The converted string or parsed integer, or null if conversion/parsing failed.
  */
-function bytes(value: string | number, options?: BytesOptions): string | number | null {
-  if (typeof value === 'string') {
+function bytes(
+  value: string | number,
+  options?: BytesOptions
+): string | number | null {
+  if (typeof value === "string") {
     return parse(value);
   }
 
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return format(value, options);
   }
 
   return null;
+}
+
+export function getByteSize(value) {
+  if (isString(value) || typeof value === "number") {
+    return bytes(value);
+  } else if (isArrayBuffer(value) || isBuffer(value)) {
+    return bytes(value.byteLength);
+  } else {
+    return bytes(JSON.stringify(value).toString());
+  }
 }
 
 /**
@@ -70,25 +85,26 @@ function format(value: number, options?: BytesOptions): string | null {
   }
 
   const mag = Math.abs(value);
-  const thousandsSeparator = (options && options.thousandsSeparator) || '';
-  const unitSeparator = (options && options.unitSeparator) || '';
-  const decimalPlaces = options?.decimalPlaces !== undefined ? options.decimalPlaces : 2;
+  const thousandsSeparator = (options && options.thousandsSeparator) || "";
+  const unitSeparator = (options && options.unitSeparator) || "";
+  const decimalPlaces =
+    options?.decimalPlaces !== undefined ? options.decimalPlaces : 2;
   const fixedDecimals = Boolean(options?.fixedDecimals);
-  let unit = (options && options.case && options.case.toLowerCase()) || '';
+  let unit = (options && options.case && options.case.toLowerCase()) || "";
 
   if (!unit || !map[unit.toLowerCase()]) {
     if (mag >= map.pb) {
-      unit = 'PB';
+      unit = "PB";
     } else if (mag >= map.tb) {
-      unit = 'TB';
+      unit = "TB";
     } else if (mag >= map.gb) {
-      unit = 'GB';
+      unit = "GB";
     } else if (mag >= map.mb) {
-      unit = 'MB';
+      unit = "MB";
     } else if (mag >= map.kb) {
-      unit = 'KB';
+      unit = "KB";
     } else {
-      unit = 'B';
+      unit = "B";
     }
   }
 
@@ -96,13 +112,16 @@ function format(value: number, options?: BytesOptions): string | null {
   let str = val.toFixed(decimalPlaces);
 
   if (!fixedDecimals) {
-    str = str.replace(formatDecimalsRegExp, '$1');
+    str = str.replace(formatDecimalsRegExp, "$1");
   }
 
   if (thousandsSeparator) {
-    str = str.split('.').map((s, i) => (
-      i === 0 ? s.replace(formatThousandsRegExp, thousandsSeparator) : s
-    )).join('.');
+    str = str
+      .split(".")
+      .map((s, i) =>
+        i === 0 ? s.replace(formatThousandsRegExp, thousandsSeparator) : s
+      )
+      .join(".");
   }
 
   return str + unitSeparator + unit;
@@ -117,21 +136,21 @@ function format(value: number, options?: BytesOptions): string | null {
  * @returns The parsed integer, or null if parsing failed.
  */
 function parse(val: number | string): number | null {
-  if (typeof val === 'number' && !isNaN(val)) {
+  if (typeof val === "number" && !isNaN(val)) {
     return val;
   }
 
-  if (typeof val !== 'string') {
+  if (typeof val !== "string") {
     return null;
   }
 
   const results = parseRegExp.exec(val);
   let floatValue: number;
-  let unit = 'b';
+  let unit = "b";
 
   if (!results) {
     floatValue = parseInt(val, 10);
-    unit = 'b';
+    unit = "b";
   } else {
     floatValue = parseFloat(results[1]);
     unit = results[4].toLowerCase();

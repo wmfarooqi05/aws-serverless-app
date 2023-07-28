@@ -15,9 +15,10 @@ import {
   IFileRecords,
   VARIATION_STATUS,
   IFileRecordDetails,
+  FILE_VARIATION_TYPE,
 } from "@models/FileRecords";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import bytes from "@utils/bytes";
+import bytes, { getByteSize } from "@utils/bytes";
 import { checkVariationStatus, constructS3Url } from "@utils/s3";
 import { inject, injectable } from "tsyringe";
 import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
@@ -29,6 +30,18 @@ import { getFileNameWithoutExtension } from "@utils/file";
 import JobsModel, { IJob } from "@models/Jobs";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import { sendMessageToSQS } from "@utils/sqs";
+
+export interface UploadFiles {
+  originalFilename: string;
+  fileType: string;
+  s3Key: string;
+  fileContent: any;
+  fileName: string;
+  variationEnforcedRequired?: boolean;
+  variations?: FILE_VARIATION_TYPE[];
+  // will not be stored but just for mapping purposes
+  originalUrl?: string;
+}
 
 @injectable()
 export class FileRecordService {
@@ -74,15 +87,7 @@ export class FileRecordService {
    * @returns
    */
   async uploadFilesToBucketWithPermissions(
-    files: {
-      originalFilename: string;
-      fileType: string;
-      s3Key: string;
-      fileContent: any;
-      fileName: string;
-      variationEnforcedRequired?: boolean;
-      variations?: string[];
-    }[],
+    files: UploadFiles[],
     permissionMap: FilePermissionsMap,
     bucketName: string = process.env.DEPLOYMENT_BUCKET,
     region: string = process.env.REGION
@@ -124,7 +129,7 @@ export class FileRecordService {
       return {
         fileName,
         s3Key,
-        fileSize: bytes(JSON.stringify(fileContent))?.toString() || "",
+        fileSize: getByteSize(fileContent),
         fileUrl: constructS3Url(bucketName, region, s3Key, fileName),
         bucketName,
         region,

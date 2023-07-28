@@ -28,6 +28,14 @@ export interface FilePermissionsMap {
   };
 }
 
+export const ReadAllPermissions: FilePermissionsMap = {
+  "*": {
+    email: "*",
+    employeeId: "*",
+    permissions: ["READ"],
+  },
+};
+
 export interface FILE_VARIATION {
   fileSize: string;
   fileUrl: string;
