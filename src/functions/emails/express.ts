@@ -22,6 +22,7 @@ import {
   deleteEmailList,
   deleteEmailsFromEmailList,
   getAllEmailLists,
+  getAllEmailsByEmailList,
   syncEmails,
   updateEmailList,
 } from "./emailLists/handler";
@@ -87,6 +88,11 @@ app.get("/emails-by-contact/:contactEmail", async (req, res) => {
 
 app.get("/email-list", async (req, res) => {
   const resp = await getAllEmailLists(req, {} as any);
+  resHelper(res, resp);
+});
+
+app.get("/email-list/:emailListId/emails", async (req: Express.Request, res) => {
+  const resp = await getAllEmailsByEmailList(req, {} as any);
   resHelper(res, resp);
 });
 

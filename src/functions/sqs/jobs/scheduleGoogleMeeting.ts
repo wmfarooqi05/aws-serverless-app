@@ -77,6 +77,7 @@ export const scheduleGoogleMeeting = async (jobItem: IJob) => {
 };
 
 export const deleteGoogleMeeting = async (jobItem: IJob) => {
+  // probably this code is not tested after moving to a job
   // In delete we have no idea if activity is already deleted
   // or user is just deleting the meeting
   // In most use cases, activity is already deleted and this

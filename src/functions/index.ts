@@ -18,13 +18,12 @@ import {
 } from "@functions/emails";
 import { emailHandler } from "@functions/emails";
 
-import {
-  // importData,
-  // bulkCognitoSignup,
-  // uploadSignupBulkJob,
-  // handleDynamoStreamRecords,
-  // handleSESEmailToSNSEvent,
-} from "@functions/jobs";
+import // importData,
+// bulkCognitoSignup,
+// uploadSignupBulkJob,
+// handleDynamoStreamRecords,
+// handleSESEmailToSNSEvent,
+"@functions/jobs";
 
 import { employeeHandler } from "@functions/employees";
 
@@ -34,6 +33,7 @@ import { teamHandler } from "@functions/teams";
 import { cognitoOAuthHandler } from "./auth";
 
 import { utilsHandler } from "@functions/utils";
+import { deleteAllReminders } from "./reminders";
 // import { scrapeGmail } from "./google/gmail";
 
 const exportHandlers = {
@@ -66,8 +66,9 @@ const exportHandlers = {
   imageVariationJob,
 };
 
-// if (process.env.NODE_ENV === "local") {
-//   exportHandlers["scrapeGmail"] = scrapeGmail;
-// }
+if (process.env.NODE_ENV === "local") {
+  // exportHandlers["dailyReminderCleanup"] = dailyReminderCleanup;
+  exportHandlers["deleteAllReminders"] = deleteAllReminders;
+}
 
 export default exportHandlers;

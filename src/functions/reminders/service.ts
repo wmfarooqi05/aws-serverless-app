@@ -15,6 +15,7 @@ import {
   ListSchedulesCommandInput,
   ListSchedulesCommand,
   ListSchedulesCommandOutput,
+  DeleteScheduleCommandOutput,
 } from "@aws-sdk/client-scheduler";
 
 import { randomUUID } from "crypto";
@@ -28,6 +29,7 @@ import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { NotificationService } from "@functions/notifications/service";
 import { INotification } from "@models/Notification";
 import { IReminderInterface } from "@models/interfaces/Activity";
+import { upperCase } from "lodash";
 
 export interface IReminderService {}
 
@@ -212,7 +214,7 @@ export class ReminderService implements IReminderService {
   ) {
     if (!(overrides?.length > 0)) return [];
     const reminderResp = [];
-    const ebPromises = [];
+    const ebPromises: Promise<CreateScheduleCommandOutput>[] = [];
     try {
       const dueDateTimeUtc = moment(dueDate).utc();
 
@@ -224,7 +226,9 @@ export class ReminderService implements IReminderService {
         const schedulerExpression = `at(${reminderTime})`;
 
         const awsEBSItemId = randomUUID();
-        const reminderName = `Reminder-${awsEBSItemId}`;
+        const reminderName = `REMINDER_${minutes}MIN_${upperCase(
+          method
+        )}_${awsEBSItemId}`;
         const params: IEBSchedulerEventInput = {
           schedulerExpression,
           name: reminderName,
@@ -250,41 +254,47 @@ export class ReminderService implements IReminderService {
           minutesDiff: minutes,
         };
       });
-      let outputs = [];
-      await this.docClient.getKnexClient().transaction(async (trx) => {
+      const outputs = await Promise.all(ebPromises);
+      reminderResp.push(...outputs);
+      let deleteReminders = false;
+      const inputPayloads = outputs.map((output, i) => {
+        return {
+          ...addDBPayload[i],
+          executionArn: output.ScheduleArn,
+          statusCode: output.$metadata.httpStatusCode,
+          status: ReminderStatus.SCHEDULED,
+          details: { jobData: output },
+        };
+      });
+
+      await ReminderModel.transaction(async (trx) => {
         try {
-          outputs = await Promise.all(ebPromises);
-          reminderResp.push(...outputs);
-          await Promise.all(
-            outputs.map((output, i) => {
-              return ReminderModel.query(trx).insert({
-                ...addDBPayload[i],
-                executionArn: output.ScheduleArn,
-                statusCode: output.$metadata.httpStatusCode,
-                status: ReminderStatus.SCHEDULED,
-                details: { jobData: output },
-              });
-            })
-          );
+          await ReminderModel.query(trx).insert(inputPayloads);
           await trx.commit();
-          return outputs;
         } catch (e) {
           reminderResp.push(e);
-          try {
-            // Delete Reminders
-            await this.deleteRemindersWithName(
-              addDBPayload.map((payload) => payload.reminderName)
-            );
-            reminderResp.push({
-              message: `${addDBPayload.length} Reminders deleted`,
-            });
-          } catch (e) {
-            reminderResp.push(e);
-          }
-        } finally {
+          deleteReminders = true;
           await trx.rollback();
         }
       });
+
+      if (deleteReminders) {
+        try {
+          // Delete Reminders
+          // we can safely move this to a job
+          // as reminderName is a randomUUID
+          // but maybe deleting here will be easier
+          // as its adding its output in reminderResp
+          await this.deleteRemindersWithName(
+            addDBPayload.map((payload) => payload.reminderName)
+          );
+          reminderResp.push({
+            message: `${addDBPayload.length} Reminders deleted`,
+          });
+        } catch (e) {
+          reminderResp.push(e);
+        }
+      }
     } catch (e) {
       reminderResp.push(e);
     } finally {
@@ -356,6 +366,12 @@ export class ReminderService implements IReminderService {
     }
   }
   async dailyReminderCleanup() {
+
+    /**
+     * this code has bugs, errorDoc will always have something
+     * because we are storing promises result as well
+     */
+      
     const errorLogsPath = `logs/reminder-cleanup/${randomUUID()}.json`;
     const errorDoc: object[] = [];
     let errorIndex = 0;
@@ -400,9 +416,11 @@ export class ReminderService implements IReminderService {
     } finally {
       if (errorIndex > 0) {
         // @TODO fix this
-        const resp = await this.uploadToS3(errorLogsPath, errorDoc);
-        console.log("s3resp", resp);
-        return resp;
+        if (process.env.STAGE !== "local") {
+          // const resp = await this.uploadToS3(errorLogsPath, errorDoc);
+          // console.log("s3resp", resp);
+          // return resp;
+        }
       }
     }
   }
@@ -432,7 +450,7 @@ export class ReminderService implements IReminderService {
   async deleteEBScheduledItem(
     Name: string,
     GroupName: string = process.env.REMINDER_SCHEDULER_GROUP_NAME!
-  ) {
+  ): Promise<DeleteScheduleCommandOutput> {
     const input: DeleteScheduleCommandInput = {
       Name,
       GroupName,
@@ -755,6 +773,8 @@ export class ReminderService implements IReminderService {
           reminder.reminderGroupName
         );
       });
+      const output = await Promise.all(deleteEBPromises);
+      reminderResp.push(...output);
       await this.docClient.getKnexClient().transaction(async (trx) => {
         try {
           await ReminderModel.query(trx)
@@ -763,10 +783,12 @@ export class ReminderService implements IReminderService {
               reminders.map((x) => x.id)
             )
             .del();
-
-          await Promise.all(deleteEBPromises);
           await trx.commit();
         } catch (e) {
+          // even if db transaction crashes, we dont have to
+          // worry because reminder from EB is cleaned up
+          // even if this job will run next time, it will add
+          // no side effect
           reminderResp.push(e);
           await trx.rollback();
         }
@@ -831,9 +853,10 @@ export class ReminderService implements IReminderService {
     };
 
     const command: CreateScheduleCommand = new CreateScheduleCommand(input);
-    const output = await this.sendEBCommand(command);
+    const output: CreateScheduleCommandOutput = await this.sendEBCommand(
+      command
+    );
 
     return output;
   }
 }
-

@@ -85,6 +85,20 @@ const emailHandler = {
     },
     {
       http: {
+        method: "get",
+        path: "email-lists",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "get",
+        path: "email-list/{emailListId}/emails",
+        cors: true,
+      },
+    },
+    {
+      http: {
         method: "delete",
         path: "email-list/{emailListId}",
         cors: true,
@@ -118,7 +132,6 @@ const emailHandler = {
         cors: true,
       },
     },
-    // Email Apis
     {
       http: {
         method: "get",

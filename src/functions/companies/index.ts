@@ -1,7 +1,9 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
+import { AWS } from "@serverless/typescript";
+import contactEvents from "./contacts";
 
-const companyHandler = {
+const companyHandler: AWS["functions"][0] = {
   handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
@@ -68,37 +70,6 @@ const companyHandler = {
       },
     },
 
-    ///////// CONTACT
-
-    {
-      http: {
-        method: "post",
-        path: "/company/{companyId}/contact",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "put",
-        path: "/company/{companyId}/contact/{contactId}",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "post",
-        path: "/company/{companyId}/contact/{contactId}/email",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "delete",
-        path: "/company/{companyId}/contact/{contactId}/email/{emailId}",
-        cors: true,
-      },
-    },
-
     ////////
     {
       http: {
@@ -116,13 +87,6 @@ const companyHandler = {
     },
     {
       http: {
-        method: "delete",
-        path: "/company/{companyId}/contact/{contactId}",
-        cors: true,
-      },
-    },
-    {
-      http: {
         method: "get",
         path: "/company/{companyId}/notes",
         cors: true,
@@ -149,29 +113,10 @@ const companyHandler = {
         cors: true,
       },
     },
-    ////
-    {
-      http: {
-        method: "get",
-        path: "contact",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "get",
-        path: "company/{companyId}/contact",
-        cors: true,
-      },
-    },
-    {
-      http: {
-        method: "get",
-        path: "contact/{contactId}",
-        cors: true,
-      },
-    },
   ],
 };
+
+// companyHandler.events.push(...invoiceEvents);
+companyHandler.events.push(...contactEvents);
 
 export { companyHandler };

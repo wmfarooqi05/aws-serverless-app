@@ -104,7 +104,7 @@ export class EmailListService implements IEmailListServiceService {
     @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
-  async getAllEmailLists(enployee: IEmployeeJwt, body: any): Promise<any> {
+  async getAllEmailLists(employee: IEmployeeJwt, body: any): Promise<any> {
     await validateGetEmailLists(body);
     const { returningFields } = body;
 
@@ -116,6 +116,19 @@ export class EmailListService implements IEmailListServiceService {
       .where(whereClause)
       .orderBy(...getOrderByItems(body))
       .paginate(getPaginateClauseObject(body));
+  }
+
+  async getAllEmailsByEmailList(
+    employee: IEmployeeJwt,
+    emailListId,
+    body: any
+  ) {
+    // @TODO check if it belongs to same teamId
+    const { currentPage, perPage } = getPaginateClauseObject(body);
+    return EmailListModel.relatedQuery("emailAddresses")
+      .for(emailListId)
+      .orderBy(...getOrderByItems(body))
+      .page(currentPage - 1, perPage);
   }
 
   // async getEmailListById(
@@ -213,14 +226,30 @@ export class EmailListService implements IEmailListServiceService {
     emailListId: string,
     body: string
   ) {
+    if (!(await EmailListModel.query().findById(emailListId))) {
+      throw new CustomError(`Email List ${emailListId} does not exists`, 400);
+    }
     const payload = JSON.parse(body);
-    await validateAddDeleteEmailsToEmailList(emailListId, payload);
-    const { emails }: { emails: { name: string; email: string }[] } = payload;
-    const emailList: string[] = emails.map((x) => x.email);
-    const existingEmailAddresses: IEmailAddresses[] =
-      await EmailAddressesModel.query().whereIn("email", emailList);
+    await validateAddEmailsToEmailList(emailListId, payload);
+    const {
+      emails: inputEmails,
+    }: { emails: { name?: string; email?: string; emailAddressId: string }[] } =
+      payload;
 
-    const nonExistingEmails: string[] = emailList.filter(
+    const emailAddressIds = inputEmails
+      .filter((x) => x.emailAddressId)
+      .map((x) => x.emailAddressId);
+
+    const emailAddresses = inputEmails
+      .filter((x) => x.email)
+      .map((x) => x.email);
+
+    const existingEmailAddresses: IEmailAddresses[] =
+      await EmailAddressesModel.query()
+        .whereIn("email", emailAddresses)
+        .orWhereIn("id", emailAddressIds);
+
+    const nonExistingEmails: string[] = emailAddresses.filter(
       (email: string) =>
         !existingEmailAddresses.some((existing) => existing.email === email)
     );
@@ -228,7 +257,7 @@ export class EmailListService implements IEmailListServiceService {
     let newEmailAddresses: IEmailAddresses[] = [];
     if (nonExistingEmails.length > 0) {
       const payloads = nonExistingEmails.map((email) => {
-        const name = emails.find((x) => x.email === email)?.name || null;
+        const name = inputEmails.find((x) => x.email === email)?.name || null;
         const payload = { email, emailType: "CUSTOMER" };
         if (name) {
           payload["name"] = name;

@@ -29,6 +29,7 @@ export const EMPLOYEE_TEAMS_TABLE =
   process.env.EMPLOYEE_TEAMS_TABLE || "employee_teams";
 export const FILE_RECORDS = process.env.FILE_RECORDS || "file_records";
 export const FILE_VARIATIONS = process.env.FILE_VARIATIONS || "file_variations";
+export const INVOICES_TABLE = process.env.INVOICE_TABLE || "invoices";
 
 export type ModuleType =
   | "PENDING_APPROVALS"

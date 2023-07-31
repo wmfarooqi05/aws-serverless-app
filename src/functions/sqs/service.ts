@@ -6,7 +6,6 @@ import { SQSEvent } from "aws-lambda";
 import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcessHandler } from "@functions/jobs/bulkSignupProcess";
 import { SQSEventType } from "@models/interfaces/Reminders";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
 import { deleteMessageFromSQS, moveMessageToDLQ } from "@utils/sqs";
@@ -16,6 +15,7 @@ import {
   scheduleGoogleMeeting,
 } from "./jobs/scheduleGoogleMeeting";
 import JobsModel, { IJob } from "@models/Jobs";
+import { createEBScheduler, deleteEbScheduler } from "./jobs/ebScheduler";
 
 let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
 // let queueUrl =
@@ -27,8 +27,6 @@ if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
 @injectable()
 export class SQSService {
   sqsClient: SQSClient = null;
-  dynamoDBClient: DynamoDBClient = null;
-  emailDbClient: DatabaseService = null;
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {
@@ -42,10 +40,7 @@ export class SQSService {
       this.sqsClient = new SQSClient({
         region: process.env.REGION,
       });
-      this.emailDbClient = this.docClient;
     }
-
-    this.dynamoDBClient = new DynamoDBClient({ region: process.env.REGION });
   }
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
@@ -74,10 +69,6 @@ export class SQSService {
           continue;
         }
 
-        if (!this.emailDbClient) {
-          this.emailDbClient = this.docClient;
-        }
-
         /**
          * We are here taking a decision
          * that jobs failed inside processing will be treated as successful
@@ -100,9 +91,9 @@ export class SQSService {
         } else if (jobItem.jobType === "DELETE_GOOGLE_MEETING") {
           resp = await deleteGoogleMeeting(jobItem);
         } else if (jobItem.jobType === "CREATE_EB_SCHEDULER") {
-          /** @TODO */
+          resp = await createEBScheduler(jobItem);
         } else if (jobItem.jobType === "DELETE_EB_SCHEDULER") {
-          /** @TODO */
+          resp = await deleteEbScheduler(jobItem);
         }
 
         // For Email jobs, we will be using different lambda due to layers
