@@ -11,6 +11,7 @@ import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "./commons";
 import ContactModel from "./Contacts";
 import TeamCompanyInteractionsModel from "./TeamCompanyInteractions";
 import EmployeeCompanyInteractionsModel from "./EmployeeCompanyInteractions";
+import { FileRecordModel } from "./FileRecords";
 
 @singleton()
 export default class CompanyModel extends Model {
@@ -88,6 +89,14 @@ export default class CompanyModel extends Model {
       join: {
         from: `${CompanyModel.tableName}.id`,
         to: `${EmployeeCompanyInteractionsModel.tableName}.companyId`,
+      },
+    },
+    companyAvatar: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: FileRecordModel,
+      join: {
+        from: `${CompanyModel.tableName}.avatar`,
+        to: `${FileRecordModel.tableName}.id`,
       },
     },
   });

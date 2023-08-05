@@ -2854,6 +2854,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@kakkuk/serverless-aws-apigateway-documentation@npm:^1.1.13":
+  version: 1.1.13
+  resolution: "@kakkuk/serverless-aws-apigateway-documentation@npm:1.1.13"
+  dependencies:
+    object-hash: ^1.1.7
+  checksum: 642333e951acf0dbdc860f5994166c62b840ceb0bdfd2c1189b396540825b1f7bff0ba8d67bbf147e6f48f0276090c1fcfc0d7fc8ba59bfdedb4950f63145a5e
+  languageName: node
+  linkType: hard
+
 "@kwsites/file-exists@npm:^1.1.1":
   version: 1.1.1
   resolution: "@kwsites/file-exists@npm:1.1.1"
@@ -6812,6 +6821,7 @@ __metadata:
     "@aws-sdk/s3-request-presigner": ^3.341.0
     "@aws-sdk/util-dynamodb": ^3.321.1
     "@joi/date": ^2.1.0
+    "@kakkuk/serverless-aws-apigateway-documentation": ^1.1.13
     "@middy/core": ^4.2.3
     "@middy/http-json-body-parser": ^4.2.3
     "@serverless/typescript": ^3.27.0
@@ -9211,6 +9221,13 @@ __metadata:
   version: 4.1.1
   resolution: "object-assign@npm:4.1.1"
   checksum: fcc6e4ea8c7fe48abfbb552578b1c53e0d194086e2e6bbbf59e0a536381a292f39943c6e9628af05b5528aa5e3318bb30d6b2e53cadaf5b8fe9e12c4b69af23f
+  languageName: node
+  linkType: hard
+
+"object-hash@npm:^1.1.7":
+  version: 1.3.1
+  resolution: "object-hash@npm:1.3.1"
+  checksum: fdcb957a2f15a9060e30655a9f683ba1fc25dfb8809a73d32e9634bec385a2f1d686c707ac1e5f69fb773bc12df03fb64c77ce3faeed83e35f4eb1946cb1989e
   languageName: node
   linkType: hard
 

@@ -104,6 +104,13 @@ export interface IFileRecords {
   // variationStatus: VARIATION_STATUS;
   // variations: FILE_VARIATION[];
   keyWords?: string[];
+
+  uploaderId?: string;
+  uploadedBy: string;
+}
+
+export interface IFileRecordsWithVariations extends IFileRecords {
+  variations?: FILE_VARIATION[];
 }
 
 @singleton()
@@ -125,7 +132,7 @@ export class FileRecordModel extends Model {
         s3Key: { type: "string" },
         fileName: { type: "string" },
         fileType: { type: "string" },
-        fileSize: { type: "string" },
+        fileSize: { type: ["string", "null"] },
         resolution: { type: "string" },
 
         fileKey: { type: ["string", "null"] },
@@ -135,6 +142,8 @@ export class FileRecordModel extends Model {
         permissions: { type: ["object", "null"] },
         status: { type: ["string", "null"] },
         details: { type: "object", default: {} },
+        uploadedBy: { type: "string", default: "SYSTEM" },
+        uploaderId: { type: ["string", "null"] },
         createdAt: { type: "string" },
         updatedAt: { type: "string" },
       },

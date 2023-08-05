@@ -16,6 +16,7 @@ import {
   updateNotes,
   deleteNotes,
   getContactsByCompanyForEmailList,
+  uploadOrReplaceAvatar,
 } from "./handler";
 
 import {
@@ -46,6 +47,11 @@ app.post("/company", async (req, res) => {
 
 app.put("/company/:companyId", async (req, res) => {
   const resp = await updateCompany(req, {} as any);
+  expressResponseHelper(res, resp);
+});
+
+app.put("/company/:companyId/avatar", async (req, res) => {
+  const resp = await uploadOrReplaceAvatar(req, {} as any);
   expressResponseHelper(res, resp);
 });
 

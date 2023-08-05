@@ -2,7 +2,6 @@ import { Knex } from "knex";
 import { tableName as Tables } from "../tables";
 import { onUpdateTrigger } from "../triggers/onUpdateTimestampTrigger";
 
-
 export enum COMPANY_STAGES {
   LEAD = "LEAD",
   CONTACT = "CONTACT", // maybe contact or client
@@ -33,7 +32,13 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("company_name").notNullable();
-      table.string("avatar");
+      table
+        .uuid("avatar")
+        .references("id")
+        .inTable(Tables.fileRecords)
+        .onDelete("SET NULL") // we will run cleanup job
+        .notNullable();
+
       table
         .uuid("created_by")
         .index()

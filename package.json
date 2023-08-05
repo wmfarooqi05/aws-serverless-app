@@ -63,6 +63,7 @@
     "@aws-sdk/lib-dynamodb": "^3.321.1",
     "@aws-sdk/s3-request-presigner": "^3.341.0",
     "@aws-sdk/util-dynamodb": "^3.321.1",
+    "@kakkuk/serverless-aws-apigateway-documentation": "^1.1.13",
     "@serverless/typescript": "^3.27.0",
     "@sparticuz/chromium": "^113.0.1",
     "@types/aws-lambda": "^8.10.110",

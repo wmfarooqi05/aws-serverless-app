@@ -9,6 +9,8 @@ export async function up(knex: Knex): Promise<void> {
     .createTable(tableName, (table) => {
       table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
       table.string("file_url").notNullable().unique();
+      table.string("uploaded_by").notNullable().defaultTo("SYSTEM"); // it can be an employee, or system or something
+      table.uuid("uploader_id");
 
       table.string("s3_key");
       table.string("file_name");

@@ -11,6 +11,7 @@ import {
   DeleteObjectCommandOutput,
   ListObjectsCommand,
   HeadObjectCommand,
+  HeadObjectCommandOutput,
 } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 import * as stream from "stream";
@@ -172,7 +173,11 @@ export const copyS3ObjectAndGetSize = async (
   sourceRegion: string = process.env.REGION,
   destinationBucket: string = process.env.DEPLOYMENT_BUCKET,
   destinationRegion: string = process.env.REGION
-): Promise<{ newLoc: CopyObjectCommandOutput; size: string }> => {
+): Promise<{
+  newLoc: CopyObjectCommandOutput;
+  size: string;
+  head: HeadObjectCommandOutput;
+}> => {
   const copyParams: CopyObjectCommandInput = {
     Bucket: destinationBucket,
     CopySource: `${sourceBucket}/${sourceKey}`,
@@ -209,7 +214,11 @@ export const copyS3ObjectAndGetSize = async (
       };
       await sourceClient.send(new DeleteObjectCommand(deleteParams));
     }
-    return { newLoc, size: bytes(head.ContentLength).toString() };
+    return {
+      newLoc,
+      size: bytes(head.ContentLength).toString(),
+      head,
+    };
   } catch (e) {}
 };
 

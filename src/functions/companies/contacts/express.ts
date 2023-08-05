@@ -55,3 +55,4 @@ export const contactEndpoints = (app: Express) => {
     expressResponseHelper(res, resp);
   });
 };
+  

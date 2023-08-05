@@ -315,4 +315,11 @@ const serverlessConfiguration: AWS = {
   },
 };
 
+if (process.env.NODE_ENV === "local") {
+  console.log("adding documentation to plugin");
+  (serverlessConfiguration.plugins as string[]).push(
+    "@kakkuk/serverless-aws-apigateway-documentation"
+  );
+}
+
 module.exports = serverlessConfiguration;

@@ -1,4 +1,7 @@
 // Only adder can modify notes
+
+import { IFileRecords, IFileRecordsWithVariations } from "@models/FileRecords";
+
 // Manager can delete
 export interface INotes {
   id: string;
@@ -51,6 +54,11 @@ export interface ICompany {
   updatedAt?: string;
   timezone: string;
   // notes?: INotes[];
+}
+
+export interface ICompanyWithRelations extends ICompany {
+  // add other relations as well
+  companyAvatar: IFileRecordsWithVariations;
 }
 
 export enum COMPANY_STAGES {

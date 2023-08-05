@@ -43,6 +43,12 @@ const companyHandler: AWS["functions"][0] = {
     },
     {
       http: {
+        method: "put",
+        path: "company/{companyId}/avatar",
+      },
+    },
+    {
+      http: {
         method: "delete",
         path: "company/{companyId}",
         cors: true,

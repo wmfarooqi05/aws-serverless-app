@@ -9,6 +9,7 @@ import {
   COMPANY_PRIORITY,
   COMPANY_STATUS,
   COMPANY_STAGES,
+  ICompanyWithRelations,
 } from "@models/interfaces/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import moment from "moment-timezone";
@@ -24,6 +25,7 @@ import {
   validateDeleteNotes,
   validateUpdateCompaniesAssignedEmployee,
   validateUpdateCompanyInteractions,
+  validateUploadOrReplaceAvatar,
 } from "./schema";
 
 import { inject, injectable } from "tsyringe";
@@ -64,6 +66,18 @@ import TeamCompanyInteractionsModel, {
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import { IWithPagination } from "knex-paginate";
 import EmployeeModel from "@models/Employees";
+import { FileRecordService, UploadFiles } from "@functions/fileRecords/service";
+import {
+  FILE_VARIATION_TYPE,
+  FilePermissionsMap,
+  IFileRecords,
+  ReadAllPermissions,
+} from "@models/FileRecords";
+import { S3Service } from "@common/service/S3Service";
+import { downloadImage } from "@utils/image";
+import { getFileExtension } from "@utils/file";
+import { JobService } from "@functions/jobs/service";
+import { SQSEventType } from "@models/interfaces/Reminders";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -85,7 +99,11 @@ export class CompanyService implements ICompanyService {
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(PendingApprovalService)
     private readonly pendingApprovalService: PendingApprovalService,
-    @inject(EmployeeService) private readonly employeeService: EmployeeService
+    @inject(EmployeeService) private readonly employeeService: EmployeeService,
+    @inject(FileRecordService)
+    private readonly fileRecordService: FileRecordService,
+    @inject(S3Service) private readonly s3Service: S3Service,
+    @inject(JobService) private readonly jobService: JobService
   ) {}
 
   async getAllCompanies(
@@ -742,5 +760,38 @@ export class CompanyService implements ICompanyService {
       stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
       teamInteractionDetails: companyItem?.teamInteractionDetails ?? {},
     };
+  }
+
+  checkIfImageDoesntExists() {}
+
+  async uploadOrReplaceAvatar(
+    employee: IEmployeeJwt,
+    companyId: string,
+    body: string
+  ) {
+    const payload = JSON.parse(body);
+    await validateUploadOrReplaceAvatar(employee.sub, companyId, payload);
+    /**
+     * We have determined that this is new url
+     * Now we have to upload it to S3 and create record
+     * of file permissions. Then also add a job for image
+     * processing.
+     */
+
+    const companyRecord: ICompanyWithRelations = await CompanyModel.query()
+      .findById(companyId)
+      .withGraphFetched("companyAvatar.[variations]")
+      .select(["id", "companyName"]);
+
+    return this.fileRecordService.avatarUploadHelper(
+      payload.newAvatarUrl,
+      "media/avatars/companies",
+      CompanyModel.tableName,
+      companyId,
+      "avatar",
+      "EMPLOYEE",
+      employee.sub,
+      companyRecord?.companyAvatar
+    );
   }
 }

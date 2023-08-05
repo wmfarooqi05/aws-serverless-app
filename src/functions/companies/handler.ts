@@ -104,6 +104,19 @@ export const updateCompanyHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+export const uploadOrReplaceAvatarHandler = async (event) => {
+  try {
+    const { companyId } = event.params;
+    const updatedCompany = await container
+      .resolve(CompanyService)
+      .uploadOrReplaceAvatar(event?.employee, companyId, event.body || "");
+    return formatJSONResponse(updatedCompany, 200);
+  } catch (e) {
+    console.log("e", e);
+    return formatErrorResponse(e);
+  }
+};
+
 export const updateCompanyInteractionsHandler: ValidatedEventAPIGatewayProxyEvent<
   ICompanyModel
 > = async (event) => {
@@ -263,6 +276,11 @@ export const updateCompany = checkRolePermission(
   "COMPANY_UPDATE",
   "companyId",
   "assignedTo"
+);
+
+export const uploadOrReplaceAvatar = checkRolePermission(
+  uploadOrReplaceAvatarHandler,
+  "COMPANY_READ_ALL"
 );
 
 export const updateCompanyInteractions = checkRolePermission(

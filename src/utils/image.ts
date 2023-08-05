@@ -1,8 +1,7 @@
 import { FileRecordService, UploadFiles } from "@functions/fileRecords/service";
-import { uploadContentToS3 } from "@functions/jobs/upload";
 import { randomUUID } from "crypto";
 import { container } from "tsyringe";
-import { getFileContentType, getFileExtension } from "./file";
+import { getFileContentType } from "./file";
 import { ReadAllPermissions } from "@models/FileRecords";
 
 export const isUrlStringSafe = (urlString: string): boolean => {
@@ -34,7 +33,15 @@ interface DownloadedImage {
   originalUrl: string;
 }
 
-async function downloadImage(urlString: string): Promise<DownloadedImage> {
+/**
+ * Download public images
+ * If image is in /tmp folder, make sure its public because we are keeping it private
+ * @param urlString
+ * @returns
+ */
+export const downloadImage = async (
+  urlString: string
+): Promise<DownloadedImage> => {
   try {
     const response = await fetch(urlString);
     if (!response.ok) {
@@ -57,7 +64,7 @@ async function downloadImage(urlString: string): Promise<DownloadedImage> {
     console.error("Error:", error);
     throw error;
   }
-}
+};
 interface ImageReplacement {
   originalUrl: string;
   s3Url: string;

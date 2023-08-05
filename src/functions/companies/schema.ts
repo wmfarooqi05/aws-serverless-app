@@ -6,7 +6,6 @@ import {
 } from "@models/interfaces/Company";
 import { getPaginatedJoiKeys } from "src/common/schema";
 import CompanyModel from "@models/Company";
-import { IEmployeeJwt } from "@models/interfaces/Employees";
 import EmployeeCompanyInteractionsModel from "@models/EmployeeCompanyInteractions";
 
 const schemaKeys = Object.keys(CompanyModel.jsonSchema.properties);
@@ -198,4 +197,16 @@ export const validateDeleteNotes = async (obj) => {
     companyId: Joi.string().guid().required(),
     notesId: Joi.string().guid().required(),
   }).validateAsync(obj);
+};
+
+export const validateUploadOrReplaceAvatar = async (
+  employeeId,
+  companyId,
+  obj
+) => {
+  await Joi.object({
+    employeeId: Joi.string().guid().required(),
+    companyId: Joi.string().guid().required(),
+    newAvatarUrl: Joi.string().uri().required(),
+  }).validateAsync({ employeeId, companyId, ...obj });
 };
