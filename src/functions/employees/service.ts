@@ -4,7 +4,6 @@ import EmployeeModel from "@models/Employees";
 import {
   IEmployee,
   IEmployeeJwt,
-  roleKey,
   RolesEnum,
 } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
@@ -13,12 +12,12 @@ import {
   validateGetEmployees,
   validateGetEmployeesSummary,
   validateUpdateProfile,
+  validateUploadOrReplaceAvatar,
 } from "./schema";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { getEmployeeFilter } from "./helpers";
-import { COMPANY_STAGES } from "@models/interfaces/Company";
 import { FileRecordService } from "@functions/fileRecords/service";
 import { getKeysFromS3Url } from "@utils/s3";
 import { getFileExtension } from "@utils/file";
@@ -145,11 +144,10 @@ export class EmployeeService implements IEmployeeService {
 
     if (payload.avatar) {
       const keys = getKeysFromS3Url(payload.avatar);
-      const { contentType } =
-        await this.fileRecordsService.getFileProperties(
-          keys.fileKey,
-          keys.bucketName
-        );
+      const { contentType } = await this.fileRecordsService.getFileProperties(
+        keys.fileKey,
+        keys.bucketName
+      );
 
       // We are not storing profile pic name as employee id
       // because in case of update, we have to delete these files
@@ -238,5 +236,29 @@ export class EmployeeService implements IEmployeeService {
       );
     }
   }
-  // async;
+
+  async uploadOrReplaceAvatar(employee: IEmployeeJwt, body: string) {
+    const payload = JSON.parse(body);
+    await validateUploadOrReplaceAvatar(employee.sub, payload);
+
+    const employeeRecord: IEmployee = await EmployeeModel.query()
+      .findById(employee.sub)
+      .withGraphFetched("employeeAvatar.[variations]")
+      .select(["id"]);
+
+    if (!employeeRecord) {
+      throw new CustomError("Employee not found", 400);
+    }
+
+    return this.fileRecordsService.avatarUploadHelper(
+      payload.newAvatarUrl,
+      "media/avatars/employees",
+      EmployeeModel.tableName,
+      employee.sub,
+      "avatar",
+      "EMPLOYEE",
+      employee.sub,
+      employeeRecord?.employeeAvatar
+    );
+  }
 }

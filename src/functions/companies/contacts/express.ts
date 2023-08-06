@@ -9,6 +9,7 @@ import {
   getContactById,
   getContactsByCompany,
   updateContact,
+  uploadOrReplaceAvatar,
 } from "./handler";
 
 export const contactEndpoints = (app: Express) => {
@@ -21,6 +22,12 @@ export const contactEndpoints = (app: Express) => {
     const resp = await updateContact(req, {} as any);
     expressResponseHelper(res, resp);
   });
+
+  app.put("/company/:companyId/contact/:contactId/avatar", async (req, res) => {
+    const resp = await uploadOrReplaceAvatar(req, {} as any);
+    expressResponseHelper(res, resp);
+  });
+
 
   app.delete("/company/:companyId/contact/:contactId", async (req, res) => {
     const resp = await deleteContact(req, {} as any);

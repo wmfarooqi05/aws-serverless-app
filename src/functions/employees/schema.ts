@@ -33,7 +33,6 @@ export const validateCreateProfile = async (obj: any) => {
     name: Joi.string().required(),
     username: Joi.string().required(),
     email: Joi.string().email().required(),
-    avatar: Joi.string().uri(),
     gender: Joi.string().valid(...GenderArray),
     addresses: Joi.array().items({
       title: Joi.string().required(),
@@ -58,7 +57,6 @@ export const validateCreateProfile = async (obj: any) => {
 export const validateUpdateProfile = async (obj: any) => {
   await Joi.object({
     name: Joi.string(),
-    avatar: Joi.string().uri(),
     gender: Joi.string().valid(...GenderArray),
     addresses: Joi.array().items({
       title: Joi.string().required(),
@@ -77,4 +75,11 @@ export const validateUpdateProfile = async (obj: any) => {
     timezone: Joi.string().valid(...moment.tz.names()),
     dateFormat: Joi.string().valid(...DATE_FORMATS),
   }).validateAsync(obj);
+};
+
+export const validateUploadOrReplaceAvatar = async (employeeId, obj) => {
+  await Joi.object({
+    employeeId: Joi.string().guid().required(),
+    newAvatarUrl: Joi.string().uri().required(),
+  }).validateAsync({ employeeId, ...obj });
 };

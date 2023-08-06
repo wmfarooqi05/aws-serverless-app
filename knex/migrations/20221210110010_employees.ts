@@ -20,7 +20,14 @@ export async function up(knex: Knex): Promise<void> {
       table.string("username").unique().notNullable();
       table.string("email").unique().notNullable();
       table.string("name").notNullable();
-      table.string("avatar");
+
+      table
+        .uuid("avatar")
+        .references("id")
+        .inTable(Tables.fileRecords)
+        .onDelete("SET NULL") // we will run cleanup job
+        .notNullable();
+
       table.string("job_title").defaultTo(RolesArray[0]);
       table.boolean("enabled").defaultTo(true);
       table
@@ -43,7 +50,7 @@ export async function up(knex: Knex): Promise<void> {
         .references("id")
         .inTable(tableName)
         .onDelete("SET NULL");
-      table.string("employee_status").defaultTo('ENABLED');
+      table.string("employee_status").defaultTo("ENABLED");
       table.jsonb("details").defaultTo(JSON.stringify({}));
       table.jsonb("secondary_phone_numbers").defaultTo([]);
 

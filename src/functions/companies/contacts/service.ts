@@ -5,7 +5,11 @@ import CompanyModel, {
 } from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { validateCreateContact, validateUpdateContact } from "./schema";
+import {
+  validateCreateContact,
+  validateUpdateContact,
+  validateUploadOrReplaceAvatar,
+} from "./schema";
 
 import { inject, injectable } from "tsyringe";
 import { updateHistoryHelper } from "src/common/json_helpers";
@@ -16,6 +20,7 @@ import ContactModel, { IContact } from "@models/Contacts";
 import { CustomError } from "@helpers/custom-error";
 import { ICompany } from "@models/interfaces/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
+import { FileRecordService } from "@functions/fileRecords/service";
 
 export interface IContactService {
   getAllCompanies(body: any): Promise<ICompanyPaginated>;
@@ -34,7 +39,9 @@ export class ContactService implements IContactService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(PendingApprovalService)
-    private readonly pendingApprovalService: PendingApprovalService
+    private readonly pendingApprovalService: PendingApprovalService,
+    @inject(FileRecordService)
+    private readonly fileRecordService: FileRecordService
   ) {}
 
   getAllContactQuery(body, whereClause = {}) {
@@ -211,6 +218,49 @@ export class ContactService implements IContactService {
     );
 
     return { contacts: null };
+  }
+
+  async uploadOrReplaceAvatar(
+    employee: IEmployeeJwt,
+    companyId: string,
+    contactId: string,
+    body: string
+  ) {
+    const payload = JSON.parse(body);
+    await validateUploadOrReplaceAvatar(
+      employee.sub,
+      companyId,
+      contactId,
+      payload
+    );
+    /**
+     * We have determined that this is new url
+     * Now we have to upload it to S3 and create record
+     * of file permissions. Then also add a job for image
+     * processing.
+     */
+
+    const contactRecord: IContact = await ContactModel.query()
+      .findById(contactId)
+      .withGraphFetched("contactAvatar.[variations]")
+      .select(["id", "companyId"]);
+
+    if (!contactRecord) {
+      throw new CustomError("Contact not found", 400);
+    } else if (contactRecord.companyId !== companyId) {
+      throw new CustomError("Contact doesn't belong to this company", 400);
+    }
+
+    return this.fileRecordService.avatarUploadHelper(
+      payload.newAvatarUrl,
+      "media/avatars/contacts",
+      ContactModel.tableName,
+      contactId,
+      "avatar",
+      "EMPLOYEE",
+      employee.sub,
+      contactRecord?.contactAvatar
+    );
   }
 
   // async addContactEmail(employee: IEmployeeJwt, contactId: string, body: any) {

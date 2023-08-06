@@ -57,6 +57,20 @@ export const validateDeleteContact = async (obj) => {
   }).validateAsync(obj);
 };
 
+export const validateUploadOrReplaceAvatar = async (
+  employeeId,
+  companyId,
+  contactId,
+  obj
+) => {
+  await Joi.object({
+    employeeId: Joi.string().guid().required(),
+    companyId: Joi.string().guid().required(),
+    contactId: Joi.string().guid().required(),
+    newAvatarUrl: Joi.string().uri().required(),
+  }).validateAsync({ employeeId, companyId, contactId, ...obj });
+};
+
 // export const validateAddEmail = async (employeeId, contactId, obj) => {
 //   return Joi.object({
 //     employeeId: Joi.string().guid().required(),

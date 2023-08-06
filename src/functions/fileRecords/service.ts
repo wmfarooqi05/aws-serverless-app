@@ -309,8 +309,7 @@ export class FileRecordService {
           fileUrl: constructS3Url(
             destinationBucket,
             destinationRegion,
-            destinationKey,
-            fileName
+            destinationKey
           ),
           fileType:
             head.status === "fulfilled"

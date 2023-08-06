@@ -35,7 +35,14 @@ const employeeHandler = {
     {
       http: {
         method: "put",
-        path: "employee/profile/{id}",
+        path: "employee/{employeeId}/profile",
+        cors: true,
+      },
+    },
+    {
+      http: {
+        method: "put",
+        path: "employee/avatar",
         cors: true,
       },
     },

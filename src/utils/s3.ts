@@ -13,9 +13,13 @@ export const constructS3Url = (
   bucketName: string,
   region: string,
   fileKey: string,
-  fileName: string
+  fileName?: string
 ) => {
-  return `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}/${fileName}`;
+  let key = `https://${bucketName}.s3.${region}.amazonaws.com/${fileKey}`;
+  if (fileName) {
+    key = `${key}/${fileName}`;
+  }
+  return key;
 };
 
 export const checkVariationStatus = (

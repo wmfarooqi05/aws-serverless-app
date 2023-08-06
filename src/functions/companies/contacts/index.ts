@@ -38,6 +38,13 @@ const contactEvents: AWS["functions"][0]["events"] = [
   },
   {
     http: {
+      method: "put",
+      path: "/company/{companyId}/contact/{contactId}/avatar",
+      cors: true,
+    },
+  },
+  {
+    http: {
       method: "post",
       path: "/company/{companyId}/contact/{contactId}/email",
       cors: true,

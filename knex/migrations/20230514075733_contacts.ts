@@ -13,8 +13,14 @@ export async function up(knex: Knex): Promise<void> {
         .inTable(Tables.companies)
         .notNullable();
 
+      table
+        .uuid("avatar")
+        .references("id")
+        .inTable(Tables.fileRecords)
+        .onDelete("SET NULL") // we will run cleanup job
+        .notNullable();
+
       table.string("name").notNullable();
-      table.string("avatar");
       table.string("designation");
       table.jsonb("emails").defaultTo(JSON.stringify([]));
       table.jsonb("phone_numbers").defaultTo(JSON.stringify([]));

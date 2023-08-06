@@ -1,11 +1,9 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import {
-  COMPANIES_TABLE_NAME,
-  CONTACTS_TABLE,
-} from "./commons";
+import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "./commons";
 import CompanyModel from "./Company";
+import { FileRecordModel } from "./FileRecords";
 
 export const validPlaceHolders = [
   "email",
@@ -13,7 +11,7 @@ export const validPlaceHolders = [
   "designation",
   "phoneNumbers",
   "companyName",
-]
+];
 
 export interface IContact {
   id: string;
@@ -79,6 +77,14 @@ export default class ContactModel extends Model {
       join: {
         from: `${CONTACTS_TABLE}.companyId`,
         to: `${COMPANIES_TABLE_NAME}.id`,
+      },
+    },
+    contactAvatar: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: FileRecordModel,
+      join: {
+        from: `${ContactModel.tableName}.avatar`,
+        to: `${FileRecordModel.tableName}.id`,
       },
     },
     // emails: {},

@@ -75,6 +75,17 @@ const updateMyProfileHandler = async (event) => {
   }
 };
 
+export const uploadOrReplaceAvatarHandler = async (event) => {
+  try {
+    const updatedEmployee = await container
+      .resolve(EmployeeService)
+      .uploadOrReplaceAvatar(event?.employee, event.body || "");
+    return formatJSONResponse(updatedEmployee, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 export const getEmployees = checkRolePermission(
   getEmployeesHandler,
   "COMPANY_READ_ALL"
@@ -97,5 +108,10 @@ export const createProfile = checkRolePermission(
 
 export const updateMyProfile = checkRolePermission(
   updateMyProfileHandler,
+  "COMPANY_READ_ALL"
+);
+
+export const uploadOrReplaceAvatar = checkRolePermission(
+  uploadOrReplaceAvatarHandler,
   "COMPANY_READ_ALL"
 );

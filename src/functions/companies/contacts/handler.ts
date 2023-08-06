@@ -77,6 +77,23 @@ const updateContactHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
+const uploadOrReplaceAvatarHandler = async (event) => {
+  try {
+    const { companyId, contactId } = event.params;
+    const updatedContact = await container
+      .resolve(ContactService)
+      .uploadOrReplaceAvatar(
+        event?.employee,
+        companyId,
+        contactId,
+        event.body || ""
+      );
+    return formatJSONResponse(updatedContact, 200);
+  } catch (e) {
+    return formatErrorResponse(e);
+  }
+};
+
 const deleteContactHandler: ValidatedEventAPIGatewayProxyEvent<
   IContactModel
 > = async (event) => {
@@ -125,6 +142,12 @@ export const updateContact = checkRolePermission(
   updateContactHandler,
   "CONTACT_UPDATE"
 );
+
+export const uploadOrReplaceAvatar = checkRolePermission(
+  uploadOrReplaceAvatarHandler,
+  "COMPANY_READ_ALL"
+);
+
 export const deleteContact = checkRolePermission(
   deleteContactHandler,
   "CONTACT_DELETE"

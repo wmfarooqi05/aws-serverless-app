@@ -9,6 +9,7 @@ import { singleton } from "tsyringe";
 import { EMPLOYEES_TABLE_NAME, EMPLOYEE_TEAMS_TABLE } from "./commons";
 import { GenderArray, RolesArray, RolesEnum } from "./interfaces/Employees";
 import TeamModel from "./Teams";
+import { FileRecordModel } from "./FileRecords";
 @singleton()
 export default class EmployeeModel extends Model {
   static get tableName() {
@@ -95,6 +96,14 @@ export default class EmployeeModel extends Model {
           onDelete: "CASCADE",
         },
         to: `${TeamModel.tableName}.id`,
+      },
+    },
+    employeeAvatar: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: FileRecordModel,
+      join: {
+        from: `${EmployeeModel.tableName}.avatar`,
+        to: `${FileRecordModel.tableName}.id`,
       },
     },
   });

@@ -762,8 +762,6 @@ export class CompanyService implements ICompanyService {
     };
   }
 
-  checkIfImageDoesntExists() {}
-
   async uploadOrReplaceAvatar(
     employee: IEmployeeJwt,
     companyId: string,
