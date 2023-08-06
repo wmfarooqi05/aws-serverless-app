@@ -159,7 +159,8 @@ export class FileRecordService {
 
       details.variations = this.getVariationDetails(
         variationEnforcedRequired,
-        variations
+        variations,
+        fileType
       );
 
       return {
@@ -289,17 +290,18 @@ export class FileRecordService {
         const details: IFileRecordDetails =
           x.status === "rejected" ? { error: x.reason } : {};
 
-        details.variations = this.getVariationDetails(
-          variationEnforcedRequired,
-          variations
-        );
-
         const fileName = getFileNameWithoutExtension(fileNameWithExt);
         const fileType =
           head.status === "fulfilled"
             ? head.value.ContentType
             : getFileContentType(fileName.split("/").at(-1));
         const fileNameWithNewExt = `${fileName}.${getFileExtension(fileType)}`;
+
+        details.variations = this.getVariationDetails(
+          variationEnforcedRequired,
+          variations,
+          fileType
+        );
 
         return {
           bucketName: destinationBucket,
@@ -557,7 +559,8 @@ export class FileRecordService {
 
   getVariationDetails(
     variationEnforcedRequired: boolean = false,
-    variations: FILE_VARIATION_TYPE[]
+    variations: FILE_VARIATION_TYPE[],
+    contentType: string
   ) {
     if (variationEnforcedRequired) {
       return {
@@ -566,7 +569,7 @@ export class FileRecordService {
       };
     } else {
       return {
-        variationStatus: checkVariationStatus("contentType"),
+        variationStatus: checkVariationStatus(contentType),
         variationSizes: variations ?? ["THUMBNAIL"],
       };
     }
