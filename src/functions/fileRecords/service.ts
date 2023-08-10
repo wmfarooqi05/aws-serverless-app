@@ -1,6 +1,5 @@
 import {
   HeadObjectCommand,
-  HeadObjectCommandOutput,
   PutObjectCommand,
   PutObjectCommandInput,
   PutObjectCommandOutput,
@@ -166,7 +165,7 @@ export class FileRecordService {
       return {
         fileName,
         s3Key,
-        fileSize: getByteSize(fileContent),
+        fileSize: getByteSize(fileContent) || undefined,
         fileUrl: constructS3Url(bucketName, region, s3Key, fileName),
         bucketName,
         region,

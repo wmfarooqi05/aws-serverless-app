@@ -36,12 +36,6 @@ export const decodeJWTMiddleware = () => {
       if (event.employee) {
         const { teamId } = event.employee;
         event.employee.teamId = teamId?.split(",");
-        if (process.env.STAGE === "local") {
-          event.employee.teamId = [
-            "f861b2dc-b1b9-4c59-9047-99bcfeca9cda",
-            "f2ddc487-6ab0-4cd3-b537-6bb7d5038660",
-          ];
-        }
         if (event.headers[TEAM_HEADER_KEY]) {
           event.employee.currentTeamId = event.headers[TEAM_HEADER_KEY];
         } else {

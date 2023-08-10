@@ -64,8 +64,8 @@ export function getByteSize(value) {
     return bytes(value);
   } else if (isArrayBuffer(value) || isBuffer(value)) {
     return bytes(value.byteLength);
-  } else {
-    return bytes(JSON.stringify(value).toString());
+  } else if (typeof value === "object") {
+    return bytes(Buffer.byteLength(JSON.stringify(value), "utf8"));
   }
 }
 

@@ -19,9 +19,11 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: false, //{ rejectUnauthorized: false },
     },
     pool: {
-      min: 2,
+      min: 1,
       max: 10,
+      idleTimeoutMillis: 30000,
     },
+    acquireConnectionTimeout: 30000,
     migrations: {
       tableName: "knex_migrations",
       directory: "./migrations",
@@ -29,7 +31,6 @@ export const config: Record<ENV, Knex.Config> = {
     seeds: {
       directory: "./seeds",
     },
-    
   },
   dev: {
     client: "pg",
@@ -43,9 +44,11 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: { rejectUnauthorized: false },
     },
     pool: {
-      min: 2,
+      min: 1,
       max: 10,
+      idleTimeoutMillis: 30000,
     },
+    acquireConnectionTimeout: 30000,
     migrations: {
       tableName: "knex_migrations",
       directory: "./migrations",
@@ -66,9 +69,11 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: { rejectUnauthorized: false },
     },
     pool: {
-      min: 2,
+      min: 1,
       max: 10,
+      idleTimeoutMillis: 30000,
     },
+    acquireConnectionTimeout: 30000,
     seeds: {
       directory: "./seeds",
     },
@@ -89,9 +94,11 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: { rejectUnauthorized: false }, // install ssl lib and delete line
     },
     pool: {
-      min: 2,
+      min: 1,
       max: 10,
+      idleTimeoutMillis: 30000,
     },
+    acquireConnectionTimeout: 30000,
     migrations: {
       tableName: "knex_migrations",
       directory: "./src/database/migrations",

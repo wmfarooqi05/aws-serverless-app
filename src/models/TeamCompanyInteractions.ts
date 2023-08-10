@@ -8,6 +8,8 @@ import {
 } from "./commons";
 import { COMPANY_STAGES } from "./interfaces/Company";
 import { IEmployeeJwt } from "./interfaces/Employees";
+import TeamModel, { ITeam } from "./Teams";
+import CompanyModel from "./Company";
 
 export const getDefaultTeamInteractionItem = (
   employee: IEmployeeJwt,
@@ -15,7 +17,7 @@ export const getDefaultTeamInteractionItem = (
 ) => {
   return {
     companyId,
-    teamId: employee.teamId,
+    teamId: employee.currentTeamId ?? employee.teamId[0],
     stage: COMPANY_STAGES.LEAD,
     teamInteractionDetails: {},
   };
@@ -27,6 +29,7 @@ export interface ITeamCompanyInteraction {
   teamId: string;
   stage: COMPANY_STAGES;
   teamInteractionDetails: Object;
+  team?: ITeam;
 }
 
 @singleton()
@@ -60,27 +63,6 @@ export default class TeamCompanyInteractionsModel extends Model {
     return ["teamId", "stage", "teamInteractionDetails"];
   }
 
-  // This object defines the relations to other models. The relationMappings
-  // property can be a thunk to prevent circular dependencies.
-  static relationMappings = () => ({
-    company: {
-      relation: Model.BelongsToOneRelation,
-      modelClass: COMPANIES_TABLE_NAME,
-      join: {
-        from: `${TEAM_COMPANY_INTERACTIONS_TABLE}.companyId`,
-        to: `${COMPANIES_TABLE_NAME}.id`,
-      },
-    },
-    team: {
-      relation: Model.BelongsToOneRelation,
-      modelClass: TEAMS_TABLE,
-      join: {
-        from: `${TEAM_COMPANY_INTERACTIONS_TABLE}.teamId`,
-        to: `${TEAMS_TABLE}.id`,
-      },
-    },
-  });
-
   static get jsonAttributes() {
     return ["teamInteractionDetails"];
   }
@@ -91,6 +73,26 @@ export default class TeamCompanyInteractionsModel extends Model {
     },
   };
 
+  // This object defines the relations to other models. The relationMappings
+  // property can be a thunk to prevent circular dependencies.
+  static relationMappings = () => ({
+    company: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: CompanyModel,
+      join: {
+        from: `${TeamCompanyInteractionsModel.tableName}.companyId`,
+        to: `${CompanyModel.tableName}.id`,
+      },
+    },
+    team: {
+      relation: Model.BelongsToOneRelation,
+      modelClass: TeamModel,
+      join: {
+        from: `${TeamCompanyInteractionsModel.tableName}.teamId`,
+        to: `${TeamModel.tableName}.id`,
+      },
+    },
+  });
   // $beforeInsert() {
   //   this.createdAt = new Date();
   // }

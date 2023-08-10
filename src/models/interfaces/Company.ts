@@ -1,6 +1,7 @@
 // Only adder can modify notes
 
-import { IFileRecords, IFileRecordsWithVariations } from "@models/FileRecords";
+import { IFileRecordsWithVariations } from "@models/FileRecords";
+import { ITeamCompanyInteraction } from "@models/TeamCompanyInteractions";
 
 // Manager can delete
 export interface INotes {
@@ -58,7 +59,8 @@ export interface ICompany {
 
 export interface ICompanyWithRelations extends ICompany {
   // add other relations as well
-  companyAvatar: IFileRecordsWithVariations;
+  companyAvatar?: IFileRecordsWithVariations;
+  teamInteractions?: ITeamCompanyInteraction[];
 }
 
 export enum COMPANY_STAGES {

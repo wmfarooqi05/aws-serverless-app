@@ -66,18 +66,10 @@ import TeamCompanyInteractionsModel, {
 import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import { IWithPagination } from "knex-paginate";
 import EmployeeModel from "@models/Employees";
-import { FileRecordService, UploadFiles } from "@functions/fileRecords/service";
-import {
-  FILE_VARIATION_TYPE,
-  FilePermissionsMap,
-  IFileRecords,
-  ReadAllPermissions,
-} from "@models/FileRecords";
+import { FileRecordService } from "@functions/fileRecords/service";
 import { S3Service } from "@common/service/S3Service";
-import { downloadImage } from "@utils/image";
-import { getFileExtension } from "@utils/file";
 import { JobService } from "@functions/jobs/service";
-import { SQSEventType } from "@models/interfaces/Reminders";
+import TeamModel, { ITeam } from "@models/Teams";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -395,24 +387,37 @@ export class CompanyService implements ICompanyService {
   }
 
   async convertCompany(employee: IEmployeeJwt, companyId: string) {
-    const company: ICompany = await CompanyModel.query().findById(companyId);
+    const company: ICompanyWithRelations = await CompanyModel.query()
+      .findById(companyId)
+      .withGraphFetched("teamInteractions(filterByMyTeamModifier).[team]")
+      .modifiers({
+        filterByMyTeamModifier: (query) =>
+          query.modify("filterByMyTeam", employee.currentTeamId),
+      });
+
     if (!company) {
       throw new CustomError("Company not found", 404);
     }
 
-    const teamInteraction: ITeamCompanyInteraction =
-      await TeamCompanyInteractionsModel.query()
-        .where({
-          companyId,
-          teamId: employee.currentTeamId,
-        })
-        .first();
+    const teamCompanyInteraction: ITeamCompanyInteraction | null =
+      company.teamInteractions?.[0] || null;
 
-    if (teamInteraction.stage === COMPANY_STAGES.CONTACT) {
+    if (teamCompanyInteraction?.stage === COMPANY_STAGES.CONTACT) {
       throw new CustomError("Company is already converted to contact", 400);
     }
-    const id = teamInteraction?.id ?? null;
-    const action = teamInteraction?.id
+
+    const team: ITeam =
+      teamCompanyInteraction?.team ??
+      (await TeamModel.query().findById(employee.currentTeamId));
+    if (!team) {
+      throw new CustomError(
+        `Team ${employee.currentTeamId} doesn't exists`,
+        400
+      );
+    }
+
+    const id = teamCompanyInteraction?.id ?? null;
+    const action = teamCompanyInteraction?.id
       ? PendingApprovalType.UPDATE
       : PendingApprovalType.CREATE;
 
@@ -444,7 +449,17 @@ export class CompanyService implements ICompanyService {
       payload
     );
 
-    return { company: { stage: COMPANY_STAGES.CONTACT } };
+    return {
+      ...company,
+      teamInteractions: teamCompanyInteraction
+        ? [
+            {
+              ...teamCompanyInteraction,
+              ...payload,
+            },
+          ]
+        : [{ ...payload, team }],
+    };
   }
 
   async deleteCompany(

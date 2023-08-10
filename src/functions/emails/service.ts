@@ -259,6 +259,7 @@ export class EmailService implements IEmailService {
     // @TODO get reporting manager if want to add CC
 
     const payload = JSON.parse(_body);
+    console.log("[sendEmail], payload", _body);
     await validateSendEmail(payload);
     const {
       toList,
@@ -332,13 +333,12 @@ export class EmailService implements IEmailService {
     try {
       const { mailComposer, copyS3Promises, emailRecord } =
         await this.composeEmail(
-          senderName,
-          senderEmail,
+          employee,
           toList,
           ccList,
           bccList,
           subject,
-          senderEmail, // reply to
+          employee.email, // reply to
           body,
           attachments,
           isBodyUploaded,
@@ -480,7 +480,7 @@ export class EmailService implements IEmailService {
 
   /**
    *
-   * @param senderName
+   * @param employee
    * @param senderEmail
    * @param toList
    * @param ccList
@@ -495,8 +495,7 @@ export class EmailService implements IEmailService {
    * @returns
    */
   async composeEmail(
-    senderName: string,
-    senderEmail: string,
+    employee: IEmployee,
     toList: { email: string; name: string }[] | undefined,
     ccList: { email: string; name: string }[] | undefined,
     bccList: { email: string; name: string }[] | undefined,
@@ -517,6 +516,7 @@ export class EmailService implements IEmailService {
     mailComposer: MailComposer;
     copyS3Promises: Promise<CopyObjectCommandOutput>[];
   }> {
+    const { name: senderName, email: senderEmail } = employee;
     let emailBody: any = body;
     if (isBodyUploaded && isValidUrl(emailBody)) {
       const readableBody = await getS3ReadableFromUrl(emailBody);
@@ -653,6 +653,7 @@ export class EmailService implements IEmailService {
             originalFilename: "content.json",
             variationEnforcedRequired: true,
             variations: ["THUMBNAIL", "MEDIUM"],
+            uploadedBy: employee.id,
           },
         ],
         permissionMap

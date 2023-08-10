@@ -1,0 +1,100 @@
+{
+    "DBInstances": [
+        {
+            "DBInstanceIdentifier": "global-employement-database",
+            "DBInstanceClass": "db.t3.micro",
+            "Engine": "postgres",
+            "DBInstanceStatus": "available",
+            "MasterUsername": "postgres",
+            "Endpoint": {
+                "Address": "global-employement-database.cyb3arxab5e4.ca-central-1.rds.amazonaws.com",
+                "Port": 5432,
+                "HostedZoneId": "Z1JG78A3UK1DU3"
+            },
+            "AllocatedStorage": 20,
+            "InstanceCreateTime": "2023-03-21T18:19:20.663000+00:00",
+            "PreferredBackupWindow": "04:37-05:07",
+            "BackupRetentionPeriod": 7,
+            "DBSecurityGroups": [],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": "sg-0f35fcd0a25a50f4e",
+                    "Status": "active"
+                }
+            ],
+            "DBParameterGroups": [
+                {
+                    "DBParameterGroupName": "default.postgres15",
+                    "ParameterApplyStatus": "in-sync"
+                }
+            ],
+            "AvailabilityZone": "ca-central-1d",
+            "DBSubnetGroup": {
+                "DBSubnetGroupName": "project-vpc-group-combined",
+                "DBSubnetGroupDescription": "project vpc group with public private combined",
+                "VpcId": "vpc-05126227d046548e1",
+                "SubnetGroupStatus": "Complete",
+                "Subnets": [
+                    {
+                        "SubnetIdentifier": "subnet-02752e6de3a0e8a16",
+                        "SubnetAvailabilityZone": {
+                            "Name": "ca-central-1a"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-0803209af3915f116",
+                        "SubnetAvailabilityZone": {
+                            "Name": "ca-central-1d"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    }
+                ]
+            },
+            "PreferredMaintenanceWindow": "thu:09:27-thu:09:57",
+            "PendingModifiedValues": {},
+            "LatestRestorableTime": "2023-08-09T19:44:34+00:00",
+            "MultiAZ": false,
+            "EngineVersion": "15.2",
+            "AutoMinorVersionUpgrade": true,
+            "ReadReplicaDBInstanceIdentifiers": [],
+            "LicenseModel": "postgresql-license",
+            "OptionGroupMemberships": [
+                {
+                    "OptionGroupName": "default:postgres-15",
+                    "Status": "in-sync"
+                }
+            ],
+            "PubliclyAccessible": true,
+            "StorageType": "gp2",
+            "DbInstancePort": 0,
+            "StorageEncrypted": true,
+            "KmsKeyId": "arn:aws:kms:ca-central-1:524073432557:key/d9911ab3-fade-403e-88df-c1463612a2ef",
+            "DbiResourceId": "db-5PSI5IH6MEGFY5W5HI4KDHOFRU",
+            "CACertificateIdentifier": "rds-ca-2019",
+            "DomainMemberships": [],
+            "CopyTagsToSnapshot": true,
+            "MonitoringInterval": 0,
+            "DBInstanceArn": "arn:aws:rds:ca-central-1:524073432557:db:global-employement-database",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "PerformanceInsightsEnabled": true,
+            "PerformanceInsightsKMSKeyId": "arn:aws:kms:ca-central-1:524073432557:key/d9911ab3-fade-403e-88df-c1463612a2ef",
+            "PerformanceInsightsRetentionPeriod": 7,
+            "DeletionProtection": false,
+            "AssociatedRoles": [],
+            "MaxAllocatedStorage": 1000,
+            "TagList": [],
+            "CustomerOwnedIpEnabled": false,
+            "ActivityStreamStatus": "stopped",
+            "BackupTarget": "region",
+            "NetworkType": "IPV4",
+            "StorageThroughput": 0,
+            "CertificateDetails": {
+                "CAIdentifier": "rds-ca-2019",
+                "ValidTill": "2024-08-22T17:08:50+00:00"
+            }
+        }
+    ]
+}
