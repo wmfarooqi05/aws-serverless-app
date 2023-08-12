@@ -12,7 +12,7 @@ import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
 import CompanyModel from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { uploadToS3 } from "./upload";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 import { CustomError } from "@helpers/custom-error";
 
 // @TODO add service

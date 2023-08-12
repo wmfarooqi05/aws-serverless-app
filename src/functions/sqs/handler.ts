@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { SQSEvent } from "aws-lambda";
 import { SQSService } from "./service";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 export const sqsJobQueueInvokeHandler = async (event: SQSEvent) => {
   try {

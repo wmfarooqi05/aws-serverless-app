@@ -12,7 +12,7 @@ import {
 } from "@models/interfaces/Activity";
 import { IEmployee } from "@models/interfaces/Employees";
 import { isMatch } from "lodash";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 interface SchedulingInput extends IReminderInterface {
   dueDate: string;

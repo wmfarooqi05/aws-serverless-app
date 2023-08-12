@@ -1,6 +1,6 @@
 import { FileRecordService, UploadFiles } from "@functions/fileRecords/service";
 import { randomUUID } from "crypto";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 import { getFileContentType } from "./file";
 import { ReadAllPermissions } from "@models/FileRecords";
 

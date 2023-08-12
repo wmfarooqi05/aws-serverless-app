@@ -1,9 +1,8 @@
 import { validateRequestByEmployeeRole } from "@common/helpers/permissions";
 import { CustomError } from "@helpers/custom-error";
-import { ValidatedEventAPIGatewayProxyEvent } from "@libs/api-gateway";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 // PUT SOME COMMENTS TO UNDERSTAND
 export const getParamKeyValueFromEvent = (event, key: string) => {

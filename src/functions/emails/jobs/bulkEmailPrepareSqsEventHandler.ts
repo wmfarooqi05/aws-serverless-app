@@ -20,7 +20,7 @@ import { COMPANIES_TABLE_NAME, CONTACTS_TABLE } from "@models/commons";
 import { mergeEmailAndName } from "@utils/emails";
 import { randomUUID } from "crypto";
 import { IWithPagination } from "knex-paginate";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 export const bulkEmailPrepareSqsEventHandler = async (
   emailDbClient: DatabaseService,

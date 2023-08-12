@@ -1,8 +1,10 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 // import { ElasticCacheService } from "./service/ElasticCache";
-import { container } from "tsyringe";
+import { container as tsyringeContainer } from "tsyringe";
 
-container.registerInstance("DatabaseService", DatabaseService);
+const container = tsyringeContainer;
+console.log("tsyringeContainer");
+container.registerSingleton("DatabaseService", DatabaseService);
 // container.registerInstance("ElasticCacheService", ElasticCacheService);
 export { container };

@@ -3,7 +3,7 @@ import { DynamoDBStreamEvent } from "aws-lambda";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 
 import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 

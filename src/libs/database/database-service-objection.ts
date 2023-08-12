@@ -1,4 +1,4 @@
-import { injectable } from "tsyringe";
+import { injectable, singleton } from "tsyringe";
 import { Knex, knex } from "knex";
 import { Model, knexSnakeCaseMappers } from "objection";
 import { config as knexConfig } from "../../../knex/knexfile";
@@ -6,17 +6,19 @@ import { attachPaginate } from "knex-paginate";
 // @TODO check if this works
 attachPaginate();
 
-@injectable()
+@singleton()
 export class DatabaseService {
   // @TODO make this private
   knexClient: Knex | null = null;
 
   constructor() {
+    console.log("database constructor");
     this.initializeClient();
   }
 
-  private async initializeClient() {
+  private initializeClient() {
     if (!this.knexClient) {
+      console.log("knex client not defined", new Date().toISOString());
       const config: Knex.Config = {
         ...knexConfig[process.env.STAGE],
         ...knexSnakeCaseMappers(),

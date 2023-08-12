@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { PreTokenGenerationTriggerHandler } from "aws-lambda";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 import { IEmployeeWithTeam } from "@models/interfaces/Employees";
 import EmployeeModel from "@models/Employees";
 

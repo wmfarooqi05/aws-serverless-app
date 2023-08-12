@@ -7,7 +7,7 @@ import { IJob } from "@models/Jobs";
 import { INotification } from "@models/Notification";
 import { IActivity } from "@models/interfaces/Activity";
 import { get } from "lodash";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 export const scheduleGoogleMeeting = async (jobItem: IJob) => {
   const activityId: string = jobItem?.details?.activityId;

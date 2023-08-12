@@ -2,7 +2,7 @@ import { checkRolePermission } from "@libs/middlewares/jwtMiddleware";
 import "reflect-metadata";
 import { UtilService } from "./service";
 import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 const generateSignedUrlHandler = async (event) => {
   try {

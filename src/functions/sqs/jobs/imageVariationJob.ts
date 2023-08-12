@@ -18,7 +18,7 @@ import {
 } from "@utils/sqs";
 import { generateThumbnailFromHtml, imageResize } from "@utils/thumbnails";
 import { SQSEvent } from "aws-lambda";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import moment from "moment-timezone";
 

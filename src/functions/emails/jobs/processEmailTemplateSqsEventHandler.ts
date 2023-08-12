@@ -12,7 +12,7 @@ import { getPlaceholders, isHtml } from "@utils/emails";
 import { replaceImageUrls } from "@utils/image";
 import { isValidJSON } from "@utils/json";
 import { htmlToText } from "html-to-text";
-import { container } from "tsyringe";
+import { container } from "@common/container";
 
 const sesClient = new SESClient({ region: process.env.REGION });
 const fileRecordService = container.resolve(FileRecordService);
