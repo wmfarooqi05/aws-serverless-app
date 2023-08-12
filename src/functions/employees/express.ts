@@ -7,20 +7,15 @@ import {
   updateMyProfile,
   uploadOrReplaceAvatar,
 } from "./handler";
-import { expressResponseHelper } from "@utils/express";
+import {
+  expressInputParseMiddleware,
+  expressResponseHelper,
+} from "@utils/express";
 
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
-app.use((req, _, next) => {
-  if (req.body && Buffer.isBuffer(req.body)) {
-    req.body = req.body.toString();
-  } else if (typeof req.body === "string") {
-    req.body = JSON.parse(req.body);
-  }
-  // Do something with the request, such as logging or modifying headers
-  next(); // Call the next middleware or route handler
-});
+app.use(expressInputParseMiddleware);
 
 app.get("/employees-summary", async (req, res) => {
   const resp = await getEmployeesWorkSummary(req, {} as any);

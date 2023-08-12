@@ -4,8 +4,6 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
-import { generateSignedUrl, getPublicUrls } from "./handler";
-
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     req.body = req.body.toString();
@@ -15,14 +13,6 @@ app.use((req, _, next) => {
   // Do something with the request, such as logging or modifying headers
   next(); // Call the next middleware or route handler
 });
-
-const resHelper = (res, apiResponse) => {
-  res
-    .status(apiResponse.statusCode || 200)
-    .set(apiResponse.headers)
-    .set("Content-Type", "application/json")
-    .send(apiResponse.body);
-};
 
 app.post("/sqs", async (req, res) => {
   const resp = await sqsHandle(req, {} as any);

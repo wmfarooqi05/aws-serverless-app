@@ -16,13 +16,15 @@ export class DatabaseService {
   }
 
   private async initializeClient() {
-    const config: Knex.Config = {
-      ...knexConfig[process.env.STAGE],
-      ...knexSnakeCaseMappers(),
-    };
+    if (!this.knexClient) {
+      const config: Knex.Config = {
+        ...knexConfig[process.env.STAGE],
+        ...knexSnakeCaseMappers(),
+      };
 
-    this.knexClient = knex(config);
-    Model.knex(this.knexClient);
+      this.knexClient = knex(config);
+      Model.knex(this.knexClient);
+    }
     // @TODO add some wrapper here, which saves logs after query
   }
 
@@ -38,7 +40,7 @@ export class DatabaseService {
   }
 
   /**
-   * 
+   *
    * @param tableName table of knex model
    * @returns knex table instance
    */

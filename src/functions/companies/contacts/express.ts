@@ -28,7 +28,6 @@ export const contactEndpoints = (app: Express) => {
     expressResponseHelper(res, resp);
   });
 
-
   app.delete("/company/:companyId/contact/:contactId", async (req, res) => {
     const resp = await deleteContact(req, {} as any);
     expressResponseHelper(res, resp);
@@ -62,4 +61,3 @@ export const contactEndpoints = (app: Express) => {
     expressResponseHelper(res, resp);
   });
 };
-  

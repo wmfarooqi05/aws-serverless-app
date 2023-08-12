@@ -21,11 +21,10 @@ export const formatJSONResponse = (
   return {
     statusCode,
     body: JSON.stringify(response),
-    headers: responseHeaders(),
   };
 };
 
-export const responseHeaders = () => {
+export const corsHeaders = () => {
   return {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Origin": "*",
@@ -53,7 +52,7 @@ export const formatGoogleJSONResponse = (
   return {
     statusCode,
     body: formatGoogleErrorBody(response),
-    headers: responseHeaders(),
+    headers: corsHeaders(),
   };
 };
 

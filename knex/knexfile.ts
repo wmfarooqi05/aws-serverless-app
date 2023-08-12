@@ -19,9 +19,19 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: false, //{ rejectUnauthorized: false },
     },
     pool: {
-      min: 1,
-      max: 10,
-      idleTimeoutMillis: 30000,
+      min: 0,
+      max: 1,
+      idleTimeoutMillis: process.env.DB_CONNECTION_TIMEOUT_OVERRIDE
+        ? parseInt(process.env.DB_CONNECTION_TIMEOUT_OVERRIDE)
+        : parseInt(process.env.TIMEOUT),
+      // afterCreate: (conn, done) => {
+      //   conn.query('SET timezone="UTC";', (err)=>{
+      //     if (err) {
+      //       console.log(err)
+      //     }
+      //     done(err, conn)
+      //   })
+      // }
     },
     acquireConnectionTimeout: 30000,
     migrations: {
@@ -44,9 +54,15 @@ export const config: Record<ENV, Knex.Config> = {
       ssl: { rejectUnauthorized: false },
     },
     pool: {
-      min: 1,
-      max: 10,
-      idleTimeoutMillis: 30000,
+      min: 0,
+      max: 1,
+      /** This is kept 15 seconds for Job Endpoints
+       * In future, we can keep it 3sec and for job endpoints,
+       * we can add special timeout of 15 seconds
+       */
+      idleTimeoutMillis: process.env.DB_CONNECTION_TIMEOUT_OVERRIDE
+        ? parseInt(process.env.DB_CONNECTION_TIMEOUT_OVERRIDE)
+        : parseInt(process.env.TIMEOUT),
     },
     acquireConnectionTimeout: 30000,
     migrations: {

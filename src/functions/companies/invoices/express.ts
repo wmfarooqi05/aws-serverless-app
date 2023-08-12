@@ -5,6 +5,6 @@ import { Express } from "express";
 export const invoiceEndpoints = (app: Express) => {
   // app.get("/companies", async (req, res) => {
   //   const resp = await getCompanies(req, {} as any);
-  //   resHelper(res, resp);
+  //   expressResponseHelper(res, resp);
   // });
 };

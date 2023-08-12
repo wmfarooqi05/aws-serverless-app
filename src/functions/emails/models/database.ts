@@ -21,8 +21,8 @@ export class DatabaseService {
       ...knexSnakeCaseMappers(),
     };
 
-    this.knexClient = knex(config);
-    Model.knex(this.knexClient);
+    this.getKnexClient() = knex(config);
+    Model.knex(this.getKnexClient());
     // @TODO add some wrapper here, which saves logs after query
   }
 
@@ -30,11 +30,11 @@ export class DatabaseService {
    * Knex Client
    */
   public getKnexClient(): Knex {
-    if (!this.knexClient) {
+    if (!this.getKnexClient()) {
       this.initializeClient();
     }
 
-    return this.knexClient;
+    return this.getKnexClient();
   }
 
   /**
@@ -43,10 +43,10 @@ export class DatabaseService {
    * @returns knex table instance
    */
   public get(tableName: string): Knex.QueryBuilder {
-    if (!this.knexClient) {
+    if (!this.getKnexClient()) {
       this.initializeClient();
     }
 
-    return this.knexClient(tableName);
+    return this.getKnexClient()(tableName);
   }
 }

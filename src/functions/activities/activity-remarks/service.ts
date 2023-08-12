@@ -140,7 +140,7 @@ export class ActivityRemarksService implements IActivityRemarksServiceService {
   ): Promise<IRemarks> {
     // @TODO there is not check here if person's manager doesn't exists
     const employees: IEmployee[] = await this.docClient
-      .knexClient(EMPLOYEES_TABLE_NAME)
+      .getKnexClient()(EMPLOYEES_TABLE_NAME)
       .table(`${EMPLOYEES_TABLE_NAME} as u`)
       .leftJoin(`${EMPLOYEES_TABLE_NAME} as m`, "u.reporting_manager", "m.id")
       .select("u.*", "m.id as managerId", "m.name as managerName")

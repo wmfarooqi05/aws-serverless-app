@@ -5,33 +5,21 @@ const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
 import { generateSignedUrl, getPublicUrls } from "./handler";
+import {
+  expressInputParseMiddleware,
+  expressResponseHelper,
+} from "@utils/express";
 
-app.use((req, _, next) => {
-  if (req.body && Buffer.isBuffer(req.body)) {
-    req.body = req.body.toString();
-  } else if (typeof req.body === "string") {
-    req.body = JSON.parse(req.body);
-  }
-  // Do something with the request, such as logging or modifying headers
-  next(); // Call the next middleware or route handler
-});
-
-const resHelper = (res, apiResponse) => {
-  res
-    .status(apiResponse.statusCode || 200)
-    .set(apiResponse.headers)
-    .set("Content-Type", "application/json")
-    .send(apiResponse.body);
-};
+app.use(expressInputParseMiddleware);
 
 app.post("/generate-signed-url", async (req, res) => {
   const resp = await generateSignedUrl(req, {} as any);
-  resHelper(res, resp);
+  expressResponseHelper(res, resp);
 });
 
 app.post("/get-public-urls", async (req, res) => {
   const resp = await getPublicUrls(req, {} as any);
-  resHelper(res, resp);
+  expressResponseHelper(res, resp);
 });
 
 exports.handler = awsSlsExpress({ app });

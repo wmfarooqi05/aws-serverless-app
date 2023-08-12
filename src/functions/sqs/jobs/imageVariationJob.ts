@@ -25,6 +25,7 @@ import moment from "moment-timezone";
 // move this to handler / service pattern
 // if image variation need multiple endpoints
 // or it grows
+process.env.DB_CONNECTION_TIMEOUT_OVERRIDE = '10';
 const s3Service: S3Service = container.resolve(S3Service);
 const sqsClient: SQSClient = new SQSClient({ region: process.env.AWS_REGION });
 container.resolve(DatabaseService);
