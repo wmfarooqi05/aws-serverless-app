@@ -10,6 +10,8 @@ import {
   expressResponseHelper,
 } from "@utils/express";
 
+
+process.env['LAMBDA_NAME'] = 'utilsHandler';
 app.use(expressInputParseMiddleware);
 
 app.post("/generate-signed-url", async (req, res) => {

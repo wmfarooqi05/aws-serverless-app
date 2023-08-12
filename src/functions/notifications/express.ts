@@ -17,6 +17,7 @@ import {
 } from "@utils/express";
 
 app.use(expressInputParseMiddleware);
+process.env['LAMBDA_NAME'] = 'notificationsHandler';
 
 app.get("/notification", async (req, res) => {
   const resp = await getNotifications(req, {} as any);

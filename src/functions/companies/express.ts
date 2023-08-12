@@ -25,6 +25,7 @@ import {
 } from "@utils/express";
 import { contactEndpoints } from "./contacts/express";
 
+process.env['LAMBDA_NAME'] = 'companiesHandler';
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 

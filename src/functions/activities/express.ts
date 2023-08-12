@@ -27,6 +27,8 @@ import {
   expressResponseHelper,
 } from "@utils/express";
 
+process.env['LAMBDA_NAME'] = 'activitiesHandler';
+
 app.use(expressInputParseMiddleware);
 
 app.get("/company/:companyId/activities", async (req, res) => {

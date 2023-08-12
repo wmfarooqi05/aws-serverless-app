@@ -22,7 +22,7 @@ import {
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes, { getByteSize } from "@utils/bytes";
 import { checkVariationStatus, constructS3Url } from "@utils/s3";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
 import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 import { SecretManager } from "@common/service/SecretManager";
@@ -56,7 +56,7 @@ export interface UploadFiles {
   uploaderId?: string;
 }
 
-@injectable()
+@singleton()
 export class FileRecordService {
   s3Client: S3Client = null;
   cloudFrontClient: CloudFrontClient = null;

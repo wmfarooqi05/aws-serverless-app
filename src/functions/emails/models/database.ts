@@ -1,4 +1,4 @@
-import { injectable } from "tsyringe";
+import { singleton } from "tsyringe";
 import { Knex, knex } from "knex";
 import { Model, knexSnakeCaseMappers } from "objection";
 import { config as knexConfig } from "./knexfile";
@@ -6,7 +6,7 @@ import { attachPaginate } from "knex-paginate";
 // @TODO check if this works
 attachPaginate();
 
-@injectable()
+@singleton()
 export class DatabaseService {
   // @TODO make this private
   knexClient: Knex | null = null;

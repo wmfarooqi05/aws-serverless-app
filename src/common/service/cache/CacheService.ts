@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { ElasticCacheService } from "./ElasticCache";
 import moment from "moment-timezone";
 import WebsocketConnectionModel, {
@@ -13,7 +13,7 @@ export interface ICache {
 
 export interface ICacheService {}
 
-@injectable()
+@singleton()
 export class CacheService implements ICacheService {
   // isReady: boolean;
   useElasticCache = false;

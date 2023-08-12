@@ -2,7 +2,7 @@ import "reflect-metadata";
 // import { DatabaseService } from "./models/database";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import { randomUUID } from "crypto";
 import { CustomError } from "@helpers/custom-error";
@@ -109,7 +109,7 @@ const SENT_EMAIL_FOLDER = "emails/sent";
 
 export interface IEmailService {}
 
-@injectable()
+@singleton()
 export class EmailService implements IEmailService {
   sqsClient: SQSClient = null;
   emailDbClient: DatabaseService = null;

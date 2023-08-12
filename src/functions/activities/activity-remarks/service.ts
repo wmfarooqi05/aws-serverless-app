@@ -9,7 +9,7 @@ import ActivityModel from "src/models/Activity";
 import { IRemarks } from "src/models/interfaces/Activity";
 import { EMPLOYEES_TABLE_NAME } from "src/models/commons";
 
-import { injectable, inject } from "tsyringe";
+import { singleton, inject } from "tsyringe";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
 import {
   updateHistoryHelper,
@@ -20,7 +20,7 @@ import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 // @TODO fix this
 export interface IActivityRemarksServiceService {}
 
-@injectable()
+@singleton()
 export class ActivityRemarksService implements IActivityRemarksServiceService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import NotificationModel, {
   INotifExtraData,
   INotification,
@@ -35,7 +35,7 @@ export interface NotificationEBSchedulerPayload {
   // data?: any;
 }
 
-@injectable()
+@singleton()
 export class NotificationService implements INotificationService {
   notificationQueueClient: SQSClient;
   queueUrl: string = process.env.NOTIFICATION_QUEUE_URL;

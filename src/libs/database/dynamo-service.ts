@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import {
-  injectable,
-  // injectable
+  singleton,
+  // singleton
 } from "tsyringe";
 // import { RedisClientType } from "redis";
 import {
@@ -17,7 +17,7 @@ import {
 
 export interface IDynamoService {}
 
-@injectable()
+@singleton()
 export class DynamoService implements IDynamoService {
   client: DynamoDBClient;
   // isReady: boolean;

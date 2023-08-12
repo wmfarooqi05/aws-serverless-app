@@ -15,6 +15,8 @@ import {
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
+process.env['LAMBDA_NAME'] = 'employeesHandler';
+
 app.use(expressInputParseMiddleware);
 
 app.get("/employees-summary", async (req, res) => {

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { SQSEvent } from "aws-lambda";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
@@ -24,7 +24,7 @@ if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
   queueUrl = "http://localhost:4566/000000000000/job-queue-local";
 }
 
-@injectable()
+@singleton()
 export class SQSService {
   sqsClient: SQSClient = null;
   constructor(

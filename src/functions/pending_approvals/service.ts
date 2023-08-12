@@ -6,7 +6,7 @@ import {
   PendingApprovalType,
   PendingApprovalsStatus,
 } from "@models/interfaces/PendingApprovals";
-import { injectable, inject } from "tsyringe";
+import { singleton, inject } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
 import {
   pendingApprovalKnexHelper,
@@ -41,7 +41,7 @@ export interface PendingApprovalEBSchedulerPayload {
   data?: any;
 }
 
-@injectable()
+@singleton()
 export class PendingApprovalService implements IPendingApprovalService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,

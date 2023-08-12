@@ -11,7 +11,7 @@ import {
   validateUploadOrReplaceAvatar,
 } from "./schema";
 
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { updateHistoryHelper } from "src/common/json_helpers";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
@@ -34,7 +34,7 @@ export interface IContactService {
   deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
 }
 
-@injectable()
+@singleton()
 export class ContactService implements IContactService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,

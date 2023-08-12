@@ -1,10 +1,10 @@
-import { injectable } from "tsyringe";
+import { singleton } from "tsyringe";
 import {
   GetSecretValueCommand,
   SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 
-@injectable()
+@singleton()
 export class SecretManager {
   secretManager: SecretsManagerClient;
   constructor() {

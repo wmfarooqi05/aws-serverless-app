@@ -13,6 +13,7 @@ import {
 } from "@utils/express";
 
 app.use(expressInputParseMiddleware);
+process.env['LAMBDA_NAME'] = 'pendingApprovalHandler';
 
 // app.get("/pending-approval/send-notif", async (req, res) => {
 //   const resp = await sendWebSocketNotification(req, {} as any,);

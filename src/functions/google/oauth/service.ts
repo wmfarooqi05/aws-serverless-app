@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { google, Auth, calendar_v3 } from "googleapis";
 import { ensureConfigs } from "@utils/EnvVarsUtil";
 import moment from "moment-timezone";
@@ -18,7 +18,7 @@ const SCOPE_FOR_AUTH = [
   "https://www.googleapis.com/auth/gmail.send",
 ];
 
-@injectable()
+@singleton()
 export class GoogleOAuthService {
   client: Auth.OAuth2Client;
   constructor(@inject(DatabaseService) private readonly _: DatabaseService) {

@@ -9,7 +9,7 @@ import {
   validateAddDeleteEmployeeToTeam,
 } from "./schema";
 
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { CustomError } from "src/helpers/custom-error";
 import {
   IEmployeeJwt,
@@ -31,7 +31,7 @@ export interface ITeamService {
   deleteTeam(employee: IEmployeeJwt, id: string): Promise<any>;
 }
 
-@injectable()
+@singleton()
 export class TeamService implements ITeamService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService

@@ -28,7 +28,7 @@ import {
   validateUploadOrReplaceAvatar,
 } from "./schema";
 
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import ActivityModel from "@models/Activity";
 import { randomUUID } from "crypto";
 import { CustomError } from "src/helpers/custom-error";
@@ -85,7 +85,7 @@ export interface ICompanyService {
   deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
 }
 
-@injectable()
+@singleton()
 export class CompanyService implements ICompanyService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,

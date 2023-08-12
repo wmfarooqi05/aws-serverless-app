@@ -36,6 +36,7 @@ const app = express();
 // import awsSlsExpress from 'aws-serverless-express';
 const awsSlsExpress = require("@vendia/serverless-express");
 
+process.env['LAMBDA_NAME'] = 'emailsHandler';
 app.use(expressInputParseMiddleware);
 
 app.get("/emails/templates", async (req, res) => {

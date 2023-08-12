@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import {
-  injectable,
-  // injectable
+  singleton,
+  // singleton
 } from "tsyringe";
 // import { RedisClientType } from "redis";
 import * as redis from "redis";
@@ -9,7 +9,7 @@ import { ICache } from "./CacheService";
 
 export interface IElasticCacheService extends ICache {}
 
-@injectable()
+@singleton()
 export class ElasticCacheService implements IElasticCacheService {
   client: redis.RedisClientType;
   // connecting = false;

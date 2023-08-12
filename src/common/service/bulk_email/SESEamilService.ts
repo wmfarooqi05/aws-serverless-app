@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-ses";
 import { isHtml } from "@utils/emails";
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 
 export interface ICache {
   initializeClient: () => Promise<void>;
@@ -14,7 +14,7 @@ export interface ICache {
 
 export interface ISESEmailService {}
 
-@injectable()
+@singleton()
 export class SESEmailService implements ISESEmailService {
   sesClient: SESClient;
   constructor() {

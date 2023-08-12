@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import EmployeeModel from "@models/Employees";
 import {
   IEmployee,
@@ -32,7 +32,7 @@ export interface EmployeeEBSchedulerPayload {
   // data?: any;
 }
 
-@injectable()
+@singleton()
 export class EmployeeService implements IEmployeeService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,

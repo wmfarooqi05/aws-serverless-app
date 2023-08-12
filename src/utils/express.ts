@@ -1,5 +1,7 @@
 import { corsHeaders } from "@libs/api-gateway";
 
+process.env['LAMBDA_NAME'] = 'utilsHandler';
+
 export const expressInputParseMiddleware = (req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     req.body = req.body.toString();

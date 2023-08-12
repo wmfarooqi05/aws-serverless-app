@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { Auth, calendar_v3, google } from "googleapis";
 import { GoogleOAuthService } from "../oauth/service";
 import { randomUUID } from "crypto";
@@ -7,7 +7,7 @@ import { IActivity, IMEETING_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { CustomError } from "@helpers/custom-error";
 
-@injectable()
+@singleton()
 export class GoogleCalendarService {
   client: Auth.OAuth2Client;
   constructor(

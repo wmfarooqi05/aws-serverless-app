@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { injectable } from "tsyringe";
+import { singleton } from "tsyringe";
 import {
   CopyObjectCommand,
   CopyObjectCommandInput,
@@ -25,7 +25,7 @@ import { createFileWithDirectories } from "@utils/fs";
 import { UploadFiles } from "@functions/fileRecords/service";
 import { FilePermissionsMap, ReadAllPermissions } from "@models/FileRecords";
 
-@injectable()
+@singleton()
 export class S3Service {
   s3Client: S3Client = null;
   constructor() {

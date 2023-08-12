@@ -2,12 +2,12 @@ import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { ACTIVITIES_TABLE } from "@models/commons";
 
-import { inject, injectable, injectable } from "tsyringe";
+import { inject, singleton, singleton } from "tsyringe";
 
 // @TODO fix this
 export interface IActivityWorkflowService {}
 
-@injectable()
+@singleton()
 export class ActivityWorkflowService implements IActivityWorkflowService {
   private TableName: string = ACTIVITIES_TABLE;
 

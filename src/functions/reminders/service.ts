@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import {
   SchedulerClient,
   CreateScheduleCommand,
@@ -40,7 +40,7 @@ export interface ReminderEBSchedulerPayload {
   details?: any;
 }
 
-@injectable()
+@singleton()
 export class ReminderService implements IReminderService {
   schedulerClient: SchedulerClient = null;
   constructor(

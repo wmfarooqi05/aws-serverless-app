@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import {
   inject,
-  injectable,
-  // injectable
+  singleton,
+  // singleton
 } from "tsyringe";
 import {
   PostToConnectionCommand,
@@ -23,7 +23,7 @@ export interface PostToConnectionOutput extends PostToConnectionCommandOutput {
   notificationId: string;
 }
 
-@injectable()
+@singleton()
 export class WebSocketService implements IWebSocketService {
   tableName: string = process.env.ConnectionTableName;
   partitionKeyName: string = process.env.ConnectionTablePartitionKey;

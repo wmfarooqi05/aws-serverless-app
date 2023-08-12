@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import JobsModel, { IJob } from "@models/Jobs";
 import {
   SQSClient,
@@ -10,7 +10,7 @@ import {
 } from "@aws-sdk/client-sqs";
 import { sendMessageToSQS } from "@utils/sqs";
 
-@injectable()
+@singleton()
 export class JobService {
   sqsClient: SQSClient = null;
   constructor(@inject(DatabaseService) private readonly _: DatabaseService) {

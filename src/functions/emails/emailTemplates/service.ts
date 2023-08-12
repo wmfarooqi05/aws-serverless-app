@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/client-ses";
 import { DatabaseService } from "@libs/database/database-service-objection";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { EmailTemplatesModel, IEmailTemplate } from "../models/EmailTemplate";
 import {
   copyS3FolderContent,
@@ -28,7 +28,7 @@ import { replaceS3UrlWithCDN } from "@utils/s3";
 const sesClient = new SESClient({ region: process.env.REGION });
 const dynamoClient = new DynamoDBClient({ region: process.env.REGION });
 
-@injectable()
+@singleton()
 export class EmailTemplateService {
   constructor(
     @inject(DatabaseService) private readonly _: DatabaseService,

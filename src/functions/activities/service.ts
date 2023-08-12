@@ -31,7 +31,7 @@ import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
-import { injectable, inject, container } from "tsyringe";
+import { singleton, inject, container } from "tsyringe";
 import {
   IEmployee,
   IEmployeeJwt,
@@ -74,7 +74,7 @@ export interface IActivityService {
   deleteActivity(id: string): Promise<any>;
 }
 
-@injectable()
+@singleton()
 export class ActivityService implements IActivityService {
   private TableName: string = ACTIVITIES_TABLE;
 

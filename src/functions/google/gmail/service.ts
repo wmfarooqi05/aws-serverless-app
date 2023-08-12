@@ -1,22 +1,15 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { google, Auth, gmail_v1 } from "googleapis";
 import { GoogleOAuthService } from "../oauth/service";
 import EmployeeModel from "@models/Employees";
 import { IActivity, IEMAIL_DETAILS } from "@models/interfaces/Activity";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
+import { IEmployee } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 import { formatRFC2822Message } from "@utils/emails";
-import { EmailAddress, simpleParser } from "mailparser";
-import {
-  EmailRecordModel,
-  IEmailRecord,
-} from "@functions/emails/models/EmailRecords";
-import { RecipientModel } from "@functions/emails/models/Recipient";
-import { QueryBuilder } from "objection";
 
-@injectable()
+@singleton()
 export class GoogleGmailService {
   client: Auth.OAuth2Client;
   constructor(

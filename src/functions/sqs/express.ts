@@ -4,6 +4,8 @@ import express from "express";
 const app = express();
 const awsSlsExpress = require("@vendia/serverless-express");
 
+process.env['LAMBDA_NAME'] = 'sqsJobQueueInvokeHandler';
+
 app.use((req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
     req.body = req.body.toString();

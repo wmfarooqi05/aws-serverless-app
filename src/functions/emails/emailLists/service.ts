@@ -11,7 +11,7 @@ import {
   validateUpdateEmailList,
 } from "./schema";
 
-import { injectable, inject } from "tsyringe";
+import { singleton, inject } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { CustomError } from "@helpers/custom-error";
 import {
@@ -98,7 +98,7 @@ export enum HttpStatusCode {
 // @TODO fix this
 export interface IEmailListServiceService {}
 
-@injectable()
+@singleton()
 export class EmailListService implements IEmailListServiceService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService

@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { inject, injectable } from "tsyringe";
+import { inject, singleton } from "tsyringe";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -8,7 +8,7 @@ import { FileRecordService } from "@functions/fileRecords/service";
 import { validateGetPublicUrls } from "./schema";
 import { getFileExtension } from "@utils/file";
 
-@injectable()
+@singleton()
 export class UtilService {
   s3Client: S3Client = null;
   constructor(

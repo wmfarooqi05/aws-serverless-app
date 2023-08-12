@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import {
-  injectable,
-  // injectable
+  singleton,
+  // singleton
 } from "tsyringe";
 // import { RedisClientType } from "redis";
 import * as redis from "redis";
@@ -23,7 +23,7 @@ import { ICache } from "./CacheService";
 // right now keeping this class as it is 
 export interface IDynamoCacheService extends ICache {}
 
-@injectable()
+@singleton()
 export class DynamoCacheService implements IDynamoCacheService {
   client: DynamoDBClient;
   // isReady: boolean;

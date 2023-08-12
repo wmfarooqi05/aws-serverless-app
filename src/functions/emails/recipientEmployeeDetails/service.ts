@@ -1,12 +1,12 @@
 import "reflect-metadata";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
-import { injectable, inject } from "tsyringe";
+import { singleton, inject } from "tsyringe";
 
 // @TODO fix this
 export interface IEmailListServiceService {}
 
-@injectable()
+@singleton()
 export class EmailListService implements IEmailListServiceService {
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService

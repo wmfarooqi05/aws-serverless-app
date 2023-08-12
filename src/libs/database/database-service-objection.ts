@@ -1,4 +1,4 @@
-import { injectable, singleton } from "tsyringe";
+import { singleton } from "tsyringe";
 import { Knex, knex } from "knex";
 import { Model, knexSnakeCaseMappers } from "objection";
 import { config as knexConfig } from "../../../knex/knexfile";
@@ -12,13 +12,16 @@ export class DatabaseService {
   knexClient: Knex | null = null;
 
   constructor() {
-    console.log("database constructor");
     this.initializeClient();
   }
 
   private initializeClient() {
     if (!this.knexClient) {
-      console.log("knex client not defined", new Date().toISOString());
+      console.log(
+        "knex client not defined",
+        process.env["LAMBDA_NAME"],
+        new Date().toISOString()
+      );
       const config: Knex.Config = {
         ...knexConfig[process.env.STAGE],
         ...knexSnakeCaseMappers(),

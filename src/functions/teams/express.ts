@@ -16,6 +16,9 @@ import {
   expressResponseHelper,
 } from "@utils/express";
 
+
+process.env['LAMBDA_NAME'] = 'teamHandler';
+
 app.use(expressInputParseMiddleware);
 
 app.get("/team", async (req, res) => {
