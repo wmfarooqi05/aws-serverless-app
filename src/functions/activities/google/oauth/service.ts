@@ -48,6 +48,17 @@ export class GoogleOAuthService {
     return null;
   }
 
+  /**
+   * This method will take an employeeId and
+   * - First find its Googoel OAuth2.0 token in DB
+   * - If no token exists in DB, it will return null
+   * - In case token exists in DB, it will check if its expired
+   * - In case of expiry, it will check if it has refresh token
+   * - If Refresh token exists, it will try to get an updated token or return it
+   *    otherwise it will return null;
+   * @param employeeId
+   * @returns
+   */
   async getGoogleOauthRequestTokenFromDB(
     employeeId: string
   ): Promise<IAuthToken | null> {
@@ -59,7 +70,10 @@ export class GoogleOAuthService {
         employeeId,
       });
 
-      if (!this.isTokenValid(token?.expiryDate)) {
+      if (this.isTokenValid(token?.expiryDate)) {
+        return token;
+      } else if (token.refreshToken) {
+        // Get a new token using Refresh Token
         const updatedToken = await this.getUpdatedTokenFromRefreshToken(
           token.refreshToken
         );
@@ -69,8 +83,9 @@ export class GoogleOAuthService {
           expiryDate: moment.utc(updatedToken.expiry_date).format(),
         } as IAuthToken;
       }
-      return token;
     } catch (e) {
+      return null;
+    } finally {
       return null;
     }
   }
@@ -192,6 +207,10 @@ export class GoogleOAuthService {
     const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
       employeeId
     );
+
+    // Here, it will return either a token or null
+    // In case of n
+
     if (!token) {
       const authUrl = await this.generateGoogleAuthenticationUrl(
         origin,

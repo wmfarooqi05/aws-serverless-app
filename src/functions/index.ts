@@ -1,4 +1,4 @@
-import { companyHandler } from "@functions/companies";
+import { companiesHandler } from "@functions/companies";
 import { activitiesHandler } from "@functions/activities";
 
 import { pendingApprovalsHandler } from "@functions/pending_approvals";
@@ -7,10 +7,6 @@ import { pendingApprovalsHandler } from "@functions/pending_approvals";
 
 import { webSocketHandler } from "@functions/websocket";
 import { notificationHandler } from "@functions/notifications";
-import {
-  googleOauthCallbackHandler,
-  googleOauthHandler,
-} from "@functions/google/oauth";
 
 import {
   // sendEmailText,
@@ -34,10 +30,9 @@ import { cognitoOAuthHandler } from "./auth";
 
 import { utilsHandler } from "@functions/utils";
 import { deleteAllReminders } from "./reminders";
-// import { scrapeGmail } from "./google/gmail";
 
 const exportHandlers = {
-  companyHandler,
+  companiesHandler,
   activitiesHandler,
   teamHandler,
   emailHandler,
@@ -55,11 +50,6 @@ const exportHandlers = {
   // handleEBSchedulerLambdaInvoke,
   webSocketHandler,
 
-  // google
-  googleOauthHandler,
-  googleOauthCallbackHandler,
-  // getAllCalendars,
-  // createMeeting,
   receiveEmailHandler,
   employeeHandler,
   sqsJobQueueInvokeHandler,

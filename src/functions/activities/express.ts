@@ -26,8 +26,9 @@ import {
   expressInputParseMiddleware,
   expressResponseHelper,
 } from "@utils/express";
+import { integrateGoogleEndpoints } from "./google/express";
 
-process.env['LAMBDA_NAME'] = 'activitiesHandler';
+process.env["LAMBDA_NAME"] = "activitiesHandler";
 
 app.use(expressInputParseMiddleware);
 
@@ -101,9 +102,6 @@ app.delete("/activity/:activityId/remarks/:remarksId", async (req, res) => {
   expressResponseHelper(res, resp);
 });
 
-app.get("/google/calendars", async (req, res) => {
-  const resp = await getAllCalendars(req, {} as any);
-  expressResponseHelper(res, resp);
-});
+integrateGoogleEndpoints(app);
 
 exports.handler = awsSlsExpress({ app });

@@ -1,9 +1,8 @@
 //@ts-ignore
 import { handlerPath } from "@libs/handler-resolver";
-import { AWS } from "@serverless/typescript";
 import contactEvents from "./contacts";
 
-const companyHandler: AWS["functions"][0] = {
+const companiesHandler = {
   handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
@@ -122,7 +121,7 @@ const companyHandler: AWS["functions"][0] = {
   ],
 };
 
-// companyHandler.events.push(...invoiceEvents);
-companyHandler.events.push(...contactEvents);
+// companiesHandler.events.push(...invoiceEvents);
+companiesHandler.events.push(...(contactEvents as any));
 
-export { companyHandler };
+export { companiesHandler };

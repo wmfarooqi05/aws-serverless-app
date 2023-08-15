@@ -166,19 +166,6 @@ const deleteActivityHandler: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const getAllCalendarsHandler = async (event) => {
-  try {
-    const { nextSyncToken } = event.params;
-
-    const calendars = await container
-      .resolve(ActivityService)
-      .getAllCalendars(event.employee, nextSyncToken);
-    return formatGoogleJSONResponse(calendars, 200);
-  } catch (e) {
-    return formatErrorResponse(e);
-  }
-};
-
 // @TODO export these
 export const getActivities = checkRolePermission(
   getActivitiesHandler,
@@ -227,10 +214,5 @@ export const updateStatusOfActivity = checkRolePermission(
 
 export const deleteActivity = checkRolePermission(
   deleteActivityHandler,
-  "ACTIVITY_DELETE"
-);
-
-export const getAllCalendars = checkRolePermission(
-  getAllCalendarsHandler,
   "ACTIVITY_DELETE"
 );

@@ -1,4 +1,4 @@
-import { GoogleCalendarService } from "@functions/google/calendar/service";
+import { GoogleCalendarService } from "@functions/activities/google/calendar/service";
 import { NotificationService } from "@functions/notifications/service";
 import { CustomError } from "@helpers/custom-error";
 import { formatGoogleErrorBody } from "@libs/api-gateway";

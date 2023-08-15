@@ -19,7 +19,7 @@ import { GoogleOAuthService } from "./service";
 import { container } from "@common/container";
 import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
 
-export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
+export const oauthHandlerWithEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
   INotificationModel
 > = async (event) => {
   try {
@@ -35,30 +35,30 @@ export const oauthHandlerWithEmployee: ValidatedEventAPIGatewayProxyEvent<
   }
 };
 
-export const googleOauthCallbackHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
+export const googleOauthCallbackHandler = async (event) => {
   try {
-    const { code, state } = event.queryStringParameters;
+    const { code, state } = event.query;
     const returningUrl = JSON.parse(state)?.origin;
-    const script: any = `<script type="text/javascript">
-    window.opener.location.href='${returningUrl}/signin-successfull';
-    window.close();
-  </script>`;
+    const script: any = `
+    <script type="text/javascript">
+      if (window.opener) {
+        window.opener.location.href = "${returningUrl}/signin-successfull";
+        window.close();
+      } else {
+        window.location.href = "${returningUrl}/signin-successfull";
+      }
+    </script>
+    `;
     await container
       .resolve(GoogleOAuthService)
       .exchangeAuthCodeForAccessToken(code, state);
-    const response = {
+    return {
       statusCode: 200,
       body: script,
-      headers: {
-        "Content-Type": "text/html",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-      },
+      contentType: "text/html",
     };
-    return response;
+    // return response;
+    // return formatJSONResponse(script);
   } catch (e) {
     return formatErrorResponse(e);
   }
@@ -88,7 +88,9 @@ export const googleOauthTokenScopeHandler = async (event) => {
   }
 };
 
-export const oauthHandler = jwtMiddlewareWrapper(oauthHandlerWithEmployee);
+export const oauthHandlerWithEmployee = jwtMiddlewareWrapper(
+  oauthHandlerWithEmployeeHandler
+);
 export const googleOauthExtendRefreshToken = jwtMiddlewareWrapper(
   googleOauthExtendRefreshTokenHandler
 );

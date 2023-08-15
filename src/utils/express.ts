@@ -1,6 +1,7 @@
+import express from "express";
 import { corsHeaders } from "@libs/api-gateway";
 
-process.env['LAMBDA_NAME'] = 'utilsHandler';
+process.env["LAMBDA_NAME"] = "utilsHandler";
 
 export const expressInputParseMiddleware = (req, _, next) => {
   if (req.body && Buffer.isBuffer(req.body)) {
@@ -12,10 +13,18 @@ export const expressInputParseMiddleware = (req, _, next) => {
   next(); // Call the next middleware or route handler
 };
 
-export const expressResponseHelper = (res, apiResponse) => {
+export const expressResponseHelper = (
+  res: express.Response,
+  apiResponse: {
+    body: any;
+    headers?: any;
+    statusCode: number;
+    contentType?: string;
+  }
+) => {
   res
     .status(apiResponse.statusCode || 200)
     .set({ ...apiResponse?.headers, ...corsHeaders() })
-    .set("Content-Type", "application/json")
+    .set("Content-Type", apiResponse?.contentType ?? "application/json")
     .send(apiResponse.body);
 };

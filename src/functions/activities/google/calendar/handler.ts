@@ -1,13 +1,9 @@
 import "reflect-metadata";
 
-import { INotificationModel } from "@models/Notification";
-
 import {
   formatErrorResponse,
   formatGoogleErrorResponse,
   formatGoogleJSONResponse,
-  formatJSONResponse,
-  ValidatedEventAPIGatewayProxyEvent,
 } from "@libs/api-gateway";
 import { GoogleCalendarService } from "./service";
 
@@ -15,7 +11,9 @@ import { GoogleCalendarService } from "./service";
 // Calls to container.get() should happen per-request (i.e. inside the handler)
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
-import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
+import jwtMiddlewareWrapper, {
+  checkRolePermission,
+} from "@middlewares/jwtMiddleware";
 
 // @TODO All the handler functions must be DEV only
 // We will control them from Activity Service -> GoogleService
@@ -71,7 +69,10 @@ export const getAllCalendarsHandler = async (event) => {
   try {
     const calendars = await container
       .resolve(GoogleCalendarService)
-      .getAllCalendars(event.employee?.sub, event?.queryStringParameters?.nextSyncToken);
+      .getAllCalendars(
+        event.employee?.sub,
+        event?.queryStringParameters?.nextSyncToken
+      );
     return formatGoogleJSONResponse(calendars, 200);
   } catch (e) {
     return formatErrorResponse(e);
@@ -79,4 +80,7 @@ export const getAllCalendarsHandler = async (event) => {
 };
 
 export const createMeeting = jwtMiddlewareWrapper(createMeetingHandler);
-export const getAllCalendars = jwtMiddlewareWrapper(getAllCalendarsHandler);
+export const getAllCalendars = checkRolePermission(
+  getAllCalendarsHandler,
+  "COMPANY_READ_ALL"
+);

@@ -19,18 +19,6 @@ export interface IAssignmentHistory {
   date: string;
 }
 
-// export interface IContact {
-//   id: string;
-//   name: string;
-//   designation: string;
-//   phoneNumbers: string[];
-//   emails: string[];
-//   timezone: string;
-//   createdAt: string;
-//   updatedAt: string;
-//   emailList: string[];
-// }
-
 export interface IAddress {
   title: string;
   address: string;

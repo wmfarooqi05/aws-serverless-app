@@ -52,7 +52,6 @@ export const formatGoogleJSONResponse = (
   return {
     statusCode,
     body: formatGoogleErrorBody(response),
-    headers: corsHeaders(),
   };
 };
 

@@ -17,11 +17,6 @@ export class DatabaseService {
 
   private initializeClient() {
     if (!this.knexClient) {
-      console.log(
-        "knex client not defined",
-        process.env["LAMBDA_NAME"],
-        new Date().toISOString()
-      );
       const config: Knex.Config = {
         ...knexConfig[process.env.STAGE],
         ...knexSnakeCaseMappers(),

@@ -1,11 +1,7 @@
 import { IWithPagination } from "knex-paginate";
 import { Model, ModelObject } from "objection";
 import { singleton } from "tsyringe";
-import {
-  COMPANIES_TABLE_NAME,
-  TEAM_COMPANY_INTERACTIONS_TABLE,
-  TEAMS_TABLE,
-} from "./commons";
+import { TEAM_COMPANY_INTERACTIONS_TABLE } from "./commons";
 import { COMPANY_STAGES } from "./interfaces/Company";
 import { IEmployeeJwt } from "./interfaces/Employees";
 import TeamModel, { ITeam } from "./Teams";

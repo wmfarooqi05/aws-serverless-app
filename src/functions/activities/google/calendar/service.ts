@@ -11,7 +11,7 @@ import { CustomError } from "@helpers/custom-error";
 export class GoogleCalendarService {
   client: Auth.OAuth2Client;
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService,
+    @inject(DatabaseService) private readonly _: DatabaseService,
     @inject(GoogleOAuthService)
     private readonly googleOAuthService: GoogleOAuthService
   ) {}

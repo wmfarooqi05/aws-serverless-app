@@ -2,7 +2,7 @@
 import { handlerPath } from "@libs/handler-resolver";
 
 const googleOauthHandler = {
-  handler: `${handlerPath(__dirname)}/handler.oauthHandler`,
+  handler: `${handlerPath(__dirname)}/express.handler`,
   events: [
     {
       http: {
@@ -25,15 +25,6 @@ const googleOauthHandler = {
         cors: true,
       },
     },
-  ],
-  layers: [
-    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:googleapis_111_0_0:2",
-  ],
-};
-
-const googleOauthCallbackHandler = {
-  handler: `${handlerPath(__dirname)}/handler.googleOauthCallbackHandler`,
-  events: [
     {
       http: {
         method: "get",
@@ -47,4 +38,4 @@ const googleOauthCallbackHandler = {
   ],
 };
 
-export { googleOauthCallbackHandler, googleOauthHandler };
+export { googleOauthHandler };

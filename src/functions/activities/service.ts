@@ -31,7 +31,7 @@ import { CustomError } from "src/helpers/custom-error";
 import { ACTIVITIES_TABLE } from "src/models/commons";
 import { unionAllResults } from "./queries";
 
-import { singleton, inject, container } from "tsyringe";
+import { singleton, inject } from "tsyringe";
 import {
   IEmployee,
   IEmployeeJwt,
@@ -53,8 +53,7 @@ import UpdateHistoryModel from "@models/UpdateHistory";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
 import { capitalize } from "lodash";
-import { GoogleGmailService } from "@functions/google/gmail/service";
-import { GoogleCalendarService } from "@functions/google/calendar/service";
+import { GoogleCalendarService } from "./google/calendar/service";
 import { calendar_v3 } from "googleapis";
 
 export interface IActivityService {
@@ -467,18 +466,6 @@ export class ActivityService implements IActivityService {
         }
       })
       .paginate(getPaginateClauseObject(body));
-  }
-
-  async getAllCalendars(employee: IEmployeeJwt, nextSyncToken: string | null) {
-    const client = await this.calendarService.getAuthenticatedCalendarClient(
-      employee.sub
-    );
-    const params: calendar_v3.Params$Resource$Calendarlist$List = {};
-    if (nextSyncToken) {
-      params.syncToken = nextSyncToken;
-    }
-    const listResponse = await client.calendarList.list(params);
-    return listResponse.data;
   }
 
   // Helper
