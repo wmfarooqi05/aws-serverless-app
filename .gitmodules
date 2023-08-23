@@ -1,0 +1,3 @@
+[submodule "terraform"]
+	path = terraform
+	url = git@github.com:wmfarooqi05/backend-terraform-deployment.git
