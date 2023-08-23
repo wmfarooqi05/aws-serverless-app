@@ -52,7 +52,7 @@ import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import UpdateHistoryModel from "@models/UpdateHistory";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
-import { capitalize } from "lodash";
+import { capitalize, isEqual } from "lodash";
 import { GoogleCalendarService } from "./google/calendar/service";
 import { calendar_v3 } from "googleapis";
 
@@ -304,55 +304,31 @@ export class ActivityService implements IActivityService {
     const oldActivity: IActivity = await ActivityModel.query().findById(
       activityId
     );
+    // We dont need knex transactions in activity
+    // because activity module is a personal module
+    // and it has no pending approval functionality
 
-    let activityCombined = {
-      ...oldActivity,
-      ...payload,
-    };
-    let errorMessage = false;
-    let jobData = [];
-    let oldJobData = oldActivity.details?.jobData;
-    jobData = await this.runUpdateSideJobs(oldActivity, payload, employee);
-    await this.docClient.getKnexClient().transaction(async (trx) => {
-      try {
-        const finalQueries = await createKnexTransactionQueries(
-          PendingApprovalType.UPDATE,
-          activityId,
-          employee.sub,
-          ActivityModel.tableName,
-          this.docClient.getKnexClient(),
-          payload
-        );
-        finalQueries.map(
-          async (finalQuery) => await trx.raw(finalQuery.toString())
-        );
-        if (jobData?.length > 0) {
-          oldJobData = jobData;
-        }
-        await ActivityModel.query(trx).patchAndFetchById(activityId, {
-          details: { ...oldActivity.details, jobData: oldJobData },
-        });
-        activityCombined = {
-          ...activityCombined,
-          details: { ...oldActivity.details, jobData: oldJobData },
-        };
+    const newActivity: IActivity = await ActivityModel.query()
+      .findById(activityId)
+      .patch(payload);
 
-        // If everything is successful, commit the transaction
-        await trx.commit();
-      } catch (error) {
-        // If there's any error, rollback the transaction
-        await trx.rollback();
-        errorMessage = error.message;
-      }
-    });
-
-    if (errorMessage) {
-      throw new CustomError(errorMessage, 500);
-    } else {
-      return {
-        activity: activityCombined,
-      };
-    }
+    if (
+      oldActivity.dueDate !== newActivity.dueDate ||
+      isEqual(oldActivity.reminders, newActivity.reminders)
+    )
+      await this.jobService.createAndEnqueueJob(
+        {
+          uploadedBy: employee.sub,
+          jobType: (oldActivity.activityType === ACTIVITY_TYPE.MEETING
+            ? "UPDATE_GOOGLE_MEETING"
+            : "UPDATE_EB_SCHEDULER") as SQSEventType,
+          details: {
+            activityId: activityId,
+            activityType: oldActivity.activityType,
+          },
+        },
+        process.env.JOB_QUEUE_URL
+      );
   }
 
   async updateStatusOfActivity(

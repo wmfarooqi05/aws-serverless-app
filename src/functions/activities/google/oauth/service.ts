@@ -164,11 +164,11 @@ export class GoogleOAuthService {
     try {
       const tokens = await this.client.getToken(code);
       // @TODO validate token using joi
-      console.log("[getAccessTokenByCode] token", tokens);
+      // console.log("[getAccessTokenByCode] token", tokens);
       await this.validateGoogleAccessTokens(tokens.tokens);
       return tokens.tokens;
     } catch (e) {
-      console.log("[getAccessTokenByCode] error", e);
+      console.error("[getAccessTokenByCode] error", e);
       if (e instanceof Error) {
         throw new CustomError(`[getAccessTokenByCode] ${e.message}`, 400);
       }
@@ -201,9 +201,12 @@ export class GoogleOAuthService {
 
   async getGoogleOauthRequestTokenByEmployee(
     origin: string,
-    employeeId: string
+    employeeId: string,
+    body: string
   ) {
+    const payload = JSON.parse(body);
     const response: any = { origin };
+
     const token: IAuthToken = await this.getGoogleOauthRequestTokenFromDB(
       employeeId
     );
@@ -214,7 +217,8 @@ export class GoogleOAuthService {
     if (!token) {
       const authUrl = await this.generateGoogleAuthenticationUrl(
         origin,
-        employeeId
+        employeeId,
+        payload.referrerPageUrl
       );
       response.authUrl = authUrl;
     } else {
@@ -227,9 +231,10 @@ export class GoogleOAuthService {
 
   private async generateGoogleAuthenticationUrl(
     origin: string,
-    employeeId: string
+    employeeId: string,
+    referrerPageUrl: string
   ) {
-    const payload = { employeeId, origin }; // any payload we want to keep in token
+    const payload = { employeeId, origin, referrerPageUrl }; // any payload we want to keep in token
     if (!this.client) {
       throw new Error("no client found");
       // await this.getAuthenticatedCalendarClient(employeeId);

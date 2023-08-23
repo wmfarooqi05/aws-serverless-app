@@ -143,12 +143,14 @@ export const validateUpdateActivity = async (
   payload: any
 ) => {
   await Joi.object({
+    activityId: Joi.string().guid().required(),
+    employeeId: Joi.string().guid().required(),
+
+    // payload
     summary: Joi.string(), // in case of email, it will be null
     tags: Joi.array().items(Joi.string()),
     priority: Joi.string().valid(...Object.keys(ACTIVITY_PRIORITY)),
-    activityId: Joi.string().guid().required(),
-    employeeId: Joi.string().guid().required(),
-    dueDate: Joi.date().greater("now"),
+    dueDate: Joi.date(),//.greater("now"), // we will handle it with moment
     details: Joi.object(),
     title: Joi.string(),
 

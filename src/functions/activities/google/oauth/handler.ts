@@ -18,16 +18,16 @@ import { GoogleOAuthService } from "./service";
 // tslint:disable-next-line:ordered-imports needs to be last after other imports
 import { container } from "@common/container";
 import jwtMiddlewareWrapper from "@middlewares/jwtMiddleware";
+import { CustomError } from "@helpers/custom-error";
 
-export const oauthHandlerWithEmployeeHandler: ValidatedEventAPIGatewayProxyEvent<
-  INotificationModel
-> = async (event) => {
+export const oauthHandlerWithEmployeeHandler = async (event) => {
   try {
     const response = await container
       .resolve(GoogleOAuthService)
       .getGoogleOauthRequestTokenByEmployee(
         event.headers.origin,
-        event.employee?.sub
+        event.employee?.sub,
+        event.body
       );
     return formatJSONResponse(response, 200);
   } catch (e) {
@@ -38,14 +38,21 @@ export const oauthHandlerWithEmployeeHandler: ValidatedEventAPIGatewayProxyEvent
 export const googleOauthCallbackHandler = async (event) => {
   try {
     const { code, state } = event.query;
-    const returningUrl = JSON.parse(state)?.origin;
+    const { origin, referrerPageUrl } = JSON.parse(state || "");
+    if (!origin) {
+      throw new CustomError("No origin url found", 400);
+    }
+    const newUrl = `${origin}/signin-successfull?referrerPageUrl=${encodeURIComponent(
+      referrerPageUrl
+    )}`;
+    console.log("newUrl", newUrl);
     const script: any = `
     <script type="text/javascript">
       if (window.opener) {
-        window.opener.location.href = "${returningUrl}/signin-successfull";
+        window.opener.location.href = "${newUrl}";
         window.close();
       } else {
-        window.location.href = "${returningUrl}/signin-successfull";
+        window.location.href = "${newUrl}";
       }
     </script>
     `;
