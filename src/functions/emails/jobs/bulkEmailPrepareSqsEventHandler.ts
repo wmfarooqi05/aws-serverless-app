@@ -22,6 +22,15 @@ import { randomUUID } from "crypto";
 import { IWithPagination } from "knex-paginate";
 import { container } from "@common/container";
 
+/**
+ * This is the first part of sending bulk emails
+ * Now if we need to send email to N number of users,
+ * we will create N/100 number of Jobs, each job will send
+ * mail to 100 persons
+ * @param emailDbClient 
+ * @param jobItem 
+ * @returns 
+ */
 export const bulkEmailPrepareSqsEventHandler = async (
   emailDbClient: DatabaseService,
   jobItem: IJob
@@ -44,6 +53,8 @@ export const bulkEmailPrepareSqsEventHandler = async (
       "e.email",
       emailKnex.select("eop.email").from("email_opt_outs as eop")
     );
+
+  // @TODO make sure the opt-out logic is working
   const totalCount: number = parseInt(countResult[0].distinctCount.toString());
 
   const perPage = 2;
