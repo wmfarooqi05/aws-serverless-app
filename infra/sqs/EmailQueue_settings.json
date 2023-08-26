@@ -1,0 +1,18 @@
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:ca-central-1:524073432557:EmailQueue",
+        "ApproximateNumberOfMessages": "0",
+        "ApproximateNumberOfMessagesNotVisible": "0",
+        "ApproximateNumberOfMessagesDelayed": "0",
+        "CreatedTimestamp": "1684686228",
+        "LastModifiedTimestamp": "1685537437",
+        "VisibilityTimeout": "30",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "345600",
+        "DelaySeconds": "0",
+        "Policy": "{\"Version\":\"2012-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::524073432557:root\"},\"Action\":\"SQS:*\",\"Resource\":\"arn:aws:sqs:ca-central-1:524073432557:EmailQueue\"},{\"Sid\":\"AllowSNSPublish\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"SQS:SendMessage\",\"Resource\":\"arn:aws:sqs:ca-central-1:524073432557:EmailQueue\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:us-east-1:524073432557:incoming-mail-east-1-topic\"}}},{\"Sid\":\"AllowSNSMetricTopicPublish\",\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"SQS:SendMessage\",\"Resource\":\"arn:aws:sqs:ca-central-1:524073432557:EmailQueue\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:ca-central-1:524073432557:email-sns-topic\"}}}]}",
+        "RedrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:ca-central-1:524073432557:Email_DLQ\",\"maxReceiveCount\":10}",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "SqsManagedSseEnabled": "true"
+    }
+}

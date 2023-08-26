@@ -1,0 +1,17 @@
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:ca-central-1:524073432557:job_dead_letter_queue_dev",
+        "ApproximateNumberOfMessages": "0",
+        "ApproximateNumberOfMessagesNotVisible": "0",
+        "ApproximateNumberOfMessagesDelayed": "0",
+        "CreatedTimestamp": "1684868278",
+        "LastModifiedTimestamp": "1684868278",
+        "VisibilityTimeout": "30",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "120",
+        "DelaySeconds": "0",
+        "Policy": "{\"Version\":\"2012-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::524073432557:root\"},\"Action\":\"SQS:*\",\"Resource\":\"arn:aws:sqs:ca-central-1:524073432557:job_dead_letter_queue_dev\"}]}",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "SqsManagedSseEnabled": "true"
+    }
+}
