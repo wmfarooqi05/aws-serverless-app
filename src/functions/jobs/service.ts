@@ -5,7 +5,7 @@ import { inject, singleton } from "tsyringe";
 import JobsModel, { IJob } from "@models/Jobs";
 import {
   SQSClient,
-  SendMessageCommand,
+  SQSClientConfig,
   SendMessageCommandOutput,
 } from "@aws-sdk/client-sqs";
 import { sendMessageToSQS } from "@utils/sqs";
@@ -14,7 +14,12 @@ import { sendMessageToSQS } from "@utils/sqs";
 export class JobService {
   sqsClient: SQSClient = null;
   constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
-    this.sqsClient = new SQSClient({ region: process.env.AWS_REGION });
+    const sqsConfig: SQSClientConfig = { region: process.env.AWS_REGION };
+    if (process.env.STAGE === "local") {
+      sqsConfig.endpoint = "http://localhost:4566";
+    }
+
+    this.sqsClient = new SQSClient(sqsConfig);
   }
 
   /**

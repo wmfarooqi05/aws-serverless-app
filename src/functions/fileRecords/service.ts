@@ -23,7 +23,10 @@ import { IEmployeeJwt } from "@models/interfaces/Employees";
 import bytes, { getByteSize } from "@utils/bytes";
 import { checkVariationStatus, constructS3Url } from "@utils/s3";
 import { inject, singleton } from "tsyringe";
-import { CloudFrontClient } from "@aws-sdk/client-cloudfront";
+import {
+  CloudFrontClient,
+  CloudFrontClientConfig,
+} from "@aws-sdk/client-cloudfront";
 import { getSignedUrl } from "@aws-sdk/cloudfront-signer";
 import { SecretManager } from "@common/service/SecretManager";
 import { CustomError } from "@helpers/custom-error";
@@ -34,7 +37,7 @@ import {
   getFileNameWithoutExtension,
 } from "@utils/file";
 import JobsModel, { IJob } from "@models/Jobs";
-import { SQSClient } from "@aws-sdk/client-sqs";
+import { SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
 import { sendMessageToSQS } from "@utils/sqs";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
@@ -69,11 +72,15 @@ export class FileRecordService {
     @inject(JobService) private readonly jobService: JobService,
     @inject(S3Service) private readonly s3Service: S3Service
   ) {
-    this.s3Client = new S3Client({ region: process.env.AWS_REGION });
-    this.cloudFrontClient = new CloudFrontClient({
-      region: process.env.REGION,
-    });
-    this.sqsClient = new SQSClient({ region: process.env.AWS_REGION });
+    const cfConfig: CloudFrontClientConfig = { region: process.env.REGION };
+    const sqsConfig: SQSClientConfig = { region: process.env.REGION };
+    if (process.env.STAGE === "local") {
+      cfConfig.endpoint = "http://localhost:4566";
+      sqsConfig.endpoint = "http://localhost:4566";
+    }
+
+    this.cloudFrontClient = new CloudFrontClient(cfConfig);
+    this.sqsClient = new SQSClient(sqsConfig);
   }
 
   async initializeCloudFrontPrivateKey() {
@@ -123,7 +130,12 @@ export class FileRecordService {
       };
 
       const command = new PutObjectCommand(uploadParams);
-      return this.s3Client.send(command);
+      // @TODO why we are using s3 client when we can use s3Service???
+      // return this.s3Client.send(command);
+      // @TODO this is not the correct way, we should not access the client directly
+      // check which s3Service function should be called for this case and call it instead of
+      // directly calling client
+      return this.s3Service.s3Client.send(command);
     });
     const responses = await Promise.allSettled(filePromises);
     return this.storeS3OutputToFileRecords(

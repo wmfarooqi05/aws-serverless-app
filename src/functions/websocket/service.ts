@@ -34,8 +34,7 @@ export class WebSocketService implements IWebSocketService {
   ) {
     let endpoint = null;
     if (process.env.STAGE === "local") {
-      endpoint =
-        "https://2tcizg95hl.execute-api.ca-central-1.amazonaws.com/dev";
+      endpoint = "http://localhost:4510";
     } else {
       endpoint = process.env.APIG_WS_ENDPOINT;
     }

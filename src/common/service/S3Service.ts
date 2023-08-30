@@ -15,6 +15,7 @@ import {
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
+  S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import bytes from "@utils/bytes";
 import * as stream from "stream";
@@ -30,6 +31,12 @@ export class S3Service {
   s3Client: S3Client = null;
   constructor() {
     if (!this.s3Client) {
+      let configuration: S3ClientConfig = {
+        region: process.env.AWS_REGION,
+      }
+      if (process.env.STAGE === 'local') {
+        configuration.endpoint = "https://localhost:4566"
+      }
       this.s3Client = new S3Client({ region: process.env.AWS_REGION });
     }
   }

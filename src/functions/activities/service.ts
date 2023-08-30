@@ -54,7 +54,6 @@ import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
 import { capitalize, isEqual } from "lodash";
 import { GoogleCalendarService } from "./google/calendar/service";
-import { calendar_v3 } from "googleapis";
 
 export interface IActivityService {
   createActivity(employeeId: string, body: any): Promise<IActivityPaginated>;

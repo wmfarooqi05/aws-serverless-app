@@ -35,6 +35,7 @@ import {
   CopyObjectCommandOutput,
   GetObjectCommand,
   S3Client,
+  S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import moment from "moment-timezone";
 import { EmailTemplatesModel, IEmailTemplate } from "./models/EmailTemplate";
@@ -45,6 +46,7 @@ import {
   GetTemplateCommand,
   GetTemplateCommandInput,
   SESClient,
+  SESClientConfig,
   SendRawEmailCommand,
   SendRawEmailCommandInput,
   SendTemplatedEmailCommand,
@@ -73,7 +75,7 @@ import {
   RECIPIENT_EMPLOYEE_DETAILS,
 } from "./models/commons";
 import { EmailMetricsModel, IEmailMetrics } from "./models/EmailMetrics";
-import { SQSClient } from "@aws-sdk/client-sqs";
+import { SQSClient, SQSClientConfig } from "@aws-sdk/client-sqs";
 import { IEmailMetricsRecipients } from "./models/EmailMetricsRecipients";
 import processEmailTemplateSqsEventHandler from "@functions/emails/jobs/processEmailTemplateSqsEventHandler";
 import { bulkEmailPrepareSqsEventHandler } from "@functions/emails/jobs/bulkEmailPrepareSqsEventHandler";
@@ -102,9 +104,6 @@ import JobsModel, { IJob } from "@models/Jobs";
 import { JobService } from "@functions/jobs/service";
 import { getFileExtension } from "@utils/file";
 
-const s3UsClient = new S3Client({ region: "us-east-1" });
-const sesClient = new SESClient({ region: process.env.REGION });
-
 const SENT_EMAIL_FOLDER = "emails/sent";
 
 export interface IEmailService {}
@@ -114,6 +113,9 @@ export class EmailService implements IEmailService {
   sqsClient: SQSClient = null;
   emailDbClient: DatabaseService = null;
   mailQueueUrl: string = process.env.MAIL_QUEUE_URL;
+  sesClient: SESClient = null;
+  s3UsClient: S3Client = null;
+
   constructor(
     @inject(DatabaseService) private readonly docClient: DatabaseService,
     @inject(FileRecordService)
@@ -123,8 +125,19 @@ export class EmailService implements IEmailService {
     private readonly notificationService: NotificationService,
     @inject(JobService) private readonly jobService: JobService
   ) {
-    this.sqsClient = new SQSClient({ region: process.env.REGION });
+    const s3Config: S3ClientConfig = { region: "us-east-1" };
+    const sqsConfig: SQSClientConfig = { region: process.env.REGION };
+    const sesConfig: SESClientConfig = { region: process.env.REGION };
+    if (process.env.STAGE === "local") {
+      s3Config.endpoint = "http://localhost:4566";
+      sqsConfig.endpoint = "http://localhost:4566";
+      sesConfig.endpoint = "http://localhost:4566";
+    }
+
+    this.s3UsClient = new S3Client(s3Config);
+    this.sqsClient = new SQSClient(sqsConfig);
     this.mailQueueUrl = process.env.MAIL_QUEUE_URL;
+    this.sesClient = new SESClient(sesConfig);
   }
 
   async getAllEmails(body: any): Promise<any> {}
@@ -360,7 +373,9 @@ export class EmailService implements IEmailService {
         ],
         Source: `${senderName} <${senderEmail}>`,
       };
-      const resp = await sesClient.send(new SendRawEmailCommand(rawMailInput));
+      const resp = await this.sesClient.send(
+        new SendRawEmailCommand(rawMailInput)
+      );
 
       if (resp.$metadata.httpStatusCode === 200) {
         await Promise.all(copyS3Promises);
@@ -1444,7 +1459,7 @@ export class EmailService implements IEmailService {
       TemplateName: body.templateId,
     };
 
-    return sesClient.send(new GetTemplateCommand(commandInput));
+    return this.sesClient.send(new GetTemplateCommand(commandInput));
   }
 
   async downloadStreamFromUSEastBucket(keyName: string) {
@@ -1453,7 +1468,7 @@ export class EmailService implements IEmailService {
       Key: keyName,
     };
     const getObjectCommand = new GetObjectCommand(params);
-    const objectData = await s3UsClient.send(getObjectCommand);
+    const objectData = await this.s3UsClient.send(getObjectCommand);
 
     // Pipe the response to a writable stream and collect it as a Buffer
     const bufferStream = new stream.PassThrough();
@@ -1752,7 +1767,7 @@ export class EmailService implements IEmailService {
       TemplateData: JSON.stringify({}),
     };
 
-    const resp: SendTemplatedEmailCommandOutput = await sesClient.send(
+    const resp: SendTemplatedEmailCommandOutput = await this.sesClient.send(
       new SendTemplatedEmailCommand(command)
     );
 
