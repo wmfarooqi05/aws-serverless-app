@@ -1,16 +1,6 @@
 import "reflect-metadata";
 
-import {
-  INotificationModel,
-  INotificationPaginated,
-} from "@models/Notification";
-
-import {
-  formatErrorResponse,
-  formatJSONResponse,
-  ValidatedEventAPIGatewayProxyEvent,
-} from "@libs/api-gateway";
-import { decodeJWTMiddleware } from "src/common/middlewares/decode-jwt";
+import { formatErrorResponse, formatJSONResponse } from "@libs/api-gateway";
 import { GoogleOAuthService } from "./service";
 
 // Initialize Container
@@ -27,7 +17,7 @@ export const oauthHandlerWithEmployeeHandler = async (event) => {
       .getGoogleOauthRequestTokenByEmployee(
         event.headers.origin,
         event.employee?.sub,
-        event.body
+        event.body || "{}"
       );
     return formatJSONResponse(response, 200);
   } catch (e) {

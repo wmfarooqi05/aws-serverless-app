@@ -1,14 +1,12 @@
 import "reflect-metadata";
 import { inject, singleton } from "tsyringe";
-import { google, Auth, calendar_v3 } from "googleapis";
+import { google, Auth } from "googleapis";
 import { ensureConfigs } from "@utils/EnvVarsUtil";
 import moment from "moment-timezone";
 import { CustomError } from "@helpers/custom-error";
 import Joi from "joi";
 import AuthTokenModel, { IAuthToken } from "@models/AuthToken";
 import { DatabaseService } from "@libs/database/database-service-objection";
-import { IEmployee } from "@models/interfaces/Employees";
-import EmployeeModel from "@models/Employees";
 
 const SCOPE_FOR_AUTH = [
   "https://www.googleapis.com/auth/userinfo.email",
