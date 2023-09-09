@@ -15,6 +15,10 @@ export async function up(knex: Knex): Promise<void> {
       table.jsonb("job_result").defaultTo({});
       table.string("job_status");
 
+      table.integer("retry_count").defaultTo(0).notNullable();
+      table.timestamp("last_execution_timestamp");
+      table.uuid("last_executed_job_id");
+
       table
         .timestamp("created_at", { useTz: true })
         .notNullable()

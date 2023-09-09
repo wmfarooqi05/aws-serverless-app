@@ -16,8 +16,8 @@ export async function up(knex: Knex): Promise<void> {
         .onDelete("SET NULL")
         .notNullable();
 
-      table.string("status").notNullable().defaultTo("PENDING");
-      table.json("result").notNullable();
+      table.string("job_status").notNullable().defaultTo("PENDING");
+      table.json("job_result");
       table
         .timestamp("execution_timestamp", { useTz: true })
         .notNullable()

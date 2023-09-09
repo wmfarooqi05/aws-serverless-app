@@ -20,12 +20,11 @@ import { Readable } from "stream";
 import { CustomError } from "@helpers/custom-error";
 import bytes from "@utils/bytes";
 import { createFileWithDirectories } from "@utils/fs";
+import { s3DefaultConfig } from "@common/configs";
 
 // @TODO rename this to s3-utils
 
-const s3Client = new S3Client({
-  region: process.env.REGION,
-});
+const s3Client = new S3Client(s3DefaultConfig);
 
 /**
  * @deprecated
@@ -382,10 +381,13 @@ export const getS3ClientsForRegions = (
   let sourceClient = s3Client;
   let destinationClient = s3Client;
   if (sourceRegion !== process.env.REGION) {
-    sourceClient = new S3Client({ region: sourceRegion });
+    sourceClient = new S3Client({ ...s3DefaultConfig, region: sourceRegion });
   }
   if (destinationRegion !== process.env.REGION) {
-    destinationClient = new S3Client({ region: destinationRegion });
+    destinationClient = new S3Client({
+      ...s3DefaultConfig,
+      region: destinationRegion,
+    });
   }
   return { sourceClient, destinationClient };
 };

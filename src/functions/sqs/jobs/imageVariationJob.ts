@@ -21,13 +21,14 @@ import { SQSEvent } from "aws-lambda";
 import { container } from "@common/container";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import moment from "moment-timezone";
+import { sqsDefaultConfig } from "@common/configs";
 
 // move this to handler / service pattern
 // if image variation need multiple endpoints
 // or it grows
-process.env.DB_CONNECTION_TIMEOUT_OVERRIDE = '10';
+process.env.DB_CONNECTION_TIMEOUT_OVERRIDE = "10";
 const s3Service: S3Service = container.resolve(S3Service);
-const sqsClient: SQSClient = new SQSClient({ region: process.env.AWS_REGION });
+const sqsClient: SQSClient = new SQSClient(sqsDefaultConfig);
 container.resolve(DatabaseService);
 
 export const handler = async (event: SQSEvent) => {

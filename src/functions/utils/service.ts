@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { FileRecordService } from "@functions/fileRecords/service";
 import { validateGetPublicUrls } from "./schema";
 import { getFileExtension } from "@utils/file";
+import { s3DefaultConfig } from "@common/configs";
 
 @singleton()
 export class UtilService {
@@ -16,7 +17,10 @@ export class UtilService {
     private readonly fileRecordsService: FileRecordService
   ) {
     if (!this.s3Client) {
-      this.s3Client = new S3Client({ region: process.env.REGION });
+      this.s3Client = new S3Client({
+        ...s3DefaultConfig,
+        region: process.env.REGION,
+      });
     }
   }
 
@@ -53,6 +57,9 @@ export class UtilService {
     await validateGetPublicUrls(payload);
 
     const { urls }: { urls: string[] } = payload;
-    return this.fileRecordsService.getCDNPublicUrlWithPermissions(employee, urls);
+    return this.fileRecordsService.getCDNPublicUrlWithPermissions(
+      employee,
+      urls
+    );
   }
 }

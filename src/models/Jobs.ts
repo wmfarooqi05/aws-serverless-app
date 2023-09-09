@@ -85,12 +85,13 @@ export default class JobsModel extends Model {
 
     const retryCount = jobItem.retryCount + 1;
     const jobCurrentExecutionItem: IJobExecutionHistory =
-      await JobsModel.relatedQuery("executionHistory").insert({
-        jobId,
-        jobStatus,
-        executionTimestamp,
-        retryCount,
-      } as IJobExecutionHistory);
+      await JobsModel.relatedQuery("executionHistory")
+        .for(jobId)
+        .insert({
+          jobStatus,
+          executionTimestamp,
+          retryCount,
+        } as IJobExecutionHistory);
 
     const patchJobItem: Partial<IJob> = {
       lastExecutedJobId: jobCurrentExecutionItem.id,

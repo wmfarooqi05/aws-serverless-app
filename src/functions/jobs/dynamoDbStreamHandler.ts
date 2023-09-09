@@ -6,13 +6,14 @@ import JobsModel, { IJobData } from "@models/dynamoose/Jobs";
 import { container } from "@common/container";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+import { sqsDefaultConfig } from "@common/configs";
 
 const REGION = process.env.REGION;
 // const STREAM_ARN =
 //   "arn:aws:dynamodb:us-east-1:123456789012:table/MyTable/stream/2022-04-30T23:15:14.315";
 // const streamClient = new DynamoDBStreamsClient({ region: REGION });
 
-const sqsClient = new SQSClient({ region: REGION });
+const sqsClient = new SQSClient(sqsDefaultConfig);
 
 export const handleStreamRecords = async (event: DynamoDBStreamEvent) => {
   try {

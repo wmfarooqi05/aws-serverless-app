@@ -13,8 +13,9 @@ import { replaceImageUrls } from "@utils/image";
 import { isValidJSON } from "@utils/json";
 import { htmlToText } from "html-to-text";
 import { container } from "@common/container";
+import { sesDefaultConfig } from "@common/configs";
 
-const sesClient = new SESClient({ region: process.env.REGION });
+const sesClient = new SESClient(sesDefaultConfig);
 const fileRecordService = container.resolve(FileRecordService);
 
 const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
@@ -56,9 +57,9 @@ const processEmailTemplateSqsEventHandler = async (jobItem: IJob) => {
     // HtmlPart
     const replacements = await replaceImageUrls(
       htmlPartContent,
-      `media/email-templates/${templateName}/${version}`,
+      `media/email-templates/${templateName}/${version}`
     );
-    return;
+
     const bodyText = htmlToText(replacements.html);
 
     const rootKey = `media/email-templates/${templateName}/${version}`;

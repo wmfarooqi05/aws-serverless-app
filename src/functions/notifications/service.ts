@@ -25,6 +25,7 @@ import {
   moveMessageToDLQ,
   sendMessageToSQS,
 } from "@utils/sqs";
+import { sqsDefaultConfig } from "@common/configs";
 
 export interface INotificationService {}
 
@@ -45,9 +46,7 @@ export class NotificationService implements INotificationService {
     @inject(WebSocketService)
     private readonly webSocketService: WebSocketService // private scheduler: AWS.Scheduler
   ) {
-    this.notificationQueueClient = new SQSClient({
-      region: process.env.AWS_REGION,
-    });
+    this.notificationQueueClient = new SQSClient(sqsDefaultConfig);
     this.queueUrl = process.env.NOTIFICATION_QUEUE_URL;
   }
 

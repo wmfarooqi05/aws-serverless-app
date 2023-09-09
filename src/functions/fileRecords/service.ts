@@ -43,6 +43,7 @@ import { SQSEventType } from "@models/interfaces/Reminders";
 import { JobService } from "@functions/jobs/service";
 import { randomUUID } from "crypto";
 import { S3Service } from "@common/service/S3Service";
+import { s3DefaultConfig, sqsDefaultConfig } from "@common/configs";
 
 export interface UploadFiles {
   originalFilename?: string;
@@ -73,14 +74,12 @@ export class FileRecordService {
     @inject(S3Service) private readonly s3Service: S3Service
   ) {
     const cfConfig: CloudFrontClientConfig = { region: process.env.REGION };
-    const sqsConfig: SQSClientConfig = { region: process.env.REGION };
     if (process.env.STAGE === "local") {
       cfConfig.endpoint = "http://localhost:4566";
-      sqsConfig.endpoint = "http://localhost:4566";
     }
 
     this.cloudFrontClient = new CloudFrontClient(cfConfig);
-    this.sqsClient = new SQSClient(sqsConfig);
+    this.sqsClient = new SQSClient(sqsDefaultConfig);
   }
 
   async initializeCloudFrontPrivateKey() {
@@ -447,7 +446,7 @@ export class FileRecordService {
     if (region === process.env.AWS_REGION) {
       return this.s3Client;
     } else {
-      return new S3Client({ region });
+      return new S3Client({ ...s3DefaultConfig, region });
     }
   }
 

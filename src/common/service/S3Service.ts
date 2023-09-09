@@ -15,29 +15,21 @@ import {
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
-  S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import bytes from "@utils/bytes";
 import * as stream from "stream";
 import * as fs from "fs";
 import { getKeysFromS3Url } from "@utils/s3";
-import * as path from "path";
 import { createFileWithDirectories } from "@utils/fs";
-import { UploadFiles } from "@functions/fileRecords/service";
-import { FilePermissionsMap, ReadAllPermissions } from "@models/FileRecords";
+import { s3DefaultConfig } from "@common/configs";
+import { fromIni } from "@aws-sdk/credential-provider-ini";
 
 @singleton()
 export class S3Service {
   s3Client: S3Client = null;
   constructor() {
     if (!this.s3Client) {
-      let configuration: S3ClientConfig = {
-        region: process.env.AWS_REGION,
-      }
-      if (process.env.STAGE === 'local') {
-        configuration.endpoint = "https://localhost:4566"
-      }
-      this.s3Client = new S3Client({ region: process.env.AWS_REGION });
+      this.s3Client = new S3Client(s3DefaultConfig);
     }
   }
 
@@ -86,7 +78,7 @@ export class S3Service {
   ) {
     let client = this.s3Client;
     if (region !== process.env.REGION) {
-      client = new S3Client({ region: process.env.REGION });
+      client = new S3Client(s3DefaultConfig);
     }
 
     return Promise.allSettled(
@@ -174,7 +166,10 @@ export class S3Service {
     try {
       let destinationClient = this.s3Client;
       if (destinationRegion !== process.env.REGION) {
-        destinationClient = new S3Client({ region: destinationRegion });
+        destinationClient = new S3Client({
+          ...s3DefaultConfig,
+          region: destinationRegion,
+        });
       }
 
       const newLoc = await this.copyS3Object(
@@ -460,10 +455,13 @@ export class S3Service {
     let sourceClient = this.s3Client;
     let destinationClient = this.s3Client;
     if (sourceRegion !== process.env.REGION) {
-      sourceClient = new S3Client({ region: sourceRegion });
+      sourceClient = new S3Client({ ...s3DefaultConfig, region: sourceRegion });
     }
     if (destinationRegion !== process.env.REGION) {
-      destinationClient = new S3Client({ region: destinationRegion });
+      destinationClient = new S3Client({
+        ...s3DefaultConfig,
+        region: destinationRegion,
+      });
     }
     return { sourceClient, destinationClient };
   };
