@@ -37,6 +37,7 @@ export const bulkEmailSqsEventHandler = async (
   _: SQSClient,
   jobItem: IJob
 ) => {
+  console.log("starting job bulkEmailSqsEventHandler");
   const {
     details: {
       ccList,
@@ -52,6 +53,8 @@ export const bulkEmailSqsEventHandler = async (
       defaultPlaceholders,
     },
   }: { details: I_BULK_EMAIL_JOB } = jobItem as any;
+
+  console.log("details", jobItem.id, jobItem.details);
   const results: {
     emailId: string;
     email: string;
@@ -96,6 +99,7 @@ export const bulkEmailSqsEventHandler = async (
   const emailEntities: IEmailRecordWithRecipients[] =
     await EmailRecordModel.query().insertGraph(insertData);
 
+  console.log('records added with ids: ', emailEntities.map(x => x.id));
   let command: SendTemplatedEmailCommandInput = {
     Destination: {
       CcAddresses: mergeEmailAndNameList(ccList),
@@ -178,23 +182,23 @@ export const bulkEmailSqsEventHandler = async (
   /**
    * WARNING: we have to make sure knex client is available
    * there are two strategies
-   * 
+   *
    * 1st: We disconnect knex client after insertGraph thing, because now, nobody
    * knows for how long sending email will keep on going, we can release the connection
    * back to pool, and after X seconds when all 100 mails are gone, we can update their
    * statuses in the DB
-   * 
+   *
    * 2nd: We increase the connection timeout because right now its 3sec and it will
    * be for sure not available here after 3+ seconds
-   * 
+   *
    * Fallback: If DB doesn't connect for some reason, we have to store these logs
    * in S3 and create a job for handling this
-   * Even if job will not be there, data present in S3 will indicate this needs to 
+   * Even if job will not be there, data present in S3 will indicate this needs to
    * be cleaned up
    */
-  // 
-  // 
-  
+  //
+  //
+
   console.info("Updating delivery statuses of emails in DB");
   await emailDbClient.getKnexClient().transaction(async (trx) => {
     for (const emailResp of results) {

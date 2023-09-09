@@ -1,0 +1,19 @@
+{
+    "Attributes": {
+        "Policy": "{\"Version\":\"2008-10-17\",\"Statement\":[{\"Sid\":\"stmt1683583614016\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ses.amazonaws.com\"},\"Action\":\"SNS:Publish\",\"Resource\":\"arn:aws:sns:us-east-1:524073432557:incoming-mail-east-1-topic\",\"Condition\":{\"StringEquals\":{\"AWS:SourceAccount\":\"524073432557\"},\"StringLike\":{\"AWS:SourceArn\":\"arn:aws:ses:*\"}}}]}",
+        "LambdaSuccessFeedbackSampleRate": "0",
+        "Owner": "524073432557",
+        "SubscriptionsPending": "0",
+        "TopicArn": "arn:aws:sns:us-east-1:524073432557:incoming-mail-east-1-topic",
+        "SQSSuccessFeedbackRoleArn": "arn:aws:iam::524073432557:role/global-employment-dev-ca-central-1-lambdaRole",
+        "EffectiveDeliveryPolicy": "{\"http\":{\"defaultHealthyRetryPolicy\":{\"minDelayTarget\":20,\"maxDelayTarget\":20,\"numRetries\":3,\"numMaxDelayRetries\":0,\"numNoDelayRetries\":0,\"numMinDelayRetries\":0,\"backoffFunction\":\"linear\"},\"disableSubscriptionOverrides\":false,\"defaultRequestPolicy\":{\"headerContentType\":\"text/plain; charset=UTF-8\"}}}",
+        "FirehoseSuccessFeedbackSampleRate": "0",
+        "SubscriptionsConfirmed": "2",
+        "SQSSuccessFeedbackSampleRate": "0",
+        "HTTPSuccessFeedbackSampleRate": "0",
+        "ApplicationSuccessFeedbackSampleRate": "0",
+        "DisplayName": "incoming-mail-east-1-topic",
+        "SQSFailureFeedbackRoleArn": "arn:aws:iam::524073432557:role/global-employment-dev-ca-central-1-lambdaRole",
+        "SubscriptionsDeleted": "0"
+    }
+}

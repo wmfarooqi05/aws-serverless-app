@@ -23,6 +23,10 @@ import {
 import { chunk } from "lodash";
 import { uploadJsonAsXlsx } from "./xlsx";
 import JobsModel, { IJob } from "@models/Jobs";
+import JobExecutionHistoryModel, {
+  IJobExecutionData,
+  IJobExecutionHistory,
+} from "@models/JobExecutionHistory";
 
 const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   {
@@ -30,7 +34,9 @@ const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient(
   }
 );
 
-export const bulkImportUsersProcessHandler = async (jobData: IJob) => {
+export const bulkImportUsersProcessHandler = async (
+  jobData: IJob
+): Promise<IJobExecutionData> => {
   const errors = [];
   let result = {};
   console.log("[bulkImportUsersProcessHandler] jobData", jobData);
@@ -175,33 +181,18 @@ export const bulkImportUsersProcessHandler = async (jobData: IJob) => {
         await trx.rollback();
       }
     });
-    await JobsModel.query().patchAndFetchById(jobData.id, {
-      jobStatus: "SUCCESSFUL",
-      jobResult: result,
-    } as IJob);
+    return { jobResult: result, jobStatus: "SUCCESSFUL" };
   } catch (e) {
     errors.push({ message: e.message });
+    return { jobResult: errors, jobStatus: "FAILED" };
   }
-  try {
-    if (errors.length) {
-      try {
-        await JobsModel.query().patchAndFetchById(jobData.id, {
-          jobStatus: "ERROR",
-          jobResult: { errors },
-        });
-      } catch (e) {
-        console.log("e", e);
-      }
-      return {
-        statusCode: 400,
-        body: JSON.stringify(errors),
-      };
-    }
-    return formatJSONResponse({ result }, 200);
-  } catch (e) {
-    console.log("[JobsModel] result not saved due to errors", e);
-  }
-  return formatErrorResponse(errors);
+  // try {
+  //   if (errors.length) {
+  //     throw new CustomError(JSON.stringify(errors), 400);
+  //   }
+  // } catch (e) {
+  //   console.log("[JobsModel] result not saved due to errors", e);
+  // }
 };
 
 const insertIntoCognito = async (employees: any[]) => {

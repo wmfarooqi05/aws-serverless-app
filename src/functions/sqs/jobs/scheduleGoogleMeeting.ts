@@ -3,13 +3,19 @@ import { NotificationService } from "@functions/notifications/service";
 import { CustomError } from "@helpers/custom-error";
 import { formatGoogleErrorBody } from "@libs/api-gateway";
 import ActivityModel from "@models/Activity";
-import { IJob } from "@models/Jobs";
+import JobsModel, { IJob, JOB_STATUS } from "@models/Jobs";
 import { INotification } from "@models/Notification";
 import { IActivity } from "@models/interfaces/Activity";
 import { get } from "lodash";
 import { container } from "@common/container";
+import JobExecutionHistoryModel, {
+  IJobExecutionData,
+  IJobExecutionHistory,
+} from "@models/JobExecutionHistory";
 
-export const scheduleGoogleMeeting = async (jobItem: IJob) => {
+export const scheduleGoogleMeeting = async (
+  jobItem: IJob
+): Promise<IJobExecutionData> => {
   const activityId: string = jobItem?.details?.activityId;
   if (!activityId) {
     throw new CustomError("Activity id not found", 400);
@@ -25,7 +31,10 @@ export const scheduleGoogleMeeting = async (jobItem: IJob) => {
     receiverEmployee: activity.createdBy,
   };
 
-  let jobData: any = {};
+  const jobData: IJobExecutionData = {
+    jobStatus: "IN_PROGRESS",
+    jobResult: null,
+  };
   try {
     const response = await container
       .resolve(GoogleCalendarService)
@@ -36,15 +45,15 @@ export const scheduleGoogleMeeting = async (jobItem: IJob) => {
       subtitle: `Google meet event for your Activity has been created successfully`,
       extraData: { tableRowId: activityId },
     };
-    jobData = {
-      status: response?.status || 424,
-      data: response?.data || {},
-    };
+    jobData.jobStatus = "SUCCESSFUL" as JOB_STATUS;
+    jobData.jobResult = response?.data || {};
   } catch (e) {
+    jobData.jobStatus = "FAILED" as JOB_STATUS;
+
     if (e.config && e.headers) {
-      jobData.errorStack = formatGoogleErrorBody(e);
+      jobData.jobResult = formatGoogleErrorBody(e);
     } else {
-      jobData.errorStack = {
+      jobData.jobResult = {
         message: e.message,
         stack: e.stack,
       };
@@ -57,9 +66,11 @@ export const scheduleGoogleMeeting = async (jobItem: IJob) => {
       ...notificationPayload,
       title: "Google Meet Event creation failed",
       subtitle: `Google meet event for your activity failed to create`,
-      extraData: { tableRowId: activityId, errorStack: jobData?.errorStack },
+      extraData: { tableRowId: activityId, errorStack: jobData?.jobResult },
     };
   }
+
+  // @TODO add another try catch block here, to make sure the next code gets executed
   await ActivityModel.query()
     .findById(activityId)
     .patch({
@@ -76,7 +87,9 @@ export const scheduleGoogleMeeting = async (jobItem: IJob) => {
   return jobData;
 };
 
-export const deleteGoogleMeeting = async (jobItem: IJob) => {
+export const deleteGoogleMeeting = async (
+  jobItem: IJob
+): Promise<IJobExecutionData> => {
   // probably this code is not tested after moving to a job
   // In delete we have no idea if activity is already deleted
   // or user is just deleting the meeting
@@ -96,7 +109,10 @@ export const deleteGoogleMeeting = async (jobItem: IJob) => {
     receiverEmployee: createdBy,
   };
 
-  let jobData: any = {};
+  const jobData: IJobExecutionData = {
+    jobStatus: "IN_PROGRESS",
+    jobResult: null,
+  };
   try {
     const response = await container
       .resolve(GoogleCalendarService)
@@ -107,15 +123,16 @@ export const deleteGoogleMeeting = async (jobItem: IJob) => {
       subtitle: `Google meet event for your Activity has been deleted successfully`,
       extraData: { tableRowId: activityPayload.id },
     };
-    jobData = {
-      status: response?.status,
-      data: { message: "Google meet event deleted successfully" },
+    jobData.jobStatus = "SUCCESSFUL";
+    jobData.jobResult = {
+      message: "Google meet event deleted successfully",
+      data: response.data,
     };
   } catch (e) {
     if (e.config && e.headers) {
-      jobData.errorStack = formatGoogleErrorBody(e);
+      jobData.jobResult = formatGoogleErrorBody(e);
     } else {
-      jobData.errorStack = {
+      jobData.jobResult = {
         message: e.message,
         stack: e.stack,
       };
@@ -130,7 +147,7 @@ export const deleteGoogleMeeting = async (jobItem: IJob) => {
       subtitle: `Google meet event for your activity failed to delete`,
       extraData: {
         tableRowId: activityPayload.id,
-        errorStack: jobData?.errorStack,
+        errorStack: jobData?.jobResult,
       },
     };
   }
@@ -148,4 +165,6 @@ export const deleteGoogleMeeting = async (jobItem: IJob) => {
   await container
     .resolve(NotificationService)
     .createAndEnqueueNotifications([notificationPayload]);
+
+  return jobData;
 };

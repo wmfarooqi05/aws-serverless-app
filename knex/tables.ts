@@ -23,4 +23,6 @@ export const tableName = {
   employeeTeams: process.env.EMPLOYEE_TEAMS || "employee_teams",
   fileRecords: process.env.FILE_RECORDS || "file_records",
   fileVariations: process.env.FILE_VARIATIONS || "file_variations",
+  jobExecutionHistory:
+    process.env.JOB_EXECUTION_HISTORY || "job_execution_history",
 };

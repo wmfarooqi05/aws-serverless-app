@@ -13,13 +13,19 @@ import {
 import { IEmployee } from "@models/interfaces/Employees";
 import { isMatch } from "lodash";
 import { container } from "@common/container";
+import {
+  IJobExecutionData,
+  IJobExecutionHistory,
+} from "@models/JobExecutionHistory";
 
 interface SchedulingInput extends IReminderInterface {
   dueDate: string;
   createdBy: string;
 }
 
-export const createEBScheduler = async (jobItem: IJob) => {
+export const createEBScheduler = async (
+  jobItem: IJob
+): Promise<IJobExecutionData> => {
   const {
     details: { tableRowId, tableName },
   } = jobItem;
@@ -46,12 +52,15 @@ export const createEBScheduler = async (jobItem: IJob) => {
         tableRowId,
         tableName
       );
-    return { response };
+
+    return { jobResult: response, jobStatus: "SUCCESSFUL" };
   } catch (e) {
     return {
-      stack: e.stack,
-      message: e.message,
-      status: 500,
+      jobStatus: "FAILED",
+      jobResult: {
+        stack: e.stack,
+        message: e.message,
+      },
     };
   }
 };
@@ -62,21 +71,33 @@ export const createEBScheduler = async (jobItem: IJob) => {
  * reminders and eventually cleanup everything
  * @param jobItem
  */
-export const deleteEbScheduler = async (jobItem: IJob) => {
-  const {
-    details: { tableRowId, tableName },
-  } = jobItem;
+export const deleteEbScheduler = async (
+  jobItem: IJob
+): Promise<IJobExecutionData> => {
+  try {
+    const {
+      details: { tableRowId, tableName },
+    } = jobItem;
 
-  // The row has been deleted so we cannot query it
-  const reminders: IReminder[] = await ReminderModel.query().where({
-    tableName,
-    tableRowId,
-  });
+    // The row has been deleted so we cannot query it
+    const reminders: IReminder[] = await ReminderModel.query().where({
+      tableName,
+      tableRowId,
+    });
 
-  const response = await container
-    .resolve(ReminderService)
-    .deleteReminders(reminders);
-  return { response };
+    const response = await container
+      .resolve(ReminderService)
+      .deleteReminders(reminders);
+    return { jobResult: response, jobStatus: "SUCCESSFUL" };
+  } catch (e) {
+    return {
+      jobStatus: "FAILED",
+      jobResult: {
+        stack: e.stack,
+        message: e.message,
+      },
+    };
+  }
 };
 
 /**

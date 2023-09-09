@@ -30,6 +30,7 @@ import { cognitoOAuthHandler } from "./auth";
 
 import { utilsHandler } from "@functions/utils";
 import { deleteAllReminders } from "./reminders";
+import { jobsHandler } from "@functions/jobs";
 
 const exportHandlers = {
   companiesHandler,
@@ -54,6 +55,7 @@ const exportHandlers = {
   employeeHandler,
   sqsJobQueueInvokeHandler,
   imageVariationJob,
+  jobsHandler,
 };
 
 if (process.env.NODE_ENV === "local") {

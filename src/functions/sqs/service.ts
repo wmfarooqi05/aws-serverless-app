@@ -3,7 +3,6 @@ import { inject, singleton } from "tsyringe";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { SQSEvent } from "aws-lambda";
 // import JobsModel, { IJobs } from "@models/pending/[x]Jobs";
-import { CustomError } from "@helpers/custom-error";
 import { bulkImportUsersProcessHandler } from "@functions/jobs/bulkSignupProcess";
 import { SQSEventType } from "@models/interfaces/Reminders";
 import { DatabaseService } from "@libs/database/database-service-objection";
@@ -16,31 +15,16 @@ import {
 } from "./jobs/scheduleGoogleMeeting";
 import JobsModel, { IJob } from "@models/Jobs";
 import { createEBScheduler, deleteEbScheduler } from "./jobs/ebScheduler";
-
-let queueUrl = `https://sqs.${process.env.REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/${process.env.JOB_QUEUE}`;
-// let queueUrl =
-//   "https://sqs.ca-central-1.amazonaws.com/524073432557/job_queue_dev";
-if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
-  queueUrl = "http://localhost:4566/000000000000/job-queue-local";
-}
+import { sqsDefaultConfig } from "@common/configs";
+import JobExecutionHistoryModel, {
+  IJobExecutionData,
+} from "@models/JobExecutionHistory";
 
 @singleton()
 export class SQSService {
   sqsClient: SQSClient = null;
-  constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService
-  ) {
-    if (process.env.STAGE === "local" && process.env.USE_LOCAL_SQS === "true") {
-      this.sqsClient = new SQSClient({
-        endpoint: "http://localhost:4566", // Replace with the endpoint of your LocalStack instance
-        region: "ca-central-1", // Replace with your desired region
-        apiVersion: "2012-11-05", // Replace with your desired API version})
-      });
-    } else {
-      this.sqsClient = new SQSClient({
-        region: process.env.REGION,
-      });
-    }
+  constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
+    this.sqsClient = new SQSClient(sqsDefaultConfig);
   }
 
   async sqsJobQueueInvokeHandler(Records: SQSEvent["Records"]) {
@@ -52,23 +36,18 @@ export class SQSService {
         console.log("payload", payload);
 
         const jobId = payload.id;
-        jobItem = await JobsModel.query().patchAndFetchById(jobId, {
-          jobStatus: "IN_PROGRESS",
-        } as IJob);
-        if (!jobItem) {
-          throw new CustomError(`Job Item for id ${jobId} not found`, 400);
-        }
 
-        if (
-          process.env.STAGE !== "local" &&
-          jobItem.jobStatus === "SUCCESSFUL"
-        ) {
-          console.log(
+        const { jobItem: newJobItem, jobCurrentExecutionItem } =
+          await JobsModel.addExecutionHistory(jobId);
+
+        jobItem = newJobItem;
+
+        if (jobItem.jobStatus === "SUCCESSFUL") {
+          console.info(
             `Message ${record.messageId} has already been processed. Skipping...`
           );
-          continue;
+          return;
         }
-
         /**
          * We are here taking a decision
          * that jobs failed inside processing will be treated as successful
@@ -81,7 +60,7 @@ export class SQSService {
          * also be updated
          */
 
-        let resp = null;
+        let resp: IJobExecutionData = null;
         if (jobItem?.jobType === "BULK_SIGNUP") {
           resp = await bulkImportUsersProcessHandler(jobItem);
         } else if (jobItem.jobType === "DELETE_S3_FILES") {
@@ -97,15 +76,24 @@ export class SQSService {
         }
 
         // For Email jobs, we will be using different lambda due to layers
-        await this.markJobAsSuccessful(jobItem.id, resp);
+        await JobExecutionHistoryModel.query().patchAndFetchById(
+          jobCurrentExecutionItem.id,
+          resp
+        );
+        if (resp.jobStatus === "FAILED") {
+          await moveMessageToDLQ(this.sqsClient, record);
+        }
       } catch (error) {
         console.error(error);
-        if (jobItem?.id) {
-          await this.markJobAsFailed(jobItem, {
-            message: error.message,
-            statusCode: error.statusCode,
-            stack: error.stack,
-          });
+        if (jobItem?.lastExecutedJobId) {
+          await JobExecutionHistoryModel.query().patchAndFetchById(
+            jobItem?.lastExecutedJobId,
+            {
+              message: error.message,
+              statusCode: error.statusCode,
+              stack: error.stack,
+            }
+          );
         }
         if (process.env.STAGE === "local") {
           continue;
@@ -186,25 +174,12 @@ export class SQSService {
     }
   }
 
-  async enqueueItems(item: any) {
-    try {
-      const sendMessageCommand = new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: JSON.stringify(item),
-      });
-
-      // Send the message using the SQS client
-      return this.sqsClient.send(sendMessageCommand);
-    } catch (error) {
-      console.error(`Error during enqueue: ${error}`);
-    }
-  }
-
   async isMessageProcessed(jobId: string): Promise<boolean> {
     const jobItem: IJobData = await JobsModel.get({ jobId });
     return jobItem.jobStatus === "SUCCESSFUL";
   }
 
+  /** @deprecated */
   async markJobAsSuccessful(jobId: string, resp): Promise<void> {
     await JobsModel.query()
       .findById(jobId)
@@ -215,6 +190,7 @@ export class SQSService {
     console.log(`marked jobId ${jobId} as successful`);
   }
 
+  /** @deprecated */
   async markJobAsFailed(job: IJob, resp: any): Promise<void> {
     const result = job.jobResult || {};
     const errorObj = {

@@ -27,15 +27,17 @@ import { container } from "@common/container";
  * Now if we need to send email to N number of users,
  * we will create N/100 number of Jobs, each job will send
  * mail to 100 persons
- * @param emailDbClient 
- * @param jobItem 
- * @returns 
+ * @param emailDbClient
+ * @param jobItem
+ * @returns
  */
 export const bulkEmailPrepareSqsEventHandler = async (
   emailDbClient: DatabaseService,
   jobItem: IJob
 ) => {
+  console.log("starting job bulkEmailPrepareSqsEventHandler");
   const { details }: { details: I_BULK_EMAIL_JOB_PREPARE } = jobItem as any;
+  console.log("details: ", details);
 
   const emailKnex = emailDbClient.getKnexClient();
   const countResult = await emailKnex(EMAIL_ADDRESSES_TABLE)
@@ -56,9 +58,16 @@ export const bulkEmailPrepareSqsEventHandler = async (
 
   // @TODO make sure the opt-out logic is working
   const totalCount: number = parseInt(countResult[0].distinctCount.toString());
+  console.log("total email count: ", totalCount);
 
-  const perPage = 2;
-  const maxPages = Math.ceil(totalCount / perPage);
+  const emailsPerJob = 2;
+  const totalJobsCount = Math.ceil(totalCount / emailsPerJob);
+  console.log(
+    "emails per job",
+    emailsPerJob,
+    ", total jobs count: ",
+    totalJobsCount
+  );
   const jobDataArray = [];
   interface EmailTemplatePayload {
     email: string;
@@ -76,20 +85,36 @@ export const bulkEmailPrepareSqsEventHandler = async (
     })
     .first();
 
+  console.log("template entity found with id: ", templateEntity);
   // COPY HTML PART
   const templateKey = getKeysFromS3Url(templateEntity.htmlPartUrl);
   const newTemplateKey = `media/bulk_emails/${randomUUID()}/template.html`;
+  console.log(
+    "copying template from: ",
+    templateKey.fileKey,
+    ", to: ",
+    newTemplateKey
+  );
   await copyS3Object(templateKey.fileKey, newTemplateKey);
+  console.log("template copied");
 
   if (templateEntity.textPartUrl) {
     // COPY TEXT PART
+    console.log("textPartUrl Exists");
     const textTemplateKey = getKeysFromS3Url(templateEntity.textPartUrl);
     const newTextTemplateKey = `media/bulk_emails/${randomUUID()}/TextPart.txt`;
+    console.log(
+      "copying template from: ",
+      textTemplateKey.fileKey,
+      ", to: ",
+      newTextTemplateKey
+    );
     await copyS3Object(textTemplateKey.fileKey, newTextTemplateKey);
   }
 
   const templateUrl = `https://${process.env.DEPLOYMENT_BUCKET}.s3.${process.env.REGION}.amazonaws.com/${newTemplateKey}`;
-  for (let currentPage = 1; currentPage <= maxPages; currentPage++) {
+  console.log("templateUrl: ", templateUrl);
+  for (let currentPage = 1; currentPage <= totalJobsCount; currentPage++) {
     const emails: IWithPagination<EmailTemplatePayload> = await emailKnex(
       EMAIL_ADDRESSES_TABLE
     )
@@ -118,19 +143,23 @@ export const bulkEmailPrepareSqsEventHandler = async (
       )
       .paginate({
         currentPage,
-        perPage,
+        perPage: emailsPerJob,
       });
+
+    const templateData = emails.data.map((x: EmailTemplatePayload) => {
+      return {
+        destination: mergeEmailAndName(x),
+        placeholders: JSON.stringify(x),
+      } as EMAIL_TEMPLATE_DATA;
+    });
+
+    console.log("templateData", templateData);
 
     const bulkEmailJobPayloads: I_BULK_EMAIL_JOB = {
       ...details,
       emailTemplateS3Url: templateUrl,
       subject: templateEntity.subject,
-      templateData: emails.data.map((x: EmailTemplatePayload) => {
-        return {
-          destination: mergeEmailAndName(x),
-          placeholders: JSON.stringify(x),
-        } as EMAIL_TEMPLATE_DATA;
-      }),
+      templateData,
     };
 
     const resp = await container.resolve(JobService).createAndEnqueueJob(
@@ -142,8 +171,10 @@ export const bulkEmailPrepareSqsEventHandler = async (
       },
       process.env.MAIL_QUEUE_URL
     );
+    console.log("job created", resp.job.id, ', queue status code: ', resp.queueOutput.$metadata.httpStatusCode);
     jobDataArray.push({ jobId: resp.job.id });
   }
 
+  console.log('new jobs created', jobDataArray);
   return jobDataArray;
 };

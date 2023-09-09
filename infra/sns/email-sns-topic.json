@@ -1,0 +1,20 @@
+{
+    "Attributes": {
+        "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__default_statement_ID\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":[\"SNS:GetTopicAttributes\",\"SNS:SetTopicAttributes\",\"SNS:AddPermission\",\"SNS:RemovePermission\",\"SNS:DeleteTopic\",\"SNS:Subscribe\",\"SNS:ListSubscriptionsByTopic\",\"SNS:Publish\"],\"Resource\":\"arn:aws:sns:ca-central-1:524073432557:email-sns-topic\",\"Condition\":{\"StringEquals\":{\"AWS:SourceOwner\":\"524073432557\"}}}]}",
+        "LambdaSuccessFeedbackSampleRate": "0",
+        "Owner": "524073432557",
+        "SubscriptionsPending": "0",
+        "TopicArn": "arn:aws:sns:ca-central-1:524073432557:email-sns-topic",
+        "SQSSuccessFeedbackRoleArn": "arn:aws:iam::524073432557:role/global-employment-dev-ca-central-1-lambdaRole",
+        "TracingConfig": "PassThrough",
+        "EffectiveDeliveryPolicy": "{\"http\":{\"defaultHealthyRetryPolicy\":{\"minDelayTarget\":20,\"maxDelayTarget\":20,\"numRetries\":3,\"numMaxDelayRetries\":0,\"numNoDelayRetries\":0,\"numMinDelayRetries\":0,\"backoffFunction\":\"linear\"},\"disableSubscriptionOverrides\":false,\"defaultRequestPolicy\":{\"headerContentType\":\"text/plain; charset=UTF-8\"}}}",
+        "FirehoseSuccessFeedbackSampleRate": "0",
+        "SubscriptionsConfirmed": "2",
+        "SQSSuccessFeedbackSampleRate": "0",
+        "HTTPSuccessFeedbackSampleRate": "0",
+        "ApplicationSuccessFeedbackSampleRate": "0",
+        "DisplayName": "",
+        "SQSFailureFeedbackRoleArn": "arn:aws:iam::524073432557:role/global-employment-dev-ca-central-1-lambdaRole",
+        "SubscriptionsDeleted": "0"
+    }
+}

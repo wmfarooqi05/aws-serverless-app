@@ -9,19 +9,19 @@ import {
   SendMessageCommandOutput,
 } from "@aws-sdk/client-sqs";
 import { sendMessageToSQS } from "@utils/sqs";
+import { sqsDefaultConfig } from "@common/configs";
+import { IEmployeeJwt } from "@models/interfaces/Employees";
 
 @singleton()
 export class JobService {
   sqsClient: SQSClient = null;
   constructor(@inject(DatabaseService) private readonly _: DatabaseService) {
-    const sqsConfig: SQSClientConfig = { region: process.env.AWS_REGION };
-    if (process.env.STAGE === "local") {
-      sqsConfig.endpoint = "http://localhost:4566";
-    }
-
-    this.sqsClient = new SQSClient(sqsConfig);
+    this.sqsClient = new SQSClient(sqsDefaultConfig);
   }
 
+  async getAllJobs(employee: IEmployeeJwt, body) {
+    return JobsModel.query().withGraphFetched("executionHistory");
+  }
   /**
    *
    * @param jobItem

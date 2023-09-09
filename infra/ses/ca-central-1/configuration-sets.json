@@ -1,0 +1,7 @@
+{
+    "ConfigurationSets": [
+        {
+            "Name": "email_sns_config"
+        }
+    ]
+}

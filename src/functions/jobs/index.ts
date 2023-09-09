@@ -173,8 +173,24 @@ const handleDynamoStreamRecords = {
 //       },
 //     },
 //   ],
-//   layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"],
+//   layers: ["arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5"], 
 // };
+
+const jobsHandler = {
+  handler: `${handlerPath(__dirname)}/express.handler`,
+  events: [
+    {
+      http: {
+        method: "get",
+        path: "jobs",
+        cors: true,
+      },
+    },
+  ],
+  layers: [
+    "arn:aws:lambda:${self:provider.region}:${aws:accountId}:layer:jobs-packages:5",
+  ],
+};
 
 export {
   importData,
@@ -182,6 +198,7 @@ export {
   bulkImportUsersProcessHandler,
   handleDynamoStreamRecords,
   uploadSignupBulkJob,
+  jobsHandler,
   // jobsHandler,
   // streamRecordHelper,
   // handleSESEmailToSNSEvent,
