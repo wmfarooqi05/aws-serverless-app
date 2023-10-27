@@ -1,8 +1,5 @@
 import "reflect-metadata";
-import CompanyModel, {
-  ICompanyModel,
-  ICompanyPaginated,
-} from "@models/Company";
+import CompanyModel from "@models/Company";
 import { DatabaseService } from "@libs/database/database-service-objection";
 
 import {
@@ -15,45 +12,20 @@ import { inject, singleton } from "tsyringe";
 import { updateHistoryHelper } from "src/common/json_helpers";
 import { PendingApprovalType } from "@models/interfaces/PendingApprovals";
 import { IEmployeeJwt } from "@models/interfaces/Employees";
-import { PendingApprovalService } from "@functions/pending_approvals/service";
 import ContactModel, { IContact } from "@models/Contacts";
 import { CustomError } from "@helpers/custom-error";
 import { ICompany } from "@models/interfaces/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
-import { FileRecordService } from "@functions/fileRecords/service";
-
-export interface IContactService {
-  getAllCompanies(body: any): Promise<ICompanyPaginated>;
-  createCompany(company: ICompanyModel): Promise<ICompanyModel>;
-  getCompany(id: string): Promise<ICompanyModel>;
-  updateCompany(
-    employee: IEmployeeJwt,
-    id: string,
-    status: string
-  ): Promise<ICompanyModel>;
-  deleteCompany(employee: IEmployeeJwt, id: string): Promise<any>;
-}
 
 @singleton()
-export class ContactService implements IContactService {
+export class ContactService {
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(PendingApprovalService)
-    private readonly pendingApprovalService: PendingApprovalService,
-    @inject(FileRecordService)
-    private readonly fileRecordService: FileRecordService
+    @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
   getAllContactQuery(body, whereClause = {}) {
-    const {
-      name,
-      designation,
-      phoneNumber,
-      timezone,
-      companyId,
-      createdBy,
-      returningFields,
-    } = body;
+    const { name, designation, phoneNumber, timezone, companyId, createdBy } =
+      body;
 
     return this.docClient
       .getKnexClient()(ContactModel.tableName)
@@ -81,48 +53,6 @@ export class ContactService implements IContactService {
   async getContactById(employee: IEmployeeJwt, contactId) {
     return ContactModel.query().where({ id: contactId });
   }
-  // async getCompanyQuery(employee: IEmployeeJwt, body, whereClause = {}) {
-  // const { name, designation, phoneNumbers, timezone, companyId, createdBy, returningFields } = body;
-
-  //   // @TODO move this to team interactions
-  //   // if (stage) {
-  //   //   whereClause["stage"] = stage;
-  //   // }
-  //   const knex = this.docClient.getKnexClient();
-  //   const returningKeys = returningFields;//this.getSelectKeys(returningFields);
-
-  //   const companies = await knex(`${CompanyModel.tableName} as c`)
-  //     .leftJoin(`${EMPLOYEE_COMPANY_INTERACTIONS_TABLE} as ec`, (join) => {
-  //       join.on("ec.employee_id", "=", knex.raw("?", [employee.sub])); // Use parameter binding
-  //     })
-  //     .leftJoin(`${TEAM_COMPANY_INTERACTIONS_TABLE} as tc`, (join) => {
-  //       join.on("tc.team_id", "=", knex.raw("?", [employee.teamId]));
-  //     })
-  //     .select(returningKeys)
-  //     .where(whereClause)
-  //     .modify((builder) => {
-  //       if (status) {
-  //         builder.whereRaw(`ec.'status' IN (${convertToWhereInValue(status)})`);
-  //       }
-  //       if (priority) {
-  //         builder.whereRaw(
-  //           `ec.'priority' = (${convertToWhereInValue(priority)})`
-  //         );
-  //       }
-  //       if (stage) {
-  //         builder.whereRaw(`tc.'stage' IN (${convertToWhereInValue(stage)})`);
-  //       }
-  //     })
-  //     .orderBy(...getOrderByItems(body, "c"))
-  //     .paginate(getPaginateClauseObject(body));
-
-  //   return {
-  //     data: companies?.data?.map((x) =>
-  //       this.validateCompanyWithInteractions(x)
-  //     ),
-  //     pagination: companies?.pagination,
-  //   };
-  // }
 
   // We are not adding pending approval for this
   async createContacts(employee: IEmployeeJwt, companyId, body) {
@@ -177,17 +107,8 @@ export class ContactService implements IContactService {
     const payload = JSON.parse(body);
     await validateUpdateContact(employee.sub, companyId, contactId, payload);
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
-        contactId,
-        employee,
-        ContactModel.tableName,
-        payload
-      );
-    }
 
+    // Update and also put current version in history table
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       contactId,
@@ -200,15 +121,7 @@ export class ContactService implements IContactService {
   }
 
   async deleteContact(employee: IEmployeeJwt, contactId: string) {
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.DELETE,
-        contactId,
-        employee,
-        ContactModel.tableName
-      );
-    }
+    // It will delete the contact but also keep its copy in history table
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       contactId,
@@ -251,75 +164,6 @@ export class ContactService implements IContactService {
       throw new CustomError("Contact doesn't belong to this company", 400);
     }
 
-    return this.fileRecordService.avatarUploadHelper(
-      payload.newAvatarUrl,
-      "media/avatars/contacts",
-      ContactModel.tableName,
-      contactId,
-      "avatar",
-      "EMPLOYEE",
-      employee.sub,
-      contactRecord?.contactAvatar
-    );
+    // return this.fileRecordService.avatarUploadHelper();
   }
-
-  // async addContactEmail(employee: IEmployeeJwt, contactId: string, body: any) {
-  //   const payload = JSON.parse(body);
-  //   await validateAddEmail(employee.sub, contactId, payload);
-  //   const contact: IContact = await ContactModel.query().findById(contactId);
-  //   if (!contact) {
-  //     throw new CustomError("Contact doesn't exists", 400);
-  //   }
-
-  //   const { permitted, createPendingApproval } = employee;
-  //   if (!permitted && createPendingApproval) {
-  //     return this.pendingApprovalService.createPendingApprovalRequest(
-  //       PendingApprovalType.CREATE,
-  //       null,
-  //       employee,
-  //       ContactEmailsModel.tableName,
-  //       payload
-  //     );
-  //   }
-
-  //   payload.contactId = contactId;
-  //   const resp = await updateHistoryHelper(
-  //     PendingApprovalType.CREATE,
-  //     null,
-  //     employee.sub,
-  //     ContactEmailsModel.tableName,
-  //     this.docClient.getKnexClient(),
-  //     payload
-  //   );
-  //   return { contactEmail: resp[0].rows[0] };
-  // }
-
-  // async deleteContactEmail(employee: IEmployeeJwt, emailId: string) {
-  //   await validateDeleteEmail(employee.sub, emailId);
-  //   const contactEmail: IContact = await ContactEmailsModel.query().findById(
-  //     emailId
-  //   );
-  //   if (!contactEmail) {
-  //     throw new CustomError("Contact Email doesn't exists", 400);
-  //   }
-
-  //   const { permitted, createPendingApproval } = employee;
-  //   if (!permitted && createPendingApproval) {
-  //     return this.pendingApprovalService.createPendingApprovalRequest(
-  //       PendingApprovalType.DELETE,
-  //       emailId,
-  //       employee,
-  //       ContactEmailsModel.tableName
-  //     );
-  //   }
-
-  //   await updateHistoryHelper(
-  //     PendingApprovalType.DELETE,
-  //     emailId,
-  //     employee.sub,
-  //     ContactEmailsModel.tableName,
-  //     this.docClient.getKnexClient()
-  //   );
-  //   return { contactEmail: { id: emailId } };
-  // }
 }

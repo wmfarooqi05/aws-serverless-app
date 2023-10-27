@@ -1,6 +1,5 @@
 import type { AWS } from "@serverless/typescript";
 import * as dotenv from "dotenv";
-// import allFunctions from "src/sls-config/ca-central-1/functions";
 import allFunctions from "@functions/index";
 import { ensureEnvConfigs } from "./env-var-validtors";
 
@@ -41,13 +40,6 @@ const serverlessConfiguration: AWS = {
             Action: ["codedeploy:*"],
             Resource: "*",
           },
-          // {
-          //   Effect: "Allow",
-          //   Action: ["dynamodb:*", "sqs:SendMessage"],
-          //   Resource: [
-          //     `*`,
-          //   ],
-          // },
         ],
       },
     },
@@ -76,16 +68,6 @@ const serverlessConfiguration: AWS = {
         "${self:service}_${self:custom.region}_${self:custom.JOBS_DYNAMO_TABLE}",
       ACCOUNT_ID: "${self:custom.ACCOUNT_ID}",
       APIG_WS_ENDPOINT: "${self:custom.APIG_WS_ENDPOINT}",
-      // STAGE: "${opt:stage, 'dev'}",
-
-      // ge-db-dev-1.cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com
-      // aurora
-      // AURORA_HOST: "cluster-cyb3arxab5e4.ca-central-1.rds.amazonaws.com",
-      // AURORA_PORT: "${self:custom.AURORA.PORT}",
-      // #common
-      // DB_NAME: "${self:custom.DB_NAME}"
-      // EMPLOYEENAME: "${self:custom.EMPLOYEENAME}"
-      // PASSWORD: "${self:custom.PASSWORD}"
     },
     tracing: {
       lambda: true,
@@ -135,8 +117,7 @@ const serverlessConfiguration: AWS = {
         ],
       ],
     },
-    // cognitoAuthorizerArn:
-    //   "arn:aws:cognito-idp:${self:provider.region}:${self:provider.accountId}:userpool/${self:custom.userPoolId}",
+    cognitoAuthorizerArn: "arn:aws:cognito-idp",
 
     // move it to different file
     esbuild: {
@@ -225,101 +206,8 @@ const serverlessConfiguration: AWS = {
           },
         },
       },
-      // JobQueue: {
-      //   Type: "AWS::SQS::Queue",
-      //   Properties: {
-      //     QueueName: "${self:custom.JOB_QUEUE}",
-      //   },
-      // },
-      // JobTable: {
-      //   Type: "AWS::DynamoDB::Table",
-      //   Properties: {
-      //     AttributeDefinitions: [
-      //       {
-      //         AttributeName: "jobId",
-      //         AttributeType: "S",
-      //       },
-      //     ],
-      //     KeySchema: [
-      //       {
-      //         AttributeName: "jobId",
-      //         KeyType: "HASH",
-      //       },
-      //     ],
-      //     ProvisionedThroughput: {
-      //       ReadCapacityUnits: 1,
-      //       WriteCapacityUnits: 1,
-      //     },
-      //     StreamSpecification: {
-      //       StreamViewType: "NEW_IMAGE", // @TODO change this
-      //     },
-      //   },
-      // },
-      // MyRuleSet: {
-      //   Type: "AWS::SES::ReceiptRuleSet",
-      //   Properties: {
-      //     RuleSetName: "my-rule-set",
-      //   },
-      // },
-      // MyRule: {
-      //   Type: "AWS::SES::ReceiptRule",
-      //   Properties: {
-      //     // Rule: {
-      //     //   Actions: [
-      //     //     {
-      //     //       LambdaAction: {
-      //     //         FunctionArn: {
-      //     //           "Fn::GetAtt": ["HandleEmailLambdaFunction", "Arn"],
-      //     //         },
-      //     //       },
-      //     //     },
-      //     //   ],
-      //     //   Recipients: ["*@my-domain.com"], // Replace with your domain
-      //     //   ScanEnabled: true,
-      //     //   Name: "my-rule",
-      //     // },
-      //     RuleSetName: {
-      //       Ref: "MyRuleSet",
-      //     },
-      //   },
-      // },
-      // EmailSNSTopic: {
-      //   Type: "AWS::SNS::Topic",
-      //   Properties: {
-      //     DisplayName: "Email SNS Topic",
-      //     Subscription: [
-      //       {
-      //         Protocol: "sqs",
-      //         TopicArn: "${self:custom.snsTopicArn}",
-      //         Endpoint: {
-      //           "Fn::GetAtt": ["EmailSNSTopic", "Arn"],
-      //         },
-      //       },
-      //     ],
-      //   },
-      // },
-      // Websocket endpoint authorization with cognito
-      // WebsocketAuthorizer: {
-      //   Type: "AWS::ApiGateway::Authorizer",
-      //   Properties: {
-      //     AuthorizerUri:
-      //       "arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/${self:service}-${self:provider.stage}-authorizer.${self:provider.region}.amazonaws.com/${self:provider.stage}/authorizer",
-      //     IdentitySource: "route.request.querystring.Authorization",
-      //     Name: "websocket-authorizer",
-      //     RestApiId: { Ref: "ApiGatewayRestApi" },
-      //     Type: "COGNITO_USER_POOLS",
-      //     ProviderARNs: ["${self:custom.cognitoAuthorizerArn}"],
-      //   },
-      // },
     },
   },
 };
-
-if (process.env.NODE_ENV === "local") {
-  console.log("adding documentation to plugin");
-  (serverlessConfiguration.plugins as string[]).push(
-    "@kakkuk/serverless-aws-apigateway-documentation"
-  );
-}
 
 module.exports = serverlessConfiguration;

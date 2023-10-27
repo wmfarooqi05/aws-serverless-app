@@ -18,26 +18,16 @@ import { DatabaseService } from "@libs/database/database-service-objection";
 import CompanyModel from "@models/Company";
 import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { getEmployeeFilter } from "./helpers";
-import { FileRecordService } from "@functions/fileRecords/service";
 import { getKeysFromS3Url } from "@utils/s3";
 import { getFileExtension } from "@utils/file";
 import { randomUUID } from "crypto";
 
 export interface IEmployeeService {}
 
-export interface EmployeeEBSchedulerPayload {
-  // employeeTime: string;
-  // eventType: EmployeeType;
-  // name: string;
-  // data?: any;
-}
-
 @singleton()
 export class EmployeeService implements IEmployeeService {
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(FileRecordService)
-    private readonly fileRecordsService: FileRecordService
+    @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
   /**
@@ -57,18 +47,6 @@ export class EmployeeService implements IEmployeeService {
         reportingManager: employeeId,
       });
 
-      // This is code for employees who are not assigned to any company, place it in correct function
-      /**
-      this.docClient
-        .get(EmployeeModel.tableName)
-        .leftJoin(
-          CompanyModel.tableName,
-          `${EmployeeModel.tableName}.id`,
-          `${CompanyModel.tableName}.assignedTo`
-        )
-        .whereNull(`${CompanyModel.tableName}.id`)
-        .select(`${EmployeeModel}.*`);
-       */
       return employees;
     } catch (e) {
       console.log("e", e);
@@ -142,45 +120,6 @@ export class EmployeeService implements IEmployeeService {
       reportingManager: payload.reportingManager || employee.sub,
     });
 
-    if (payload.avatar) {
-      const keys = getKeysFromS3Url(payload.avatar);
-      const { contentType } = await this.fileRecordsService.getFileProperties(
-        keys.fileKey,
-        keys.bucketName
-      );
-
-      // We are not storing profile pic name as employee id
-      // because in case of update, we have to delete these files
-      // and maybe mark this record as to be deleted
-      const fileName = `${randomUUID()}.${getFileExtension(contentType)}`;
-      const files =
-        await this.fileRecordsService.copyFilesToBucketWithPermissions(
-          [
-            {
-              contentType,
-              destinationKey: `media/avatars/employees/${fileName}`,
-              originalFilename: fileName,
-              sourceBucket: keys.bucketName,
-              sourceKey: keys.fileKey,
-              sourceRegion: keys.region,
-            },
-          ],
-          {
-            ["*"]: { employeeId: "*", permissions: ["READ"] },
-            [employee.sub]: {
-              email: employee.email,
-              employeeId: employee.sub,
-              permissions: ["OWNER"],
-            },
-          }
-        );
-      await EmployeeModel.query().patchAndFetchById(newEmployee.id, {
-        avatar: files[0].fileUrl,
-      });
-
-      newEmployee.avatar = files[0].fileUrl;
-    }
-
     await newEmployee
       .$relatedQuery("teams")
       .for(newEmployee.id)
@@ -204,37 +143,6 @@ export class EmployeeService implements IEmployeeService {
     }
     await EmployeeModel.query().findById(employee.sub).patch(payload);
     return EmployeeModel.query().findById(employee.sub);
-  }
-
-  /**
-   * this functionality was moved to jwt validator part
-   * @deprecated
-   * @param employeeJwt
-   * @param requestedUserId
-   * @returns
-   */
-  async validateRequestByEmployeeRole(
-    employeeJwt: IEmployeeJwt,
-    requestedUserId
-  ) {
-    // @TODO remove me clause
-    if (employeeJwt.sub === requestedUserId || requestedUserId === "me") return;
-
-    const employeeRole: IEmployee = await EmployeeModel.query()
-      .findById(requestedUserId)
-      .returning(["role"]);
-
-    if (
-      !(
-        RolesEnum[employeeJwt.role] >= RolesEnum.ADMIN ||
-        RolesEnum[employeeJwt.role] > RolesEnum[employeeRole.role]
-      )
-    ) {
-      throw new CustomError(
-        "You are not authorized to see this role's data",
-        400
-      );
-    }
   }
 
   async uploadOrReplaceAvatar(employee: IEmployeeJwt, body: string) {

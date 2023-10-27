@@ -3,7 +3,6 @@
 node_modules
 layers/nodejs/node_modules
 
-
 # Serverless directories
 .serverless
 
@@ -25,5 +24,4 @@ layers/**/*.zip
 layers/**/*.tar.gz
 secrets.json
 S3TmpBucket/
-
-terraform1
+.env.*

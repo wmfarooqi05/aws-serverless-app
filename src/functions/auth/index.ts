@@ -5,7 +5,7 @@ const cognitoOAuthHandler: any = {
   events: [
     {
       cognitoUserPool: {
-        pool: "ca-central-1_0BjGZxtC1",
+        pool: "${self:custom.userPoolId}",
         trigger: "PreTokenGeneration" as COGNITO_TRIGGER,
       },
     },

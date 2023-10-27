@@ -42,12 +42,7 @@ import {
   PendingApprovalType,
 } from "@models/interfaces/PendingApprovals";
 import { IEmployee, IEmployeeJwt } from "@models/interfaces/Employees";
-import { PendingApprovalService } from "@functions/pending_approvals/service";
-import {
-  getOrderByItems,
-  getPaginateClauseObject,
-  sanitizeColumnNames,
-} from "@common/query";
+import { getOrderByItems, getPaginateClauseObject } from "@common/query";
 import { EmployeeService } from "@functions/employees/service";
 import Joi from "joi";
 import {
@@ -63,13 +58,11 @@ import TeamCompanyInteractionsModel, {
   ITeamCompanyInteraction,
   getDefaultTeamInteractionItem,
 } from "@models/TeamCompanyInteractions";
-import { IUpdateHistory } from "@models/interfaces/UpdateHistory";
 import { IWithPagination } from "knex-paginate";
 import EmployeeModel from "@models/Employees";
-import { FileRecordService } from "@functions/fileRecords/service";
 import { S3Service } from "@common/service/S3Service";
-import { JobService } from "@functions/jobs/service";
 import TeamModel, { ITeam } from "@models/Teams";
+import { getSelectKeys, validateCompanyWithInteractions } from "./utils";
 
 const defaultTimezone = "Canada/Eastern";
 
@@ -88,14 +81,7 @@ export interface ICompanyService {
 @singleton()
 export class CompanyService implements ICompanyService {
   constructor(
-    @inject(DatabaseService) private readonly docClient: DatabaseService,
-    @inject(PendingApprovalService)
-    private readonly pendingApprovalService: PendingApprovalService,
-    @inject(EmployeeService) private readonly employeeService: EmployeeService,
-    @inject(FileRecordService)
-    private readonly fileRecordService: FileRecordService,
-    @inject(S3Service) private readonly s3Service: S3Service,
-    @inject(JobService) private readonly jobService: JobService
+    @inject(DatabaseService) private readonly docClient: DatabaseService
   ) {}
 
   async getAllCompanies(
@@ -128,7 +114,7 @@ export class CompanyService implements ICompanyService {
     //   whereClause["stage"] = stage;
     // }
     const knex = this.docClient.getKnexClient();
-    const returningKeys = this.getSelectKeys(returningFields);
+    const returningKeys = getSelectKeys(returningFields);
 
     const companies: IWithPagination<ICompany> = await knex(
       `${CompanyModel.tableName} as c`
@@ -241,9 +227,6 @@ export class CompanyService implements ICompanyService {
     // @TODO we dont need this transaction
     await this.docClient.getKnexClient().transaction(async (trx) => {
       try {
-        const history: IUpdateHistory[] = [];
-        // company = await CompanyModel.query(trx).insert(payload);
-
         company = await CompanyModel.query(trx).insertGraph({
           ...payload,
           contacts: contactsPayload.map((x) => ({
@@ -265,31 +248,6 @@ export class CompanyService implements ICompanyService {
             } as IEmployeeCompanyInteraction,
           ],
         });
-
-        // history.push({
-        //   actionType: PendingApprovalType.CREATE,
-        //   tableName: COMPANIES_TABLE_NAME,
-        //   newValue: JSON.stringify(company),
-        //   updatedBy: employee.sub,
-        // });
-        // const contactEmailsPromises = contactsPayload.map((x: any) =>
-        //   CompanyModel.relatedQuery("contacts", trx)
-        //     .for(company.id)
-        //     .insert({ ...x, companyId: company.id, createdBy: employee.sub })
-        // );
-        // const contacts = await Promise.all(contactEmailsPromises);
-        // contacts.forEach((x) => {
-        //   history.push({
-        //     actionType: PendingApprovalType.CREATE,
-        //     tableName: CONTACTS_TABLE,
-        //     newValue: JSON.stringify(x),
-        //     updatedBy: employee.sub,
-        //   });
-        // });
-
-        // company["contacts"] = contacts;
-        // await UpdateHistoryModel.query(trx).insert(history);
-
         await trx.commit();
       } catch (e) {
         error = e;
@@ -313,16 +271,7 @@ export class CompanyService implements ICompanyService {
     const payload = JSON.parse(body);
     await validateUpdateCompanies(id, payload);
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
-        id,
-        employee,
-        CompanyModel.tableName,
-        payload
-      );
-    }
+    // Update and store current version in history table
 
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
@@ -379,7 +328,7 @@ export class CompanyService implements ICompanyService {
     );
 
     return {
-      company: this.validateCompanyWithInteractions({
+      company: validateCompanyWithInteractions({
         ...company,
         ...payload,
       }),
@@ -429,16 +378,7 @@ export class CompanyService implements ICompanyService {
           }
         : { stage: COMPANY_STAGES.CONTACT };
 
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        action,
-        id,
-        employee,
-        TeamCompanyInteractionsModel.tableName,
-        payload
-      );
-    }
+    // Update and store current version in history table
 
     await updateHistoryHelper(
       action,
@@ -472,16 +412,8 @@ export class CompanyService implements ICompanyService {
     await Joi.object({
       id: Joi.string().uuid().required(),
     }).validateAsync({ id });
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.DELETE,
-        id,
-        employee,
-        CompanyModel.tableName
-      );
-    }
 
+    // Delete and store current version in history table
     await updateHistoryHelper(
       PendingApprovalType.DELETE,
       id,
@@ -515,23 +447,8 @@ export class CompanyService implements ICompanyService {
         400
       );
     }
-    const { permitted, createPendingApproval } = employee;
-    const batchApprovalKey = randomUUID();
-    if (!permitted && createPendingApproval) {
-      const pendingApprovalPromises = companyIds.map((x) =>
-        this.pendingApprovalService.createPendingApprovalRequest(
-          PendingApprovalType.UPDATE,
-          x,
-          employee,
-          CompanyModel.tableName,
-          { assignedTo: payload?.assignTo ?? null },
-          null,
-          null,
-          batchApprovalKey
-        )
-      );
-      return Promise.all(pendingApprovalPromises);
-    }
+
+    // Update and store current version in history table
     const updatePromises = companyIds.map((x) =>
       updateHistoryHelper(
         PendingApprovalType.UPDATE,
@@ -564,16 +481,8 @@ export class CompanyService implements ICompanyService {
     if (!company) {
       throw new CustomError("Company not found", 404);
     }
-    const { permitted, createPendingApproval } = employee;
-    if (!permitted && createPendingApproval) {
-      return this.pendingApprovalService.createPendingApprovalRequest(
-        PendingApprovalType.UPDATE,
-        companyId,
-        employee,
-        CompanyModel.tableName,
-        { assignedTo: payload?.assignTo ?? null }
-      );
-    }
+
+    // Update and store current version in history table
     await updateHistoryHelper(
       PendingApprovalType.UPDATE,
       companyId,
@@ -730,53 +639,6 @@ export class CompanyService implements ICompanyService {
     return { notes: originalObject[key][index] };
   }
 
-  getSelectKeys(returningFields) {
-    const companyKeys = sanitizeColumnNames(
-      CompanyModel.columnNames,
-      returningFields,
-      "c"
-    );
-
-    const employeeToCompanyKeys = sanitizeColumnNames(
-      EmployeeCompanyInteractionsModel.validSchemaKeys,
-      returningFields,
-      "ec",
-      true
-    );
-
-    const teamToCompanyKeys = sanitizeColumnNames(
-      TeamCompanyInteractionsModel.validSchemaKeys,
-      returningFields,
-      "tc",
-      true
-    );
-
-    const companyArray = Array.isArray(companyKeys)
-      ? companyKeys
-      : [companyKeys];
-    const teamToCompanyArray = Array.isArray(teamToCompanyKeys)
-      ? teamToCompanyKeys
-      : [teamToCompanyKeys];
-    const employeeToCompanyArray = Array.isArray(employeeToCompanyKeys)
-      ? employeeToCompanyKeys
-      : [employeeToCompanyKeys];
-
-    return [...companyArray, ...teamToCompanyArray, ...employeeToCompanyArray];
-  }
-
-  validateCompanyWithInteractions(companyItem) {
-    return {
-      ...companyItem,
-      priority: companyItem?.priority ?? COMPANY_PRIORITY.NO_PRIORITY,
-      status: companyItem?.status ?? COMPANY_STATUS.NONE,
-      // stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
-      notes: companyItem?.notes ?? [],
-      employeeInteractionDetails: companyItem?.employeeInteractionDetails ?? {},
-      stage: companyItem?.stage ?? COMPANY_STAGES.LEAD,
-      teamInteractionDetails: companyItem?.teamInteractionDetails ?? {},
-    };
-  }
-
   async uploadOrReplaceAvatar(
     employee: IEmployeeJwt,
     companyId: string,
@@ -796,15 +658,7 @@ export class CompanyService implements ICompanyService {
       .withGraphFetched("companyAvatar.[variations]")
       .select(["id", "companyName"]);
 
-    return this.fileRecordService.avatarUploadHelper(
-      payload.newAvatarUrl,
-      "media/avatars/companies",
-      CompanyModel.tableName,
-      companyId,
-      "avatar",
-      "EMPLOYEE",
-      employee.sub,
-      companyRecord?.companyAvatar
-    );
+    // implementation removed
+    // return this.fileRecordService.avatarUploadHelper()
   }
 }

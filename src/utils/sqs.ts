@@ -6,9 +6,13 @@ import {
   SendMessageCommand,
   SendMessageCommandOutput,
 } from "@aws-sdk/client-sqs";
-import { uploadContentToS3 } from "@functions/jobs/upload";
 import { SQSRecord } from "aws-lambda";
 import { randomUUID } from "crypto";
+
+
+const uploadContentToS3 = () => {
+  // implementation removed
+}
 
 /**
  *

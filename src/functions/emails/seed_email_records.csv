@@ -1,9 +1,0 @@
-id,subject,body,sender_id,direction,sent_at,message_id,attachments,email_type,result,status,in_reply_to,references,content_url,contains_html
-1c5f703b-4422-4f70-8f1f-6ff4c74d7f1f,Hello,Hi John,12345,OUTGOING,2023-06-01T09:00:00Z,abc123,[],EMAIL,SUCCESS,PENDING,,,"http://example.com",true
-d398589e-d0dd-43c9-a12d-2c6a9b23166c,Regarding the project,Hey Emily,67890,INCOMING,2023-06-02T14:30:00Z,def456,[],EMAIL,SUCCESS,PENDING,,,"http://example.com",true
-94e8e759-ee47-4162-8936-611a5f3191d3,Meeting Reminder,Hello all,12345,OUTGOING,2023-06-03T10:15:00Z,ghi789,[],EMAIL,SUCCESS,PENDING,,,"http://example.com",true
-e0c52511-69e2-4e10-b14c-2d33b95a5f5a,Re: Regarding the project,Hi David,67890,INCOMING,2023-06-02T15:00:00Z,jkl012,[],EMAIL,SUCCESS,PENDING,2,2,"http://example.com",true
-5560eef1-25b3-4df0-a889-7c51fd7081a3,Re: Regarding the project,Hi Emily,67890,INCOMING,2023-06-03T09:45:00Z,mno345,[],EMAIL,SUCCESS,PENDING,2,2,"http://example.com",true
-9e503c44-8299-4aef-b4c3-1b2b6e9747c5,Re: Meeting Reminder,Hi Matthew,12345,OUTGOING,2023-06-03T10:30:00Z,pqr678,[],EMAIL,SUCCESS,PENDING,3,3,"http://example.com",true
-0a5a94f8-1765-4bb4-a5f6-2a6b826f5a44,Re: Meeting Reminder,Hi Oliver,12345,OUTGOING,2023-06-03T10:45:00Z,stu901,[],EMAIL,SUCCESS,PENDING,3,3,"http://example.com",true
-5e1e4a6f-81c6-43b5-a9e9-0c1587537dd3,Important Announcement,Attention all,12345,OUTGOING,2023-06-04T11:30:00Z,vwx234,[],EMAIL,SUCCESS,PENDING,,,"http://example.com",true
